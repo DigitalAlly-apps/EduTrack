@@ -490,7 +490,9 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
 
   const confirmDelete = () => {
     if (!pendingDeleteId) return;
-    updateData(d => d.schedules = d.schedules.filter(s => s.id !== pendingDeleteId));
+    updateData(d => {
+      d.schedules = d.schedules.filter(s => String(s.id) !== String(pendingDeleteId));
+    });
     setPendingDeleteId(null);
     toast({ title: 'Jadwal dihapus' });
     onRefresh();
@@ -584,8 +586,8 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
         <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>
       </div>
       <div className="flex gap-[4px] items-center flex-shrink-0">
-        <button onClick={() => setEditing(true)} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
-        <button onClick={() => onDelete(item.id)} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
+        <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
       </div>
     </div>
   );
