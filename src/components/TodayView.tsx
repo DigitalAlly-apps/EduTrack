@@ -1,0 +1,569 @@
+import { useState, useCallback } from 'react';
+import {
+  getTodaySchedules, getActiveSession, getNextSession, getInsights,
+  markDone, skipSession, postponeSchedule, timeToMin, currentMin, fmt, fmtCountdown,
+  todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHoliday,
+  getTasks, toggleTask, addTask, updateSessionNote, getData
+} from '@/lib/data';
+import { TodayScheduleItem } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import DailyBriefing from './DailyBriefing';
+
+interface TodayViewProps {
+  refreshKey: number;
+  onRefresh: () => void;
+}
+
+export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
+  const items = getTodaySchedules();
+  const active = getActiveSession(items);
+  const next = getNextSession(items);
+  const insights = getInsights();
+  const { toast } = useToast();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [undoProgress, setUndoProgress] = useState(0);
+  
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  
+  const tasks = getTasks();
+  const pendingTasks = tasks.filter(t => t.status === 'pending');
+
+  const handleHeroDone = useCallback((id: string) => {
+    if (pendingId === id) {
+      setPendingId(null);
+      setUndoProgress(0);
+      toast({ title: 'Aksi dibatalkan' });
+      return;
+    }
+    setPendingId(id);
+    setUndoProgress(0);
+    const start = Date.now();
+    const duration = 4000;
+    
+    const tick = () => {
+      setPendingId(prev => {
+        if (prev !== id) return prev; // cancelled
+        const now = Date.now();
+        const p = Math.min(100, ((now - start) / duration) * 100);
+        setUndoProgress(p);
+        if (p < 100) {
+          requestAnimationFrame(tick);
+          return prev;
+        } else {
+          markDone(id);
+          onRefresh();
+          toast({ title: '✓ Tersimpan' });
+          return null;
+        }
+      });
+    };
+    requestAnimationFrame(tick);
+  }, [pendingId, onRefresh, toast]);
+
+  const handleSkip = (id: string) => {
+    skipSession(id);
+    onRefresh();
+    toast({ title: 'Sesi dilewati' });
+  };
+
+  const handlePostpone = (id: string, mins: number) => {
+    postponeSchedule(id, mins);
+    onRefresh();
+    toast({ title: `Jadwal digeser ${mins} menit` });
+  };
+
+  const handleTLDone = (id: string) => {
+    setMarkingId(id);
+    setTimeout(() => {
+      markDone(id);
+      setMarkingId(null);
+      onRefresh();
+      toast({ title: '✓ Tersimpan' });
+    }, 320);
+  };
+
+  const handleSaveNote = (sessionId: string) => {
+    updateSessionNote(sessionId, noteDraft);
+    setExpandedNoteId(null);
+    onRefresh();
+    toast({ title: 'Catatan disimpan' });
+  };
+
+  if (isTodayHoliday()) {
+    return (
+      <div className="text-center py-12 px-6 animate-slide-up flex flex-col items-center">
+        <div className="w-20 h-20 bg-primary-dim rounded-full grid place-items-center mb-6 shadow-sm">
+          <span className="text-4xl">☕</span>
+        </div>
+        <div className="font-display text-2xl font-bold tracking-tight mb-2">Hari Ini Libur!</div>
+        <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">
+          Kamu sudah mencatat hari ini sebagai hari libur (dadakan). Waktunya istirahat sejenak atau selesaikan urusan lain di luar kelas.
+        </div>
+        <div className="mt-8 px-4 py-2 bg-surface2 border border-border rounded-full text-[13px] font-medium text-text3 italic">
+          "Istirahat bukan berarti berhenti, tapi menyiapkan energi buat besok."
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-12 px-6 animate-slide-up">
+        <span className="text-5xl block mb-4">📅</span>
+        <div className="font-display text-2xl font-medium tracking-tight mb-2">Tidak ada jadwal hari ini</div>
+        <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">
+          Hari ini {DAYS_ID[todayNum()]}. Kayaknya hari santai buat kamu.
+        </div>
+      </div>
+    );
+  }
+
+  if (items.every(x => x.done)) {
+    const doneItems = items.filter(x => !x.skipped);
+    const skippedItems = items.filter(x => x.skipped);
+    return (
+      <div className="py-8 px-6 animate-slide-up">
+        <div className="text-center mb-10">
+          <span className="text-6xl block mb-4">🎉</span>
+          <div className="font-display text-3xl font-bold tracking-tight mb-2 text-foreground">Semua Beres!</div>
+          <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto opacity-80">
+            Luar biasa, {getData().teacherName || 'Guru'}. Semua agenda hari ini sudah tuntas.
+          </div>
+        </div>
+
+        <div className="bg-surface/60 border border-border rounded-2xl p-5 mb-4 shadow-sm">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-text3 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green" />
+            Ringkasan Hari Ini
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-text2">Sesi Selesai</span>
+              <span className="text-sm font-bold text-foreground">{doneItems.length} Kelas</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-text2">Sesi Dilewati</span>
+              <span className="text-sm font-bold text-text3">{skippedItems.length} Kelas</span>
+            </div>
+            <div className="pt-3 border-t border-border/50">
+              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Materi yang diajarkan:</div>
+              <div className="flex flex-wrap gap-1.5">
+                {doneItems.map((it, i) => (
+                  <div key={i} className="px-2.5 py-1 bg-green-dim text-green text-[11px] font-semibold rounded-md border border-green/20">
+                    {it.className}
+                  </div>
+                ))}
+                {doneItems.length === 0 && <span className="text-[11px] text-text3 italic">Tidak ada materi baru</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => window.location.reload()}
+          className="w-full py-3.5 rounded-xl bg-surface2 border border-border text-sm font-bold text-text2 transition-all hover:bg-surface3 active:scale-[0.98]"
+        >
+          🔄 Refresh Status
+        </button>
+      </div>
+    );
+  }
+
+  const doneCount = items.filter(x => x.done).length;
+  const showBackupBtn = shouldShowBackupReminder();
+  const countdowns = getExamCountdowns();
+
+  return (
+    <div>
+      {/* Daily Briefing */}
+      <DailyBriefing />
+      {/* Backup Reminder Banner */}
+      {showBackupBtn && (
+        <div className="bg-amber/10 border border-amber/30 rounded-lg p-3 mb-[10px] flex items-center justify-between animate-slide-up">
+          <div className="flex items-center gap-2 max-w-[70%]">
+            <span className="text-lg">⚠️</span>
+            <span className="text-[11px] font-medium leading-snug">Sudah 7+ hari belum backup data Anda.</span>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { dismissBackupReminder(); onRefresh(); }} className="px-2 py-1.5 text-[10px] font-semibold text-text2 bg-surface rounded shadow-sm">Nanti</button>
+            <button onClick={() => { window.document.querySelector('.tab-data-btn')?.dispatchEvent(new MouseEvent('click')); dismissBackupReminder(); onRefresh(); }} className="px-2 py-1.5 text-[10px] font-bold text-amber-950 bg-amber rounded shadow-sm">Backup</button>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Hero Area: Active Session, Upcoming, or Exams */}
+      {(() => {
+        const hasExams = countdowns.length > 0;
+        
+        // State 1: Active Session (Highest Priority)
+        if (active) {
+          const totalDuration = active.duration || 45;
+          const elapsed = currentMin() - timeToMin(active.startTime);
+          const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+          const isOvertime = currentMin() >= timeToMin(active.endTime);
+
+          return (
+            <div className={`bg-surface/60 backdrop-blur-xl border rounded-[32px] overflow-hidden relative shadow-lg mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/30'}`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Time Up Notification Banner */}
+              {isOvertime && (
+                <div className="bg-red text-white py-2 px-4 text-center text-[11px] font-bold uppercase tracking-[2px] animate-pulse">
+                  ⚡ Waktu Pelajaran Selesai
+                </div>
+              )}
+              
+              <div className="p-6 relative">
+                {/* Status + Exam Badges at Top */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                  <div className={`inline-flex items-center gap-2 border text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
+                    <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
+                  </div>
+                  
+                  {hasExams && (
+                    <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-[60%]">
+                      {countdowns.slice(0, 2).map((cd, i) => (
+                        <div key={i} className={`whitespace-nowrap px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-tight ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
+                          {cd.subject}: {cd.daysLeft}h
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="h-1.5 w-full bg-surface2 rounded-full mb-6 overflow-hidden border border-border/30">
+                  <div 
+                    className={`h-full transition-all duration-1000 ease-linear ${isOvertime ? 'bg-red' : 'bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)]'}`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                <div className="font-display text-4xl font-extrabold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
+                <div className="text-[15px] font-semibold text-text2 mb-6 flex items-center gap-2.5">
+                  <span className="opacity-90">{active.subjectName}</span>
+                  <span className="opacity-20">•</span>
+                  <span className="opacity-90 tabular-nums bg-surface2/50 px-2.5 py-1 rounded-lg border border-border/40 leading-none">{fmt(active.startTime)} – {fmt(active.endTime)}</span>
+                </div>
+
+                <div className="bg-surface2/40 backdrop-blur-sm border border-border/40 rounded-2xl p-4 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-xl flex-shrink-0">📖</div>
+                  <div>
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
+                    <div className="text-[15px] font-bold leading-tight text-foreground/90">{active.nextMat ? active.nextMat.name : 'Semua materi selesai 🎉'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 pt-1">
+                <div className="flex gap-2 relative">
+                  <button
+                    onClick={() => handleHeroDone(active.id)}
+                    className={`flex-1 py-4.5 rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
+                      pendingId === active.id
+                        ? 'bg-surface3 text-text2 border border-border'
+                        : isOvertime 
+                          ? 'bg-red text-white' 
+                          : 'bg-primary text-primary-foreground'
+                    }`}
+                  >
+                    {pendingId === active.id ? (
+                      <>
+                        <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
+                        <span className="relative z-10 flex items-center gap-2 text-sm">✕ BATALKAN</span>
+                      </>
+                    ) : <>{isOvertime ? '🔥 SELESAI' : '✓ SELESAI'}</>}
+                  </button>
+                  <button
+                    onClick={() => handleSkip(active.id)}
+                    className="w-[58px] h-[58px] rounded-2xl bg-surface2 border border-border2 text-text2 text-2xl grid place-items-center flex-shrink-0 transition-all hover:bg-surface3 hover:border-border3 active:scale-95 shadow-sm"
+                    title="Lewati sesi ini"
+                  >
+                    ⏭
+                  </button>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-text3">Geser Waktu:</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => handlePostpone(active.id, 15)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+15m</button>
+                    <button onClick={() => handlePostpone(active.id, 30)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+30m</button>
+                    <button onClick={() => handlePostpone(active.id, 60)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+1j</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // State 2: No active session, show Upcoming (Wait)
+        const upcoming = items.find(x => !x.done);
+        if (upcoming) {
+          const diff = timeToMin(upcoming.startTime) - currentMin();
+          return (
+            <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-[32px] p-7 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,hsl(var(--teal-glow))_0%,transparent_70%)] pointer-events-none mix-blend-screen opacity-60" />
+              <div className="absolute inset-x-0 top-0 h-[100px] bg-gradient-to-b from-teal/10 to-transparent pointer-events-none" />
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="inline-flex items-center gap-[6px] bg-teal-dim border border-teal/40 text-[10px] text-teal font-extrabold tracking-[0.9px] uppercase px-[14px] py-[8px] rounded-full shadow-[0_0_15px_hsl(var(--teal-glow))]">
+                    🕐 Berikutnya
+                  </div>
+                  {hasExams && (
+                    <div className="flex gap-1">
+                      {countdowns.slice(0, 1).map((cd, i) => (
+                        <div key={i} className={`whitespace-nowrap px-2.5 py-1 rounded-lg border text-[10px] font-bold ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
+                          📅 {cd.subject}: {cd.daysLeft}h
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="font-display text-[42px] font-black tracking-[-0.04em] leading-[0.95] bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent mb-2">{upcoming.className}</div>
+                <div className="text-[16px] font-bold text-text2/80 mb-6">{upcoming.subjectName}</div>
+                
+                <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-[24px] p-5 flex items-center gap-5 shadow-inner">
+                  <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
+                  <div className="flex-1">
+                    <div className="text-[11px] font-bold uppercase tracking-widest text-teal/70 mb-1">Mulai Pukul {fmt(upcoming.startTime)}</div>
+                    <div className="flex items-baseline gap-2">
+                       <div className="text-3xl font-black text-teal tabular-nums leading-none tracking-tighter">{fmtCountdown(diff)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {upcoming.nextMat && (
+                  <div className="mt-5 text-[13px] font-semibold text-text3 flex items-center gap-2.5 px-2">
+                    <span className="opacity-50">Persiapan:</span> 
+                    <strong className="text-foreground/70 bg-surface3/40 px-2 py-0.5 rounded-md border border-border/20">{upcoming.nextMat.name}</strong>
+                  </div>
+                )}
+                
+                <div className="mt-4 flex items-center justify-between border-t border-teal/20 pt-3 relative z-10">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal/70">Geser Jadwal:</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => handlePostpone(upcoming.id, 15)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+15m</button>
+                    <button onClick={() => handlePostpone(upcoming.id, 30)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+30m</button>
+                    <button onClick={() => handlePostpone(upcoming.id, 60)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+1j</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // State 3: No sessions today, but Exams exist
+        if (hasExams) {
+          return (
+             <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-[32px] p-7 mb-4 animate-slide-up shadow-lg">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-2xl">⚡</span>
+                   <div className="text-[11px] font-black uppercase tracking-widest text-text3">Fokus Ujian Mendatang</div>
+                </div>
+                <div className="space-y-4">
+                  {countdowns.slice(0, 3).map((cd, i) => (
+                    <div key={i} className={`flex items-center justify-between p-4 rounded-2xl border ${cd.daysLeft <= 7 ? 'bg-red/5 border-red/20' : 'bg-surface2/60 border-border'}`}>
+                      <div>
+                        <div className="text-[14px] font-extrabold text-foreground">{cd.subject}</div>
+                        <div className="text-[11px] font-bold text-text3 uppercase mt-0.5">Mata Pelajaran</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-black tabular-nums leading-none ${cd.daysLeft <= 7 ? 'text-red' : cd.daysLeft <= 14 ? 'text-amber' : 'text-primary'}`}>{cd.daysLeft}</div>
+                        <div className="text-[9px] font-black text-text3 uppercase mt-1">Hari Lagi</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' }))}
+                  className="w-full mt-6 py-3 text-[11px] font-black text-primary uppercase tracking-widest hover:bg-primary/5 rounded-xl transition-colors"
+                >
+                  Lihat Kalender Ujian →
+                </button>
+             </div>
+          );
+        }
+
+        return null; // Should not happen given logic above
+      })()}
+
+
+      {/* Next Card */}
+      {active && next && next.id !== active.id && (
+        <div className="bg-surface border border-border rounded-lg p-[13px_15px] flex items-center gap-3 mb-[10px] relative overflow-hidden animate-slide-up-delay-1">
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-teal rounded-r" />
+          <div className="w-[38px] h-[38px] rounded-[10px] bg-teal-dim border border-teal grid place-items-center text-base flex-shrink-0">📚</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[9px] font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
+            <div className="text-sm font-semibold">{next.className} — {next.subjectName}</div>
+            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px]">📖 {next.nextMat.name}</div>}
+          </div>
+          <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
+            <span className="text-[13px] font-semibold text-teal tabular-nums block leading-tight">{fmt(next.startTime)}</span>
+            <div className="text-[9px] text-text3">{fmtCountdown(timeToMin(next.startTime) - currentMin())}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Insights */}
+      {insights.map((ins, i) => (
+        <div
+          key={i}
+          className={`rounded-lg p-3 flex items-start gap-[10px] mb-2 animate-slide-up-delay-2 ${
+            ins.type === 'warn'
+              ? 'bg-[hsl(45_93%_56%/0.05)] border border-[hsl(45_93%_56%/0.14)]'
+              : 'bg-[hsl(199_89%_60%/0.05)] border border-[hsl(199_89%_60%/0.12)]'
+          }`}
+        >
+          <div className="text-[15px] flex-shrink-0 mt-[1px]">{ins.type === 'warn' ? '💡' : '📌'}</div>
+          <div>
+            <div className="text-[9px] font-bold tracking-[0.7px] uppercase text-text3 mb-[2px]">{ins.directive}</div>
+            <div className="text-[13px] text-text2 leading-relaxed" dangerouslySetInnerHTML={{ __html: ins.text }} />
+          </div>
+        </div>
+      ))}
+
+      {/* Task Inbox */}
+      {pendingTasks.length > 0 && (
+        <div className="mb-4 animate-slide-up-delay-2">
+          <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-amber mb-2 flex items-center justify-between">
+            <span>Inbox Tugas ({pendingTasks.length})</span>
+          </div>
+          <div className="bg-surface border border-border2 rounded-xl overflow-hidden shadow-sm">
+            {pendingTasks.map((t, i) => {
+              const cls = getData().classes.find(c => c.id === t.classId);
+              const sub = getData().subjects.find(s => s.id === t.subjectId);
+              return (
+                <div key={t.id} className={`p-3 flex items-start gap-3 ${i < pendingTasks.length - 1 ? 'border-b border-border2' : ''}`}>
+                  <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} className="mt-[2px] w-5 h-5 rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent hover:border-amber transition-colors">
+                    <span className="text-[12px]">✓</span>
+                  </button>
+                  <div>
+                    <div className="text-[13px] font-semibold leading-tight mb-1">{t.title}</div>
+                    <div className="text-[11px] text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div className="flex items-center justify-between mt-4 mb-2">
+        <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
+        <div className="text-[11px] text-text3 bg-surface border border-border rounded-full px-2 py-[2px]">{doneCount}/{items.length} selesai</div>
+      </div>
+
+      {items.map((item, i) => {
+        const state = item.active ? 'active' : item.done ? 'done' : '';
+        return (
+          <div
+            key={item.id}
+            className="flex items-stretch gap-[10px] mb-1 animate-slide-up"
+            style={{ animationDelay: `${i * 0.05}s` }}
+          >
+            {/* Spine */}
+            <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
+              {state === 'done' ? (
+                <div className="flex flex-col items-center">
+                  <div className="text-[11px] font-bold text-text2 tabular-nums text-center">{fmt(item.startTime)}</div>
+                  <div className={`text-[9px] font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
+                </div>
+              ) : (
+                <div className="text-[11px] font-semibold text-text2 tabular-nums text-center whitespace-nowrap">{fmt(item.startTime)}</div>
+              )}
+              <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] transition-all duration-500 relative ${
+                state === 'active' ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' :
+                state === 'done' ? (item.skipped ? 'bg-text3' : 'bg-green') : 'bg-border3'
+              }`}>
+                {state === 'active' && <div className="absolute inset-0 rounded-full border border-primary animate-ping opacity-50" />}
+              </div>
+              {i < items.length - 1 && <div className="flex-1 w-[2px] bg-gradient-to-b from-border2 to-transparent min-h-[12px]" />}
+            </div>
+
+            {/* Card */}
+            <div className="flex-1 mb-3">
+              <div className={`bg-surface2/40 backdrop-blur-md border rounded-[20px] p-[16px] flex items-center gap-[14px] transition-all duration-300 min-h-[72px] relative shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)] ${
+                state === 'active' ? 'border-primary-border/60 bg-primary-dim/30 hover:bg-primary-dim/50' :
+                state === 'done' 
+                  ? (item.skipped 
+                      ? 'border-border bg-surface shadow-none opacity-80 grayscale' 
+                      : 'border-green-dim bg-green-dim/20 hover:bg-green-dim/30') 
+                  : 'border-border2/60 hover:border-border3 hover:bg-surface2/70'
+              } ${markingId === item.id ? 'animate-mark scale-95' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[15px] font-bold tracking-tight ${item.skipped ? 'text-text3' : 'text-foreground/90'}`}>{item.className}</div>
+                  <div className="text-[12px] text-text2 mt-[2px]">{item.subjectName}</div>
+                  {item.done && (
+                    <div className={`text-[11px] mt-[4px] font-semibold tracking-wide inline-flex items-center gap-1.5 ${item.skipped ? 'text-text3' : 'text-green'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${item.skipped ? 'bg-text3' : 'bg-green'}`}></span> 
+                      {item.skipped ? 'Dilewati' : 'Selesai'}
+                    </div>
+                  )}
+                  {item.nextMat && !item.done && <div className="text-[11px] text-text3 mt-[4px] font-medium truncate">📖 {item.nextMat.name}</div>}
+                </div>
+                {item.done ? (
+                  !item.skipped && (
+                    <button
+                      onClick={() => {
+                        if (expandedNoteId === item.id) setExpandedNoteId(null);
+                        else { setExpandedNoteId(item.id); setNoteDraft(item.note || ''); }
+                      }}
+                      className={`w-[52px] h-[52px] rounded-[16px] border grid place-items-center flex-shrink-0 transition-all duration-300 ${
+                        item.note ? 'bg-green-dim border-green/40 text-green shadow-sm' : 'bg-surface/60 border-border/60 text-text3 hover:border-green/50 hover:text-green hover:bg-green-dim/50'
+                      }`}
+                    >
+                      <span className="text-[20px]">📝</span>
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={() => handleTLDone(item.id)}
+                    className="w-[52px] h-[52px] rounded-[16px] bg-teal-dim/80 backdrop-blur-sm border border-teal/40 text-teal text-[20px] grid place-items-center flex-shrink-0 transition-all hover:bg-teal-dim hover:border-teal hover:scale-105 hover:shadow-md active:scale-95"
+                  >
+                    ✓
+                  </button>
+                )}
+              </div>
+              
+              {/* Expandable Note Section */}
+              {item.done && expandedNoteId === item.id && item.sessionId && (
+                <div className="mt-1 bg-surface2 border border-border2 rounded-lg p-3 animate-slide-up origin-top">
+                  <div className="text-[10px] font-semibold text-text3 uppercase tracking-[0.5px] mb-2">Jurnal Sesi / Catatan</div>
+                  <textarea
+                    autoFocus
+                    value={noteDraft}
+                    onChange={e => setNoteDraft(e.target.value)}
+                    placeholder="Ada catatan untuk kelas ini? (mis. Budi remedial, tugas hal 12)..."
+                     className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[60px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button onClick={() => {
+                       const title = prompt('Nama tugas (mis. Koreksi tugas matriks):');
+                       if (title) {
+                         const d = new Date(); d.setDate(d.getDate() + 7);
+                         addTask(item.classId, item.subjectId, title, d.toISOString().slice(0, 10));
+                         onRefresh();
+                         toast({ title: 'Tugas ditambahkan' });
+                       }
+                    }} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-amber flex items-center gap-1">
+                      + Tugas Baru
+                    </button>
+                    <button onClick={() => handleSaveNote(item.sessionId!)} className="px-4 py-1.5 rounded bg-green text-surface shadow-sm text-[11px] font-bold">
+                      Simpan Catatan
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
