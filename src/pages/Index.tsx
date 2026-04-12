@@ -13,18 +13,17 @@ import QuickAddModal from '@/components/QuickAddModal';
 import AuthModal from '@/components/AuthModal';
 import SyncManager from '@/components/SyncManager';
 import PricingView from '@/components/PricingView';
-import LandingPage from './LandingPage';
 import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import { ViewType } from '@/lib/types';
 import { getData, loadDemo } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
 
-type AppView = ViewType | 'landing' | 'pricing' | 'privacy' | 'tos';
+type AppView = ViewType | 'pricing' | 'privacy' | 'tos';
 
 function AppInner() {
   const { user, loading: authLoading } = useAuth();
-  const [view, setView] = useState<AppView>('landing');
+  const [view, setView] = useState<AppView>('today');
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -34,9 +33,7 @@ function AppInner() {
   // Redirect after auth resolves
   useEffect(() => {
     if (authLoading) return;
-    if (!user && view !== 'landing' && view !== 'pricing' && view !== 'privacy' && view !== 'tos') {
-      setView('landing');
-    } else if (user && view === 'landing') {
+    if (!user && view !== 'today' && view !== 'pricing' && view !== 'privacy' && view !== 'tos') {
       setView('today');
     }
   }, [user, authLoading]);
@@ -84,23 +81,11 @@ function AppInner() {
     setTheme(next);
   };
 
-  // ── Landing / Legal views (full screen, no shell) ──────────────────────────
-  if (view === 'landing') {
-    return (
-      <>
-        <LandingPage
-          onGetStarted={() => setAuthOpen(true)}
-          onViewPricing={() => setView('pricing')}
-        />
-        <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-      </>
-    );
-  }
-
+  // ── Legal views (full screen, no shell) ──────────────────────────
   if (view === 'pricing') {
     return (
       <>
-        <PricingView onBack={() => setView(user ? 'today' : 'landing')} />
+        <PricingView onBack={() => setView('today')} />
         <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       </>
     );
@@ -110,7 +95,7 @@ function AppInner() {
     return (
       <div className="max-w-[430px] mx-auto min-h-screen bg-background">
         <button
-          onClick={() => setView(user ? 'today' : 'landing')}
+          onClick={() => setView('today')}
           className="sticky top-0 z-10 w-full text-left px-4 py-3 text-sm font-bold text-primary bg-background/80 backdrop-blur border-b border-border/40"
         >
           ← Kembali
@@ -124,7 +109,7 @@ function AppInner() {
     return (
       <div className="max-w-[430px] mx-auto min-h-screen bg-background">
         <button
-          onClick={() => setView(user ? 'today' : 'landing')}
+          onClick={() => setView('today')}
           className="sticky top-0 z-10 w-full text-left px-4 py-3 text-sm font-bold text-primary bg-background/80 backdrop-blur border-b border-border/40"
         >
           ← Kembali
