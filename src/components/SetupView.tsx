@@ -490,8 +490,9 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
 
   const confirmDelete = () => {
     if (!pendingDeleteId) return;
+    const targetId = String(pendingDeleteId);
     updateData(d => {
-      d.schedules = d.schedules.filter(s => String(s.id) !== String(pendingDeleteId));
+      d.schedules = d.schedules.filter(s => String(s.id) !== targetId);
     });
     setPendingDeleteId(null);
     toast({ title: 'Jadwal dihapus' });
