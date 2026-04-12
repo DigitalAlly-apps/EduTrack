@@ -10,10 +10,11 @@ import {
 interface HeaderProps {
   onToggleTheme: () => void;
   onQuickAdd: () => void;
+  onOpenLeave: () => void;
   theme: string;
 }
 
-export default function Header({ onToggleTheme, onQuickAdd, theme }: HeaderProps) {
+export default function Header({ onToggleTheme, onQuickAdd, onOpenLeave, theme }: HeaderProps) {
   const data = getData();
   const name = data.teacherName || 'Guru';
   const displayName = data.teacherName ? `Pak/Bu ${name.split(' ')[0]}` : 'Guru';
@@ -32,6 +33,14 @@ export default function Header({ onToggleTheme, onQuickAdd, theme }: HeaderProps
           </div>
         </div>
         <div className="flex gap-1.5">
+          <button
+            onClick={onOpenLeave}
+            className="w-9 h-9 rounded-lg bg-red/10 hover:bg-red/20 text-red border border-red/20 grid place-items-center text-sm transition-all active:scale-95 shadow-sm"
+            title="Ajukan Izin/Sakit"
+          >
+            🏥
+          </button>
+          
           <Dialog>
             <DialogTrigger asChild>
               <button className="w-9 h-9 rounded-lg bg-surface hover:bg-surface2 border border-border2 grid place-items-center text-sm transition-all active:scale-95">

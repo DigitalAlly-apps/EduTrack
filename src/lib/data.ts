@@ -496,3 +496,47 @@ export function updateSessionNote(sessionId: string, note: string) {
   updateData(d => { const s = d.sessions.find(x => x.id === sessionId); if (s) s.note = note.trim(); });
 }
 
+export function applyTeacherLeave(dateStr: string, reason: string, resolutions: { scheduleId: string; action: 'deliver' | 'skip'; note?: string }[]) {
+  updateData(d => {
+    const dayOfWeek = new Date(dateStr).getDay();
+    resolutions.forEach(res => {
+      const sched = d.schedules.find(s => s.id === res.scheduleId);
+      if (!sched || !sched.days.includes(dayOfWeek)) return;
+      
+      let session = d.sessions.find(s => s.scheduleId === res.scheduleId && s.date === dateStr);
+      if (session) return; // Don't override existing session
+
+      const prog = d.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
+      const mats = d.materials.filter(m => m.subjectId === sched.subjectId).sort((a, b) => a.order - b.order);
+      const mat = mats[prog ? prog.materialsDone : 0] || null;
+
+      session = {
+        id: genId(),
+        scheduleId: res.scheduleId,
+        classId: sched.classId,
+        subjectId: sched.subjectId,
+        date: dateStr,
+        materialId: res.action === 'skip' ? 'SKIPPED' : (mat?.id || null),
+        completedAt: now().toISOString(),
+        note: res.note || `Otomatis: Izin/Sakit (${reason})`
+      };
+      d.sessions.push(session);
+
+      if (res.action === 'deliver') {
+        if (prog && mat) {
+          prog.materialsDone = Math.min(prog.materialsDone + 1, mats.length);
+          prog.lastSession = dateStr;
+        } else if (!prog) {
+          d.progress.push({
+            id: genId(),
+            classId: sched.classId,
+            subjectId: sched.subjectId,
+            materialsDone: mat ? 1 : 0,
+            lastSession: dateStr
+          });
+        }
+      }
+    });
+  });
+}
+

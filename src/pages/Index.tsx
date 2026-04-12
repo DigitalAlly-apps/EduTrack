@@ -8,6 +8,7 @@ import InfoView from '@/components/InfoView';
 import ExamView from '@/components/ExamView';
 import Onboarding from '@/components/Onboarding';
 import QuickAddModal from '@/components/QuickAddModal';
+import TeacherLeaveModal from '@/components/TeacherLeaveModal';
 import { ViewType } from '@/lib/types';
 import { getData, loadDemo } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
@@ -19,6 +20,7 @@ function AppInner() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || 'dark');
 
 
@@ -70,6 +72,7 @@ function AppInner() {
       <Header
         onToggleTheme={toggleTheme}
         onQuickAdd={() => setQuickAddOpen(true)}
+        onOpenLeave={() => setLeaveModalOpen(true)}
         theme={theme}
       />
 
@@ -91,6 +94,7 @@ function AppInner() {
       )}
 
       <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onRefresh={refresh} />
+      <TeacherLeaveModal open={leaveModalOpen} onClose={() => setLeaveModalOpen(false)} onRefresh={refresh} />
     </div>
   );
 }
