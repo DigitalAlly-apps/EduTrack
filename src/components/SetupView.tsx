@@ -502,6 +502,11 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
     onRefresh();
   };
 
+  const schedulesByDay = [0, 1, 2, 3, 4, 5, 6].map(day => ({
+    day,
+    schedules: data.schedules.filter(s => s.days.includes(day))
+  })).filter(group => group.schedules.length > 0);
+
   return (
     <div>
       <div className="bg-[hsl(var(--surface2))] p-[14px] rounded-xl border border-border2 mb-5">
@@ -528,13 +533,51 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
         <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px]">＋ Tambah Jadwal</button>
       </div>
 
-      <div className="mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Jadwal</div>
-      {data.schedules.map(s => {
-        const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
-        const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-        return <ScheduleEditableItem key={s.id} item={{ id: s.id, name: `${cls.name} — ${sub.name}`, meta: `${s.days.map(d=>DAYS_SHORT[d]).join(', ')} · ${fmt(s.startTime)} · ${s.duration} mnt`, st: s.startTime, dr: s.duration, days: s.days }} onSave={saveItem} onDelete={del} />
-      })}
-      {!data.schedules.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada jadwal</div>}
+      <div className="mb-4">
+        <div className="mb-3 text-[11px] font-bold tracking-[0.7px] uppercase text-text3 flex items-center justify-between">
+          <span>Daftar Jadwal Mingguan</span>
+          <span className="text-[10px] font-medium lowercase opacity-60">({data.schedules.length} total)</span>
+        </div>
+        
+        {schedulesByDay.length === 0 && (
+          <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada jadwal</div>
+        )}
+
+        <div className="space-y-6">
+          {schedulesByDay.map(group => (
+            <div key={group.day} className="animate-slide-up">
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-[12px] font-bold text-foreground capitalize">{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][group.day]}</span>
+                <div className="flex-1 h-[1px] bg-border/40 ml-1" />
+              </div>
+              <div className="space-y-2">
+                {group.schedules
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                  .map(s => {
+                  const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
+                  const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
+                  return (
+                    <ScheduleEditableItem 
+                      key={s.id} 
+                      item={{ 
+                        id: s.id, 
+                        name: `${cls.name} — ${sub.name}`, 
+                        meta: `${fmt(s.startTime)} · ${s.duration} mnt`, 
+                        st: s.startTime, 
+                        dr: s.duration, 
+                        days: s.days 
+                      }} 
+                      onSave={saveItem} 
+                      onDelete={del} 
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

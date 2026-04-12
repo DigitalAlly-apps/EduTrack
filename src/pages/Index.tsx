@@ -71,7 +71,6 @@ function AppInner() {
 
       <Header
         onToggleTheme={toggleTheme}
-        onQuickAdd={() => setQuickAddOpen(true)}
         onOpenLeave={() => setLeaveModalOpen(true)}
         theme={theme}
       />

@@ -487,48 +487,61 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             </div>
 
             {/* Card */}
-            <div className="flex-1 mb-3">
-              <div className={`bg-surface2/40 backdrop-blur-md border rounded-[20px] p-[16px] flex items-center gap-[14px] transition-all duration-300 min-h-[72px] relative shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)] ${
-                state === 'active' ? 'border-primary-border/60 bg-primary-dim/30 hover:bg-primary-dim/50' :
+            <div className="flex-1 mb-4">
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-4 flex items-center gap-4 transition-all duration-300 min-h-[80px] relative shadow-sm hover:shadow-md ${
+                state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
-                  ? (item.skipped 
-                      ? 'border-border bg-surface shadow-none opacity-80 grayscale' 
-                      : 'border-green-dim bg-green-dim/20 hover:bg-green-dim/30') 
-                  : 'border-border2/60 hover:border-border3 hover:bg-surface2/70'
-              } ${markingId === item.id ? 'animate-mark scale-95' : ''}`}>
+                   ? (item.skipped 
+                       ? 'border-border/60 bg-surface/30 opacity-60 grayscale shadow-none' 
+                       : 'border-green/30 bg-green/5 opacity-90') 
+                   : 'border-border/60 hover:border-border hover:bg-surface/60'
+              } ${markingId === item.id ? 'scale-[0.98] opacity-70' : ''}`}>
+                
                 <div className="flex-1 min-w-0">
-                  <div className={`text-[15px] font-bold tracking-tight ${item.skipped ? 'text-text3' : 'text-foreground/90'}`}>{item.className}</div>
-                  <div className="text-[12px] text-text2 mt-[2px]">{item.subjectName}</div>
-                  {item.done && (
-                    <div className={`text-[11px] mt-[4px] font-semibold tracking-wide inline-flex items-center gap-1.5 ${item.skipped ? 'text-text3' : 'text-green'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${item.skipped ? 'bg-text3' : 'bg-green'}`}></span> 
-                      {item.skipped ? 'Dilewati' : 'Selesai'}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className={`text-[15px] font-bold tracking-tight leading-tight ${item.skipped ? 'text-text3 line-through opacity-70' : 'text-foreground'}`}>
+                      {item.className}
                     </div>
-                  )}
-                  {item.nextMat && !item.done && <div className="text-[11px] text-text3 mt-[4px] font-medium truncate">📖 {item.nextMat.name}</div>}
+                    {state === 'done' && !item.skipped && (
+                      <span className="text-[10px] font-bold text-green bg-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider">DONE</span>
+                    )}
+                  </div>
+                  
+                  <div className="text-[12px] text-text2 font-medium flex items-center gap-2">
+                    <span>{item.subjectName}</span>
+                    {!item.done && item.nextMat && (
+                      <div className="flex items-center gap-1.5 text-text3/70">
+                        <span className="w-1 h-1 rounded-full bg-border" />
+                        <span className="truncate max-w-[120px]">📖 {item.nextMat.name}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {item.done ? (
-                  !item.skipped && (
+
+                <div className="flex-shrink-0">
+                  {item.done ? (
+                    !item.skipped && (
+                      <button
+                        onClick={() => {
+                          if (expandedNoteId === item.id) setExpandedNoteId(null);
+                          else { setExpandedNoteId(item.id); setNoteDraft(item.note || ''); }
+                        }}
+                        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${
+                          item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
+                        }`}
+                      >
+                        <span className="text-lg">📝</span>
+                      </button>
+                    )
+                  ) : (
                     <button
-                      onClick={() => {
-                        if (expandedNoteId === item.id) setExpandedNoteId(null);
-                        else { setExpandedNoteId(item.id); setNoteDraft(item.note || ''); }
-                      }}
-                      className={`w-[52px] h-[52px] rounded-[16px] border grid place-items-center flex-shrink-0 transition-all duration-300 ${
-                        item.note ? 'bg-green-dim border-green/40 text-green shadow-sm' : 'bg-surface/60 border-border/60 text-text3 hover:border-green/50 hover:text-green hover:bg-green-dim/50'
-                      }`}
+                      onClick={() => handleTLDone(item.id)}
+                      className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-lg flex items-center justify-center transition-all hover:bg-primary hover:text-white hover:scale-105 active:scale-95 shadow-sm"
                     >
-                      <span className="text-[20px]">📝</span>
+                      ✓
                     </button>
-                  )
-                ) : (
-                  <button
-                    onClick={() => handleTLDone(item.id)}
-                    className="w-[52px] h-[52px] rounded-[16px] bg-teal-dim/80 backdrop-blur-sm border border-teal/40 text-teal text-[20px] grid place-items-center flex-shrink-0 transition-all hover:bg-teal-dim hover:border-teal hover:scale-105 hover:shadow-md active:scale-95"
-                  >
-                    ✓
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
               
               {/* Expandable Note Section */}
