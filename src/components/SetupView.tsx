@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -104,9 +105,9 @@ function EditTeacherButton({ onRefresh }: { onRefresh: () => void }) {
 
 function DeleteConfirmSheet({ open, onOpenChange, onConfirm, title, desc }: any) {
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[600] bg-[rgba(0,0,0,0.7)] flex flex-col justify-end animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
-      <div className="bg-surface2 rounded-t-[24px] p-5 pb-[100px] w-full max-w-[430px] mx-auto animate-slide-up" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface2 rounded-t-[24px] p-5 pb-safe pb-10 w-full max-w-[430px] mx-auto animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-border2 rounded-full mx-auto mb-5" />
         <div className="text-[19px] font-medium tracking-tight mb-2">{title}</div>
         <div className="text-sm text-text2 mb-6 leading-relaxed bg-[hsl(0_91%_71%/0.05)] border border-[hsl(0_91%_71%/0.1)] p-3 rounded-lg text-red/90">{desc}</div>
@@ -115,7 +116,8 @@ function DeleteConfirmSheet({ open, onOpenChange, onConfirm, title, desc }: any)
           <button onClick={() => { onConfirm(); onOpenChange(false); }} className="flex-1 py-[14px] bg-[hsl(0_91%_71%/0.12)] border border-[hsl(0_91%_71%/0.25)] text-[#FCA5A5] rounded-xl text-sm font-bold transition-all active:scale-[0.98]">Ya, Hapus</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -228,11 +230,12 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
     updateClass(id, newName); toast({ title: 'Kelas diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
+    const strId = String(id);
     updateData(d => {
-      d.classes = d.classes.filter(c => c.id !== id);
-      d.schedules = d.schedules.filter(s => s.classId !== id);
-      d.progress = d.progress.filter(p => p.classId !== id);
-      d.sessions = d.sessions.filter(s => s.classId !== id);
+      d.classes = d.classes.filter(c => String(c.id) !== strId);
+      d.schedules = d.schedules.filter(s => String(s.classId) !== strId);
+      d.progress = d.progress.filter(p => String(p.classId) !== strId);
+      d.sessions = d.sessions.filter(s => String(s.classId) !== strId);
     });
     toast({ title: 'Kelas dihapus' }); onRefresh();
   };
@@ -274,10 +277,13 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
     updateSubject(id, newName, extras.level, extras.examDate); toast({ title: 'Mapel diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
+    const strId = String(id);
     updateData(d => {
-      d.subjects = d.subjects.filter(s => s.id !== id);
-      d.materials = d.materials.filter(m => m.subjectId !== id);
-      d.schedules = d.schedules.filter(s => s.subjectId !== id);
+      d.subjects = d.subjects.filter(s => String(s.id) !== strId);
+      d.materials = d.materials.filter(m => String(m.subjectId) !== strId);
+      d.schedules = d.schedules.filter(s => String(s.subjectId) !== strId);
+      d.progress = d.progress.filter(p => String(p.subjectId) !== strId);
+      d.sessions = d.sessions.filter(s => String(s.subjectId) !== strId);
     });
     toast({ title: 'Mapel dihapus' }); onRefresh();
   };
@@ -377,7 +383,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const saveItem = (id: string, newName: string, newSessions?: number) => {
     if(newName.trim()) updateMaterial(id, newName, newSessions); toast({ title: 'Tersimpan' }); onRefresh();
   };
-  const del = (id: string) => { updateData(d => d.materials = d.materials.filter(m => m.id !== id)); toast({ title: 'Dihapus' }); onRefresh(); };
+  const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
 
   const mats = subId ? data.materials.filter(m => m.subjectId === subId).sort((a, b) => a.order - b.order) : [];
   
