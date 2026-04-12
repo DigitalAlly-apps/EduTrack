@@ -6,18 +6,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAuth } from '@/context/AuthContext';
-import { LogIn, LogOut, Cloud } from 'lucide-react';
 
 interface HeaderProps {
   onToggleTheme: () => void;
   onQuickAdd: () => void;
-  onOpenAuth: () => void;
   theme: string;
 }
 
-export default function Header({ onToggleTheme, onQuickAdd, onOpenAuth, theme }: HeaderProps) {
-  const { user, membershipStatus, signOut } = useAuth();
+export default function Header({ onToggleTheme, onQuickAdd, theme }: HeaderProps) {
   const data = getData();
   const name = data.teacherName || 'Guru';
   const displayName = data.teacherName ? `Pak/Bu ${name.split(' ')[0]}` : 'Guru';
@@ -76,33 +72,7 @@ export default function Header({ onToggleTheme, onQuickAdd, onOpenAuth, theme }:
             ＋ Jadwal
           </button>
 
-          {/* Auth indicator */}
-          {user ? (
-            <div className="flex items-center gap-1.5">
-              {membershipStatus !== 'free' && (
-                <Cloud className="w-3.5 h-3.5 text-primary" title="Cloud Sync aktif" />
-              )}
-              <button
-                onClick={() => signOut()}
-                title={`Keluar (${user.email})`}
-                className="w-9 h-9 rounded-lg bg-surface hover:bg-surface2 border border-border2 grid place-items-center transition-all active:scale-95"
-              >
-                {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="avatar" className="w-6 h-6 rounded-full" />
-                ) : (
-                  <LogOut className="w-4 h-4 text-text3" />
-                )}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onOpenAuth}
-              className="h-9 px-3 rounded-lg bg-primary text-white border border-primary/20 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm shadow-primary/20"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Login
-            </button>
-          )}
+          {/* Personal App - No Auth/Login needed */}
         </div>
       </div>
       <div className="text-[11px] font-medium text-text3 mt-1.5 pl-[48px] opacity-60">{dateStr}</div>

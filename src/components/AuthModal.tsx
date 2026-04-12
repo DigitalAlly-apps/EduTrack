@@ -32,19 +32,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
         </DialogHeader>
 
         <div className="mt-8 space-y-4">
-          <button
-            onClick={async () => {
-              await signInWithGoogle();
-              onClose();
-            }}
-            disabled={loading}
-            className="w-full py-4 rounded-2xl bg-white text-black border-2 border-slate-200 flex items-center justify-center gap-3 text-sm font-bold transition-all hover:bg-slate-50 active:scale-[0.98] shadow-sm disabled:opacity-60"
-          >
-            <Chrome className="w-5 h-5 text-[#4285F4]" />
-            Continue with Google
-          </button>
-
-          <div className="relative py-4">
+          <div className="relative py-4 hidden">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-border/40" />
             </div>

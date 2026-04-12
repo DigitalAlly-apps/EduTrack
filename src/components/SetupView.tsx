@@ -106,7 +106,7 @@ function DeleteConfirmSheet({ open, onOpenChange, onConfirm, title, desc }: any)
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[600] bg-[rgba(0,0,0,0.7)] flex flex-col justify-end animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
-      <div className="bg-surface2 rounded-t-[24px] p-5 pb-10 w-full max-w-[430px] mx-auto animate-slide-up" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface2 rounded-t-[24px] p-5 pb-[100px] w-full max-w-[430px] mx-auto animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-border2 rounded-full mx-auto mb-5" />
         <div className="text-[19px] font-medium tracking-tight mb-2">{title}</div>
         <div className="text-sm text-text2 mb-6 leading-relaxed bg-[hsl(0_91%_71%/0.05)] border border-[hsl(0_91%_71%/0.1)] p-3 rounded-lg text-red/90">{desc}</div>
