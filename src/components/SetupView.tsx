@@ -468,7 +468,6 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState('45');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
   const data = getData();
 
@@ -488,26 +487,14 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
     updateSchedule(id, extras.days, extras.st, extras.dr); toast({ title: 'Jadwal diperbarui' }); onRefresh();
   };
 
-  const confirmDelete = () => {
-    if (!pendingDeleteId) return;
-    const targetId = String(pendingDeleteId);
+  const del = (id: string) => {
+    const targetId = String(id);
     updateData(d => {
       d.schedules = d.schedules.filter(s => String(s.id) !== targetId);
     });
-    setPendingDeleteId(null);
     toast({ title: 'Jadwal dihapus' });
     onRefresh();
   };
-
-  const pendingItem = pendingDeleteId
-    ? (() => {
-        const s = data.schedules.find(x => x.id === pendingDeleteId);
-        if (!s) return null;
-        const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
-        const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-        return `${cls.name} — ${sub.name}`;
-      })()
-    : null;
 
   return (
     <div>
@@ -539,17 +526,9 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
       {data.schedules.map(s => {
         const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
         const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-        return <ScheduleEditableItem key={s.id} item={{ id: s.id, name: `${cls.name} — ${sub.name}`, meta: `${s.days.map(d=>DAYS_SHORT[d]).join(', ')} · ${fmt(s.startTime)} · ${s.duration} mnt`, st: s.startTime, dr: s.duration, days: s.days }} onSave={saveItem} onDelete={(id: string) => setPendingDeleteId(id)} />
+        return <ScheduleEditableItem key={s.id} item={{ id: s.id, name: `${cls.name} — ${sub.name}`, meta: `${s.days.map(d=>DAYS_SHORT[d]).join(', ')} · ${fmt(s.startTime)} · ${s.duration} mnt`, st: s.startTime, dr: s.duration, days: s.days }} onSave={saveItem} onDelete={del} />
       })}
       {!data.schedules.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada jadwal</div>}
-
-      <DeleteConfirmSheet
-        open={!!pendingDeleteId}
-        onOpenChange={(v: boolean) => { if (!v) setPendingDeleteId(null); }}
-        onConfirm={confirmDelete}
-        title="Hapus Jadwal?"
-        desc={`Data historis sesi mengajar tidak dipengaruhi, tapi jadwal ${pendingItem ?? ''} tidak akan muncul lagi.`}
-      />
     </div>
   );
 }
@@ -560,6 +539,7 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
   const [st, setSt] = useState(item.st);
   const [dr, setDr] = useState(item.dr);
   const [days, setDays] = useState<number[]>(item.days);
+  const [delSheet, setDelSheet] = useState(false);
 
   const toggleDay = (d: number) => setDays(days.includes(d) ? days.filter(x => x !== d) : [...days, d]);
 
@@ -581,16 +561,19 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-[14px] flex items-center justify-between mb-[6px]">
-      <div className="flex-1 min-w-0 pr-3">
-        <div className="text-sm font-medium leading-snug">{item.name}</div>
-        <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>
+    <>
+      <div className="bg-surface border border-border rounded-lg p-[14px] flex items-center justify-between mb-[6px]">
+        <div className="flex-1 min-w-0 pr-3">
+          <div className="text-sm font-medium leading-snug">{item.name}</div>
+          <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>
+        </div>
+        <div className="flex gap-[4px] items-center flex-shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
+          <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
+        </div>
       </div>
-      <div className="flex gap-[4px] items-center flex-shrink-0">
-        <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
-      </div>
-    </div>
+      <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(item.id)} title="Hapus Jadwal?" desc={`Data historis sesi mengajar tidak dipengaruhi, tapi jadwal ${item.name} tidak akan muncul lagi.`} />
+    </>
   );
 }
 
