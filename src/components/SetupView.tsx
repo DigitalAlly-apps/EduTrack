@@ -502,7 +502,8 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
     onRefresh();
   };
 
-  const schedulesByDay = [0, 1, 2, 3, 4, 5, 6].map(day => ({
+  const dayOrder = [0, 1, 2, 3, 4, 5, 6];
+  const schedulesByDay = dayOrder.map(day => ({
     day,
     schedules: data.schedules.filter(s => s.days.includes(day))
   })).filter(group => group.schedules.length > 0);
