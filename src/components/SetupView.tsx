@@ -803,7 +803,8 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().slice(0, 10);
   });
-  const [reason, setReason] = useState('Sakit');
+  const [leaveType, setLeaveType] = useState<'izin' | 'sakit'>('izin');
+  const [keterangan, setKeterangan] = useState('');
   const [resolutions, setResolutions] = useState<Record<string, { action: 'deliver' | 'skip'; note: string }>>({});
 
   const dayOfWeek = date ? new Date(date).getDay() : -1;
@@ -835,10 +836,12 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
       scheduleId,
       action: res.action,
       note: res.action === 'deliver'
-        ? res.note || `Otomatis: Tugas Mandiri (${reason})`
-        : `Otomatis: Kelas Kosong/Diluar Jadwal (${reason})`,
+        ? res.note || `Otomatis: Tugas Mandiri (${leaveType === 'sakit' ? 'Sakit' : 'Izin'})`
+        : `Otomatis: Kelas Kosong/Diluar Jadwal (${leaveType === 'sakit' ? 'Sakit' : 'Izin'})`,
     }));
-    applyTeacherLeave(date, reason, resArray);
+    const reasonStr = leaveType === 'sakit' ? 'Sakit' : 'Izin';
+    const fullReason = keterangan.trim() ? `${reasonStr}: ${keterangan.trim()}` : reasonStr;
+    applyTeacherLeave(date, fullReason, resArray);
     toast({ title: '✓ Izin Disimpan', description: 'Sesi otomatis disetup.' });
     onRefresh();
   };
@@ -854,19 +857,42 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
         </div>
 
-        <div className="flex gap-3 mb-4">
-          <div className="flex-1">
-            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style" />
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style" />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jenis</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setLeaveType('izin')}
+              className={`py-3 rounded-2xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${leaveType === 'izin' ? 'bg-primary-dim border-primary-border text-primary shadow-sm' : 'bg-surface border-border2 text-text2 hover:border-border3'}`}
+            >
+              <span className="text-xl">📋</span>
+              <span>Izin</span>
+            </button>
+            <button
+              onClick={() => setLeaveType('sakit')}
+              className={`py-3 rounded-2xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${leaveType === 'sakit' ? 'bg-red/10 border-red/30 text-red shadow-sm' : 'bg-surface border-border2 text-text2 hover:border-border3'}`}
+            >
+              <span className="text-xl">🤒</span>
+              <span>Sakit</span>
+            </button>
           </div>
-          <div className="flex-1">
-            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Alasan</label>
-            <select value={reason} onChange={e => setReason(e.target.value)} className="form-select-style">
-              <option value="Sakit">Badan Sakit</option>
-              <option value="Cuti/Izin">Cuti / Urusan</option>
-              <option value="Dinas Luar">Dinas Luar</option>
-            </select>
-          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
+            Keterangan <span className="normal-case font-normal text-text3">(opsional)</span>
+          </label>
+          <input
+            type="text"
+            placeholder={leaveType === 'sakit' ? 'mis. Demam, periksa ke dokter...' : 'mis. Rapat dinas, urusan keluarga...'}
+            value={keterangan}
+            onChange={e => setKeterangan(e.target.value)}
+            className="form-input-style"
+          />
         </div>
 
         <div className="mb-4">
