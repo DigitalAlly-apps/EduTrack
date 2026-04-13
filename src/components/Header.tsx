@@ -29,25 +29,31 @@ export default function Header({ onToggleTheme, onOpenLeave, theme }: HeaderProp
             </span>
           </div>
           <div className="font-display text-2xl font-black tracking-tighter text-foreground leading-none">
-            {displayName}
+            {name}
+          </div>
+          <div className="text-[12px] font-medium text-text2 mt-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+            Guru Pengampu
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenLeave}
-            className="group relative w-11 h-11 rounded-2xl bg-red/5 hover:bg-red/10 text-red border border-red/10 flex items-center justify-center transition-all active:scale-90"
+            className="group relative px-3 h-11 rounded-2xl bg-red/5 hover:bg-red/10 text-red border border-red/10 flex items-center justify-center gap-1.5 transition-all active:scale-90"
             title="Ajukan Izin/Sakit"
           >
             <span className="group-hover:scale-110 transition-transform text-lg">🏥</span>
+            <span className="text-[11px] font-bold tracking-wider">Izin</span>
           </button>
           
           <div className="w-[1px] h-7 bg-border/40" />
 
           <Dialog>
             <DialogTrigger asChild>
-              <button className="w-11 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center text-lg transition-all active:scale-90">
-                ℹ️
+              <button className="px-3 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-90 text-text2 hover:text-foreground">
+                <span className="text-lg">ℹ️</span>
+                <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Info</span>
               </button>
             </DialogTrigger>
             <DialogContent className="max-w-[420px] rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl">
@@ -93,9 +99,10 @@ export default function Header({ onToggleTheme, onOpenLeave, theme }: HeaderProp
 
           <button
             onClick={onToggleTheme}
-            className="w-11 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center text-lg transition-all active:scale-90 shadow-sm"
+            className="px-3 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-90 shadow-sm text-text2 hover:text-foreground"
           >
-            {theme === 'dark' ? '🌙' : '☀️'}
+            <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
+            <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Tema</span>
           </button>
         </div>
       </div>

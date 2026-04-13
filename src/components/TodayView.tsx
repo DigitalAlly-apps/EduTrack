@@ -243,9 +243,18 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="text-xs text-text2">{endedItem.className} · {endedItem.subjectName}</div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => { handleHeroDone(endedBanner); setEndedBanner(null); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-3 py-1.5 rounded-xl">✓ Selesai</button>
-              <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-2 py-1.5">✕</button>
+            <div className="flex gap-2 relative">
+              <button onClick={() => { handleHeroDone(endedBanner); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-all relative overflow-hidden flex items-center justify-center min-w-[80px]">
+                {pendingId === endedBanner ? (
+                  <>
+                    <div className="absolute left-0 top-0 bottom-0 bg-black/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
+                    <span className="relative z-10 flex items-center gap-1"><span className="text-[10px]">✕</span> Batal</span>
+                  </>
+                ) : (
+                  "✓ Selesai"
+                )}
+              </button>
+              <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors">✕ Tutup</button>
             </div>
           </div>
         );
@@ -273,7 +282,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
               )}
               
-              <div className="p-6 relative">
+              <div className="p-5 relative">
                 {/* Status + Exam Badges at Top */}
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div className={`inline-flex items-center gap-2 border text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
@@ -300,7 +309,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   />
                 </div>
 
-                <div className="font-display text-4xl font-extrabold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
+                <div className="font-display text-3xl font-extrabold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
                 <div className="text-[15px] font-semibold text-text2 mb-6 flex items-center gap-2.5">
                   <span className="opacity-90">{active.subjectName}</span>
                   <span className="opacity-20">•</span>
@@ -361,7 +370,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         if (upcoming) {
           const diff = timeToMin(upcoming.startTime) - currentMin();
           return (
-            <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-[32px] p-7 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
+            <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-[32px] p-5 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,hsl(var(--teal-glow))_0%,transparent_70%)] pointer-events-none mix-blend-screen opacity-60" />
               <div className="absolute inset-x-0 top-0 h-[100px] bg-gradient-to-b from-teal/10 to-transparent pointer-events-none" />
               
@@ -381,8 +390,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   )}
                 </div>
 
-                <div className="font-display text-[42px] font-black tracking-[-0.04em] leading-[0.95] bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent mb-2">{upcoming.className}</div>
-                <div className="text-[16px] font-bold text-text2/80 mb-6">{upcoming.subjectName}</div>
+                <div className="font-display text-3xl font-black tracking-[-0.04em] leading-[0.95] bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent mb-2">{upcoming.className}</div>
+                <div className="text-[16px] font-bold text-text2/80 mb-5">{upcoming.subjectName}</div>
                 
                 <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-[24px] p-5 flex items-center gap-5 shadow-inner">
                   <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
@@ -512,15 +521,15 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-2 sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-1.5 -mx-1 px-1 rounded-xl">
+      <div className="flex items-center justify-between mt-4 mb-2 sticky top-[80px] z-30 bg-background/90 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
         <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
         <div className="flex items-center gap-2">
           {active && (
-            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary-border px-2 py-0.5 rounded-full animate-pulse">
+            <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]">
               ● {Math.max(0, timeToMin(active.endTime) - currentMin())} mnt tersisa
             </span>
           )}
-          <div className="text-[11px] text-text3 bg-surface border border-border rounded-full px-2 py-[2px]">{doneCount}/{items.length} selesai</div>
+          <div className="text-[11px] text-text3 font-medium px-2 py-1 bg-surface border border-border rounded-full">{doneCount}/{items.length} Selesai</div>
         </div>
       </div>
 
@@ -557,8 +566,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
-                       ? 'border-amber/20 bg-amber/5 opacity-80 shadow-none' 
-                       : 'border-green/30 bg-green/5 opacity-90') 
+                       ? 'border-amber/40 bg-amber/10 opacity-100 shadow-sm' 
+                       : 'border-green/50 bg-green/10 opacity-100') 
                    : 'border-border/60 hover:border-border hover:bg-surface/60'
               } ${markingId === item.id ? 'scale-[0.98] opacity-70' : ''}`}>
                 

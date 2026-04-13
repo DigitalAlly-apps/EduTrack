@@ -265,11 +265,13 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <FormField label="Tambah Kelas Baru">
-        <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-          className="form-input-style mb-3" placeholder="cth: 10A, XI IPA 2..." />
-        <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
-      </FormField>
+      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-6 shadow-sm">
+        <FormField label="Tambah Kelas Baru" className="mb-0">
+          <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
+            className="form-input-style mb-3" placeholder="cth: 10A, XI IPA 2..." />
+          <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
+        </FormField>
+      </div>
       <div className="mt-6 mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Kelas</div>
       {data.classes.map(c => (
         <EditableItem key={c.id} item={{ id: c.id, name: c.name, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} />
@@ -320,7 +322,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-[hsl(var(--surface2))] p-[14px] rounded-xl border border-border2 mb-4">
+      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
         <FormField label="Tambah Mata Pelajaran" className="mb-0">
           <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
           <div className="flex gap-2 mb-3">
@@ -423,15 +425,17 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <FormField label="Pilih Mata Pelajaran">
-        <select value={subId} onChange={e => {setSubId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style mb-4 border-primary">
-          <option value="">Pilih mata pelajaran...</option>
-          {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-      </FormField>
+      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm">
+        <FormField label="Pilih Mata Pelajaran" className="mb-0">
+          <select value={subId} onChange={e => {setSubId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+            <option value="">Pilih mata pelajaran...</option>
+            {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </FormField>
+      </div>
 
       {subId && (
-        <div className="bg-[hsl(var(--surface2))] p-[14px] rounded-xl border border-border2 mb-4">
+        <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] font-bold text-foreground">Tambah Materi</span>
             <button onClick={() => setBulkMode(!bulkMode)} className="text-[11px] font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
@@ -533,7 +537,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-[hsl(var(--surface2))] p-[14px] rounded-xl border border-border2 mb-5">
+      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-6 shadow-sm">
         <FormField label="Kelas & Mapel">
           <div className="flex gap-2 mb-3">
             <select value={classId} onChange={e => setClassId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih kelas...</option>{data.classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
@@ -544,15 +548,15 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
           <div className="flex gap-1 flex-wrap mb-3">
             {DAYS_SHORT.map((d, i) => (
               <button key={i} onClick={() => toggleDay(i, selectedDays, setSelectedDays)}
-                className={`px-[10px] py-[6px] rounded-md text-xs font-medium border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2'}`}>
+                className={`px-[10px] py-[6px] rounded-md text-xs font-medium border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2'}`}>
                 {d}
               </button>
             ))}
           </div>
         </FormField>
         <div className="flex gap-2 mb-3">
-          <FormField label="Jam Mulai" className="flex-1 mb-0"><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style py-2" /></FormField>
-          <FormField label="Durasi (mnt)" className="flex-1 mb-0"><input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style py-2" min={15} max={180} /></FormField>
+          <FormField label="Jam Mulai" className="flex-1 mb-0"><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" /></FormField>
+          <FormField label="Durasi (mnt)" className="flex-1 mb-0"><input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" min={15} max={180} /></FormField>
         </div>
         <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px]">＋ Tambah Jadwal</button>
       </div>
@@ -681,13 +685,13 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-[hsl(var(--surface2))] p-[14px] rounded-xl border border-border2 mb-4">
+      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-6 shadow-sm">
         <div className="text-[12px] font-bold text-foreground mb-3">Tambah Hari Libur / Skip Dadakan</div>
         <div className="flex gap-2">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 h-10" min={todayStr} />
-          <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold whitespace-nowrap">+ Tambah</button>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 h-10 border-border focus:border-primary" min={todayStr} />
+          <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold whitespace-nowrap shadow-sm">+ Tambah</button>
         </div>
-        <p className="text-[11px] text-text3 mt-2">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
+        <p className="text-[11px] text-text3 mt-2 leading-relaxed">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
       </div>
 
       {impacts.length > 0 && (

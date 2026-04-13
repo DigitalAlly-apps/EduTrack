@@ -40,35 +40,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     const next = todayItems.find(i => !i.isDone && !i.isActive);
 
     if (todayItems.length === 0) {
-      // Fallback: tampilkan ujian terdekat dalam 14 hari
-      const soon = allSubjects.filter(s => s.daysLeft > 0 && s.daysLeft <= 14);
-      return (
-        <div className="space-y-3 animate-slide-up">
-          <div className="text-center py-6">
-            <span className="text-4xl block mb-2">📅</span>
-            <div className="text-base font-bold">Tidak ada ujian hari ini</div>
-            <div className="text-xs text-text2 mt-1">Ujian mendatang dalam 14 hari:</div>
-          </div>
-          {soon.length === 0 ? (
-            <div className="text-center text-sm text-text3 pb-6">Belum ada jadwal ujian. Atur di Kelola → Mapel.</div>
-          ) : (
-            <div className="space-y-2">
-              {soon.map(item => (
-                <div key={item.subjectId} className={`flex items-center justify-between px-4 py-3 rounded-2xl border ${item.daysLeft <= 3 ? 'bg-red/5 border-red/20' : item.daysLeft <= 7 ? 'bg-amber/5 border-amber/20' : 'bg-surface border-border2'}`}>
-                  <div>
-                    <div className="text-sm font-semibold">{item.subjectName}</div>
-                    <div className="text-xs text-text3">{fmtDate(item.examDate)}</div>
-                  </div>
-                  <div className={`text-right`}>
-                    <div className={`text-xl font-black tabular-nums ${item.daysLeft <= 3 ? 'text-red' : item.daysLeft <= 7 ? 'text-amber' : 'text-primary'}`}>{item.daysLeft}</div>
-                    <div className="text-[9px] text-text3 font-bold uppercase">Hari Lagi</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
+      return null;
     }
 
     return (
@@ -220,40 +192,32 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   };
 
   return (
-    <div className="space-y-4 animate-slide-up">
-      {/* Tabs */}
-      <div className="flex gap-1.5 bg-surface rounded-2xl p-1">
-        <button onClick={() => setTab('hari-ini')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'hari-ini' ? 'bg-primary text-primary-foreground' : 'text-text3 hover:text-text2'}`}>
-          📅 Hari Ini
-        </button>
-        <button onClick={() => setTab('semua')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${tab === 'semua' ? 'bg-primary text-primary-foreground' : 'text-text3 hover:text-text2'}`}>
-          📋 Semua Ujian
-        </button>
-      </div>
+    <div className="space-y-5 animate-slide-up pb-8">
+      {renderHariIni()}
 
-      {tab === 'hari-ini' && renderHariIni()}
-
-      {tab === 'semua' && (
-        <div className="space-y-2">
-          {allSubjects.length === 0 && (
-            <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
-              Belum ada jadwal ujian. Atur di Kelola → Mapel.
-            </div>
-          )}
-          {upcoming.length > 0 && (
-            <>
-              <div className="text-xs font-bold text-text3 uppercase tracking-wide px-1">Akan Datang</div>
+      <div className="space-y-4">
+        {allSubjects.length === 0 && todayItems.length === 0 && (
+          <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3 mt-4">
+            Belum ada jadwal ujian. Atur di Kelola → Mapel.
+          </div>
+        )}
+        {upcoming.length > 0 && (
+          <div>
+            <div className="text-[11px] font-bold text-text3 uppercase tracking-wider px-1 mb-2.5">Akan Datang</div>
+            <div className="space-y-2">
               {upcoming.map(item => <SubjectCard key={item.subjectId} item={item} />)}
-            </>
-          )}
-          {past.length > 0 && (
-            <>
-              <div className="text-xs font-bold text-text3 uppercase tracking-wide px-1 mt-3">Sudah Lewat</div>
+            </div>
+          </div>
+        )}
+        {past.length > 0 && (
+          <div>
+            <div className="text-[11px] font-bold text-text3 uppercase tracking-wider px-1 mt-5 mb-2.5">Sudah Lewat</div>
+            <div className="space-y-2">
               {past.map(item => <SubjectCard key={item.subjectId} item={item} />)}
-            </>
-          )}
-        </div>
-      )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

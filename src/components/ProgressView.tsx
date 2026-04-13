@@ -126,27 +126,21 @@ function ProgressTab() {
       <AICard />
       <div className="mt-4">
         {/* Filter bar */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3">
-            {filtered.length} Mapel {filter === 'bermasalah' ? 'Bermasalah' : 'Total'}
-          </div>
-          <div className="flex gap-1.5 bg-surface border border-border2 rounded-full p-[3px]">
-            <button
-              onClick={() => setFilter('semua')}
-              className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all ${filter === 'semua' ? 'bg-primary text-primary-foreground' : 'text-text3 hover:text-text2'}`}
-            >Semua</button>
-            <button
-              onClick={() => setFilter('bermasalah')}
-              className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all flex items-center gap-1 ${filter === 'bermasalah' ? 'bg-red text-white' : 'text-text3 hover:text-text2'}`}
-            >
-              Bermasalah
-              {bermasalahCount > 0 && (
-                <span className={`text-[9px] rounded-full w-4 h-4 grid place-items-center font-black ${filter === 'bermasalah' ? 'bg-white/20 text-white' : 'bg-red/15 text-red'}`}>
-                  {bermasalahCount}
-                </span>
-              )}
-            </button>
-          </div>
+        <div className="mb-5 flex gap-2 w-full">
+          <button
+            onClick={() => setFilter('semua')}
+            className={`flex-1 min-h-[44px] rounded-2xl flex flex-col items-center justify-center transition-all ${filter === 'semua' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface border border-border text-text2 hover:bg-surface2'}`}
+          >
+            <span className="text-lg font-bold">{allCards.length}</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">Semua Mapel</span>
+          </button>
+          <button
+            onClick={() => setFilter('bermasalah')}
+            className={`flex-1 min-h-[44px] rounded-2xl flex flex-col items-center justify-center transition-all ${filter === 'bermasalah' ? 'bg-red text-white shadow-md' : 'bg-surface border border-red/20 text-red hover:bg-red/5'}`}
+          >
+            <span className="text-lg font-bold">{bermasalahCount}</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">Perlu Perhatian</span>
+          </button>
         </div>
 
         {classIds.length === 0 && (

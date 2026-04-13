@@ -10,7 +10,6 @@ const navItems: { id: ViewType; icon: string; label: string }[] = [
   { id: 'progress', icon: '📈', label: 'Progres' },
   { id: 'exam', icon: '📝', label: 'Ujian' },
   { id: 'setup', icon: '⚙️', label: 'Kelola' },
-  { id: 'info', icon: 'ℹ️', label: 'Info' },
 ];
 
 export default function BottomNav({ currentView, onViewChange }: BottomNavProps) {
@@ -21,14 +20,14 @@ export default function BottomNav({ currentView, onViewChange }: BottomNavProps)
           <button
             key={item.id}
             onClick={() => onViewChange(item.id)}
-            className={`flex-1 flex flex-col items-center gap-[4px] py-1 px-[6px] rounded-[18px] text-[10px] font-bold tracking-[0.3px] transition-all duration-300 min-h-[52px] justify-center relative ${
+            className={`flex-1 flex flex-col items-center gap-[4px] py-1 px-[6px] rounded-[18px] text-[11px] font-bold tracking-[0.3px] transition-all duration-300 min-h-[52px] justify-center relative ${
               currentView === item.id ? 'text-primary' : 'text-text3 hover:text-text2 hover:bg-surface2/50'
             }`}
           >
             {currentView === item.id && (
               <span className="absolute inset-0 bg-primary/10 rounded-[18px] blur-sm animate-pulse-dot" style={{ animationDuration: '3s' }} />
             )}
-            <span className={`text-[22px] transition-all duration-300 relative z-10 ${currentView === item.id ? 'scale-[1.1] drop-shadow-md' : 'grayscale-[50%] opacity-80'}`}>
+            <span className={`text-[24px] transition-all duration-300 relative z-10 ${currentView === item.id ? 'scale-[1.1] drop-shadow-md' : 'grayscale-[50%] opacity-80'}`}>
               {item.icon}
             </span>
             <span className="relative z-10">{item.label}</span>
