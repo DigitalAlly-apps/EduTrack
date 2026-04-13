@@ -540,3 +540,34 @@ export function applyTeacherLeave(dateStr: string, reason: string, resolutions: 
   });
 }
 
+
+// ── Storage optimisation ─────────────────────────────────────────────────────
+const SESSION_KEEP_DAYS = 90;
+
+/** Hapus session > 90 hari, panggil saat startup & setelah saveData besar */
+export function pruneOldSessions() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - SESSION_KEEP_DAYS);
+  const cutStr = cutoff.toISOString().slice(0, 10);
+  updateData(d => {
+    const before = d.sessions.length;
+    d.sessions = d.sessions.filter(s => s.date >= cutStr);
+    // Juga hapus task done yang sudah > 30 hari lewat deadline
+    const taskCutoff = new Date();
+    taskCutoff.setDate(taskCutoff.getDate() - 30);
+    const taskCutStr = taskCutoff.toISOString().slice(0, 10);
+    d.tasks = (d.tasks ?? []).filter(t => !(t.status === 'done' && t.deadline < taskCutStr));
+  });
+}
+
+/** Estimasi ukuran localStorage untuk key ini (bytes) */
+export function estimateStorageSize(): { used: number; total: number; pct: number } {
+  try {
+    let used = 0;
+    for (const key of Object.keys(localStorage)) {
+      used += (localStorage.getItem(key) ?? '').length * 2; // UTF-16
+    }
+    const total = 5 * 1024 * 1024; // 5MB typical
+    return { used, total, pct: Math.round((used / total) * 100) };
+  } catch { return { used: 0, total: 5242880, pct: 0 }; }
+}

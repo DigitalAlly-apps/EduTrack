@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData,
-  exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials,
+  exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
@@ -726,6 +726,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
+      <StorageInfo />
       <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
         <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📤 EXPORT DATA</div>
         <div className="flex gap-[7px] flex-wrap">
@@ -762,4 +763,38 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
 
 function FormField({ label, children, className = '' }: any) {
   return <div className={`mb-3 ${className}`}><label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">{label}</label>{children}</div>;
+}
+function StorageInfo() {
+  const info = estimateStorageSize();
+  const data = getData();
+  const color = info.pct > 80 ? 'text-red' : info.pct > 50 ? 'text-amber' : 'text-green';
+  const barColor = info.pct > 80 ? 'bg-red' : info.pct > 50 ? 'bg-amber' : 'bg-green';
+  const kb = Math.round(info.used / 1024);
+  return (
+    <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
+      <div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
+        <span className="flex items-center gap-[6px]">💾 PENYIMPANAN LOKAL</span>
+        <span className={"text-[11px] font-bold " + color}>{info.pct}% terpakai</span>
+      </div>
+      <div className="h-2 bg-surface3 rounded-full overflow-hidden mb-2">
+        <div className={"h-full rounded-full transition-all " + barColor} style={{ width: info.pct + '%' }} />
+      </div>
+      <div className="text-[11px] text-text3 flex justify-between mb-3">
+        <span>{kb} KB digunakan</span>
+        <span>{Math.round(info.total / 1024)} KB total</span>
+      </div>
+      <div className="text-[11px] text-text3 flex gap-4 flex-wrap mb-3">
+        <span>📋 {data.sessions.length} sesi</span>
+        <span>📚 {data.materials.length} materi</span>
+        <span>📅 {data.schedules.length} jadwal</span>
+        <span>✅ {(data.tasks ?? []).length} tugas</span>
+      </div>
+      <button
+        onClick={() => { pruneOldSessions(); window.location.reload(); }}
+        className="data-btn-style text-amber border-amber/30 bg-amber/5 text-xs"
+      >
+        🧹 Bersihkan data lama (&gt;90 hari)
+      </button>
+    </div>
+  );
 }

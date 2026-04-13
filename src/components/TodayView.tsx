@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
   markDone, skipSession, postponeSchedule, timeToMin, currentMin, fmt, fmtCountdown,
@@ -28,6 +28,32 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [noteDraft, setNoteDraft] = useState('');
   
   const tasks = getTasks();
+  const [briefingOpen, setBriefingOpen] = useState(true);
+  const [endedBanner, setEndedBanner] = useState<string | null>(null); // scheduleId of ended class
+  const endedNotifiedRef = useRef<Set<string>>(new Set());
+
+  // Tick every 30s to detect class ending
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Detect class just ended (within 10 min) and not yet marked done
+  useEffect(() => {
+    const curMin = currentMin();
+    for (const item of items) {
+      if (item.done) continue;
+      const endMin = timeToMin(item.endTime);
+      if (curMin >= endMin && curMin <= endMin + 10) {
+        const key = item.id + item.endTime;
+        if (!endedNotifiedRef.current.has(key)) {
+          endedNotifiedRef.current.add(key);
+          setEndedBanner(item.id);
+        }
+      }
+    }
+  }, [tick, items]);
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
   const handleHeroDone = useCallback((id: string) => {
@@ -177,8 +203,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   return (
     <div>
-      {/* Daily Briefing */}
-      <DailyBriefing />
+      {/* Daily Briefing — collapsible */}
+      <div className="mb-3">
+        <button
+          onClick={() => setBriefingOpen(o => !o)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-2xl hover:bg-surface2/50 transition-colors"
+        >
+          <span className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
+            🗂️ Briefing Harian
+          </span>
+          <span className="text-[10px] text-text3">{briefingOpen ? '▲ Sembunyikan' : '▼ Tampilkan'}</span>
+        </button>
+        {briefingOpen && <DailyBriefing />}
+      </div>
       {/* Backup Reminder Banner */}
       {showBackupBtn && (
         <div className="bg-amber/10 border border-amber/30 rounded-lg p-3 mb-[10px] flex items-center justify-between animate-slide-up">
@@ -192,6 +229,27 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         </div>
       )}
+
+      {/* In-app banner: kelas baru saja selesai dan belum ditandai */}
+      {endedBanner && (() => {
+        const endedItem = items.find(i => i.id === endedBanner);
+        if (!endedItem || endedItem.done) return null;
+        return (
+          <div className="flex items-center justify-between bg-primary/10 border border-primary-border rounded-2xl px-4 py-3 mb-3 animate-slide-up">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔔</span>
+              <div>
+                <div className="text-[11px] font-bold text-primary uppercase tracking-wide">Pelajaran Selesai</div>
+                <div className="text-xs text-text2">{endedItem.className} · {endedItem.subjectName}</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { handleTLDone(endedBanner); setEndedBanner(null); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-3 py-1.5 rounded-xl">✓ Selesai</button>
+              <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-2 py-1.5">✕</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Unified Hero Area: Active Session, Upcoming, or Exams */}
       {(() => {

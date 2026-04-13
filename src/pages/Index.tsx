@@ -10,7 +10,7 @@ import Onboarding from '@/components/Onboarding';
 import QuickAddModal from '@/components/QuickAddModal';
 import TeacherLeaveModal from '@/components/TeacherLeaveModal';
 import { ViewType } from '@/lib/types';
-import { getData, loadDemo } from '@/lib/data';
+import { getData, loadDemo, pruneOldSessions } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
 
 type AppView = ViewType;
@@ -31,6 +31,7 @@ function AppInner() {
     const onboarded = localStorage.getItem('pengajar_onboarded');
     if (!hasData && !onboarded) setShowOnboarding(true);
     initNotifications();
+    pruneOldSessions();
   }, [view]);
 
   useEffect(() => {
