@@ -10,11 +10,10 @@ import {
 
 interface HeaderProps {
   onToggleTheme: () => void;
-  onOpenLeave: () => void;
   theme: string;
 }
 
-export default function Header({ onToggleTheme, onOpenLeave, theme }: HeaderProps) {
+export default function Header({ onToggleTheme, theme }: HeaderProps) {
   const data = getData();
   const name = data.teacherName || 'Guru';
   const dateStr = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -38,17 +37,6 @@ export default function Header({ onToggleTheme, onOpenLeave, theme }: HeaderProp
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={onOpenLeave}
-            className="group relative px-3 h-11 rounded-2xl bg-red/5 hover:bg-red/10 text-red border border-red/10 flex items-center justify-center gap-1.5 transition-all active:scale-90"
-            title="Ajukan Izin/Sakit"
-          >
-            <span className="group-hover:scale-110 transition-transform text-lg">🏥</span>
-            <span className="text-[11px] font-bold tracking-wider">Izin</span>
-          </button>
-          
-          <div className="w-[1px] h-7 bg-border/40" />
-
           <Dialog>
             <DialogTrigger asChild>
               <button className="px-3 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-90 text-text2 hover:text-foreground">

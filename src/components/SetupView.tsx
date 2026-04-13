@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -27,6 +27,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
     { id: 'materials', label: 'Materi', icon: '📖', group: 'data' },
     { id: 'schedules', label: 'Jadwal', icon: '🗓', group: 'data' },
     { id: 'holidays', label: 'Libur', icon: '🏖', group: 'other' },
+    { id: 'leave', label: 'Izin', icon: '🏥', group: 'other' },
     { id: 'data', label: 'Backup', icon: '💾', group: 'other' },
   ];
 
@@ -92,6 +93,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
       {tab === 'schedules' && <SchedulesTab onRefresh={refresh} />}
       {tab === 'holidays' && <LiburTab onRefresh={refresh} />}
       {tab === 'data' && <DataTab onRefresh={refresh} />}
+      {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
     </div>
   );
 }
@@ -791,6 +793,138 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
 function FormField({ label, children, className = '' }: any) {
   return <div className={`mb-3 ${className}`}><label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">{label}</label>{children}</div>;
 }
+// ── Leave Tab ────────────────────────────────────────────────────────────────
+function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
+  const { toast } = useToast();
+  const data = getData();
+
+  const [date, setDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().slice(0, 10);
+  });
+  const [reason, setReason] = useState('Sakit');
+  const [resolutions, setResolutions] = useState<Record<string, { action: 'deliver' | 'skip'; note: string }>>({});
+
+  const dayOfWeek = date ? new Date(date).getDay() : -1;
+  const schedules = useMemo(() => {
+    if (dayOfWeek === -1) return [];
+    return data.schedules.filter(s => s.days.includes(dayOfWeek)).map(s => {
+      const cls = data.classes.find(c => c.id === s.classId);
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      const mats = data.materials.filter(m => m.subjectId === s.subjectId).sort((a, b) => a.order - b.order);
+      const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId);
+      const mat = mats[prog ? prog.materialsDone : 0] || null;
+      return { ...s, className: cls?.name, subjectName: sub?.name, nextMat: mat };
+    }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [date, data.schedules, dayOfWeek, data.classes, data.subjects, data.materials, data.progress]);
+
+  useEffect(() => {
+    const newRes: Record<string, { action: 'deliver' | 'skip'; note: string }> = {};
+    schedules.forEach(s => {
+      newRes[s.id] = resolutions[s.id] || { action: 'deliver', note: 'Tugas Mandiri/Catatan' };
+    });
+    setResolutions(newRes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedules]);
+
+  const saveLeave = () => {
+    if (!date) { toast({ title: 'Pilih tanggal izin terlebih dahulu' }); return; }
+    if (schedules.length === 0) { toast({ title: 'Tidak ada jadwal di tanggal ini' }); return; }
+    const resArray = Object.entries(resolutions).map(([scheduleId, res]) => ({
+      scheduleId,
+      action: res.action,
+      note: res.action === 'deliver'
+        ? res.note || `Otomatis: Tugas Mandiri (${reason})`
+        : `Otomatis: Kelas Kosong/Diluar Jadwal (${reason})`,
+    }));
+    applyTeacherLeave(date, reason, resArray);
+    toast({ title: '✓ Izin Disimpan', description: 'Sesi otomatis disetup.' });
+    onRefresh();
+  };
+
+  return (
+    <div className="space-y-4 animate-slide-up">
+      <div className="bg-surface border border-border rounded-[20px] p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">🏥</div>
+          <div>
+            <div className="font-display text-[18px] font-bold tracking-tight leading-tight">Pengajuan Izin</div>
+            <div className="text-[11px] text-text2">Atur sesi kelas jika berhalangan hadir.</div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style" />
+          </div>
+          <div className="flex-1">
+            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Alasan</label>
+            <select value={reason} onChange={e => setReason(e.target.value)} className="form-select-style">
+              <option value="Sakit">Badan Sakit</option>
+              <option value="Cuti/Izin">Cuti / Urusan</option>
+              <option value="Dinas Luar">Dinas Luar</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
+            Penyesuaian Jadwal ({schedules.length} Kelas)
+          </label>
+          {schedules.length === 0 ? (
+            <div className="text-center py-6 bg-surface2 border border-border2 rounded-xl text-text3 text-sm">
+              Tidak ada jadwal mengajar pada hari ini.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {schedules.map(s => {
+                const res = resolutions[s.id] || { action: 'deliver', note: '' };
+                const isDeliver = res.action === 'deliver';
+                return (
+                  <div key={s.id} className="bg-surface2 border border-border2 rounded-xl p-3 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="min-w-0 pr-2">
+                        <div className="text-[14px] font-bold">{s.className}</div>
+                        <div className="text-[12px] text-text2">{s.subjectName} · {s.startTime}</div>
+                        {s.nextMat && <div className="text-[10px] text-text3 mt-0.5 truncate">Materi: {s.nextMat.name}</div>}
+                      </div>
+                      <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface p-1 rounded-lg border border-border/50">
+                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
+                          <input type="radio" checked={isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'deliver'}}))} className="hidden" />
+                          ✓ Titip Tugas
+                        </label>
+                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
+                          <input type="radio" checked={!isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'skip'}}))} className="hidden" />
+                          ⏭ Skip Kelas
+                        </label>
+                      </div>
+                    </div>
+                    {isDeliver && (
+                      <input
+                        type="text"
+                        placeholder="Contoh: Kerjakan Modul Hal 45-48"
+                        value={res.note}
+                        onChange={e => setResolutions(p => ({...p, [s.id]: {...p[s.id], note: e.target.value}}))}
+                        className="w-full bg-surface border border-border2 rounded-md px-2.5 py-1.5 text-[11px] focus:border-primary focus:outline-none placeholder:text-text3 mt-1"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <button onClick={saveLeave} disabled={schedules.length === 0} className="btn-primary-style disabled:opacity-50 disabled:cursor-not-allowed">
+          ✓ Terapkan Izin
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StorageInfo() {
   const info = estimateStorageSize();
   const data = getData();

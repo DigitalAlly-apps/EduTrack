@@ -97,4 +97,4 @@ export interface Insight {
   text: string;
 }
 export type ViewType = 'today' | 'progress' | 'setup' | 'info' | 'exam';
-export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data';
+export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave';
