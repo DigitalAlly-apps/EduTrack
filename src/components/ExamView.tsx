@@ -40,11 +40,33 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     const next = todayItems.find(i => !i.isDone && !i.isActive);
 
     if (todayItems.length === 0) {
+      // Fallback: tampilkan ujian terdekat dalam 14 hari
+      const soon = allSubjects.filter(s => s.daysLeft > 0 && s.daysLeft <= 14);
       return (
-        <div className="text-center py-12 px-4 animate-slide-up">
-          <span className="text-5xl block mb-4">📝</span>
-          <div className="font-display text-2xl font-medium tracking-tight mb-2">Tidak ada ujian hari ini</div>
-          <div className="text-sm text-text2">Tandai tanggal ujian di Kelola → Mapel untuk memunculkan jadwal di sini.</div>
+        <div className="space-y-3 animate-slide-up">
+          <div className="text-center py-6">
+            <span className="text-4xl block mb-2">📅</span>
+            <div className="text-base font-bold">Tidak ada ujian hari ini</div>
+            <div className="text-xs text-text2 mt-1">Ujian mendatang dalam 14 hari:</div>
+          </div>
+          {soon.length === 0 ? (
+            <div className="text-center text-sm text-text3 pb-6">Belum ada jadwal ujian. Atur di Kelola → Mapel.</div>
+          ) : (
+            <div className="space-y-2">
+              {soon.map(item => (
+                <div key={item.subjectId} className={`flex items-center justify-between px-4 py-3 rounded-2xl border ${item.daysLeft <= 3 ? 'bg-red/5 border-red/20' : item.daysLeft <= 7 ? 'bg-amber/5 border-amber/20' : 'bg-surface border-border2'}`}>
+                  <div>
+                    <div className="text-sm font-semibold">{item.subjectName}</div>
+                    <div className="text-xs text-text3">{fmtDate(item.examDate)}</div>
+                  </div>
+                  <div className={`text-right`}>
+                    <div className={`text-xl font-black tabular-nums ${item.daysLeft <= 3 ? 'text-red' : item.daysLeft <= 7 ? 'text-amber' : 'text-primary'}`}>{item.daysLeft}</div>
+                    <div className="text-[9px] text-text3 font-bold uppercase">Hari Lagi</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }

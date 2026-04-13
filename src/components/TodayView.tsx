@@ -204,17 +204,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   return (
     <div>
       {/* Daily Briefing — collapsible */}
-      <div className="mb-3">
+      <div className={`mb-3 border rounded-2xl overflow-hidden transition-all ${briefingOpen ? 'border-border2' : 'border-transparent'}`}>
         <button
           onClick={() => setBriefingOpen(o => !o)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-2xl hover:bg-surface2/50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface2/40 transition-colors"
         >
           <span className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
             🗂️ Briefing Harian
           </span>
-          <span className="text-[10px] text-text3">{briefingOpen ? '▲ Sembunyikan' : '▼ Tampilkan'}</span>
+          <span className={`text-text3 text-[14px] transition-transform duration-300 ${briefingOpen ? 'rotate-180' : ''}`}>⌄</span>
         </button>
-        {briefingOpen && <DailyBriefing />}
+        {briefingOpen && <div className="px-1 pb-1"><DailyBriefing /></div>}
       </div>
       {/* Backup Reminder Banner */}
       {showBackupBtn && (
@@ -244,7 +244,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { handleTLDone(endedBanner); setEndedBanner(null); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-3 py-1.5 rounded-xl">✓ Selesai</button>
+              <button onClick={() => { handleHeroDone(endedBanner); setEndedBanner(null); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-3 py-1.5 rounded-xl">✓ Selesai</button>
               <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-2 py-1.5">✕</button>
             </div>
           </div>
@@ -512,9 +512,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-2">
+      <div className="flex items-center justify-between mt-4 mb-2 sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-1.5 -mx-1 px-1 rounded-xl">
         <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
-        <div className="text-[11px] text-text3 bg-surface border border-border rounded-full px-2 py-[2px]">{doneCount}/{items.length} selesai</div>
+        <div className="flex items-center gap-2">
+          {active && (
+            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary-border px-2 py-0.5 rounded-full animate-pulse">
+              ● {Math.max(0, timeToMin(active.endTime) - currentMin())} mnt tersisa
+            </span>
+          )}
+          <div className="text-[11px] text-text3 bg-surface border border-border rounded-full px-2 py-[2px]">{doneCount}/{items.length} selesai</div>
+        </div>
       </div>
 
       {items.map((item, i) => {
@@ -550,18 +557,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
-                       ? 'border-border/60 bg-surface/30 opacity-60 grayscale shadow-none' 
+                       ? 'border-amber/20 bg-amber/5 opacity-80 shadow-none' 
                        : 'border-green/30 bg-green/5 opacity-90') 
                    : 'border-border/60 hover:border-border hover:bg-surface/60'
               } ${markingId === item.id ? 'scale-[0.98] opacity-70' : ''}`}>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`text-[15px] font-bold tracking-tight leading-tight ${item.skipped ? 'text-text3 line-through opacity-70' : 'text-foreground'}`}>
+                    <div className={`text-[15px] font-bold tracking-tight leading-tight ${item.skipped ? 'text-text2' : 'text-foreground'}`}>
                       {item.className}
                     </div>
-                    {state === 'done' && !item.skipped && (
-                      <span className="text-[10px] font-bold text-green bg-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider">DONE</span>
+                    {state === 'done' && (
+                      item.skipped
+                        ? <span className="text-[10px] font-bold text-amber bg-amber/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Dilewati</span>
+                        : <span className="text-[10px] font-bold text-green bg-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Selesai</span>
                     )}
                   </div>
                   

@@ -21,13 +21,13 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
   const refresh = () => { forceUpdate(n => n + 1); onRefresh(); };
   const data = getData();
 
-  const tabs: { id: SetupTab; label: string }[] = [
-    { id: 'classes', label: 'Kelas' },
-    { id: 'subjects', label: 'Mapel' },
-    { id: 'materials', label: 'Materi' },
-    { id: 'schedules', label: 'Jadwal' },
-    { id: 'holidays', label: '🗓 Libur' },
-    { id: 'data', label: 'Data' },
+  const tabs: { id: SetupTab; label: string; icon: string; group: string }[] = [
+    { id: 'classes', label: 'Kelas', icon: '🏫', group: 'data' },
+    { id: 'subjects', label: 'Mapel', icon: '📚', group: 'data' },
+    { id: 'materials', label: 'Materi', icon: '📖', group: 'data' },
+    { id: 'schedules', label: 'Jadwal', icon: '🗓', group: 'data' },
+    { id: 'holidays', label: 'Libur', icon: '🏖', group: 'other' },
+    { id: 'data', label: 'Backup', icon: '💾', group: 'other' },
   ];
 
   return (
@@ -44,23 +44,46 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-[14px] overflow-x-auto pb-[2px] scrollbar-none">
-        {tabs.map(t => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-[13px] py-[7px] rounded-full text-xs font-medium border transition-all whitespace-nowrap inline-flex items-center gap-[5px] ${
-                active ? 'bg-primary-dim border-primary-border text-primary' :
-                'bg-surface border-border text-text2 hover:border-border2 hover:text-foreground'
-              }`}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      {/* Tabs — grouped */}
+      <div className="mb-[14px] space-y-2">
+        <div className="text-[9px] font-bold uppercase tracking-widest text-text3 px-1">Data Kelas</div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {tabs.filter(t => t.group === 'data').map(t => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 min-w-[64px] py-2.5 px-2 rounded-2xl text-[11px] font-bold border transition-all whitespace-nowrap flex flex-col items-center gap-1 ${
+                  active ? 'bg-primary-dim border-primary-border text-primary shadow-sm' :
+                  'bg-surface border-border text-text2 hover:border-border2 hover:text-foreground'
+                }`}
+              >
+                <span className="text-base">{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-[9px] font-bold uppercase tracking-widest text-text3 px-1 mt-1">Lainnya</div>
+        <div className="flex gap-1.5">
+          {tabs.filter(t => t.group === 'other').map(t => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 py-2 px-3 rounded-2xl text-[11px] font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                  active ? 'bg-primary-dim border-primary-border text-primary shadow-sm' :
+                  'bg-surface border-border text-text2 hover:border-border2 hover:text-foreground'
+                }`}
+              >
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {tab === 'classes' && <ClassesTab onRefresh={refresh} />}
