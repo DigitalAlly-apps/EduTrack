@@ -96,7 +96,7 @@ export default function InfoView() {
             activeSubTab === 'updates' ? 'bg-background text-primary shadow-sm' : 'text-text3 hover:text-text2'
           }`}
         >
-          🚀 Update v5.0
+          💡 Fitur & Keunggulan
         </button>
       </div>
 
@@ -151,20 +151,25 @@ export default function InfoView() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+          {/* Keunggulan Section */}
           <div className="bg-primary/5 rounded-[24px] p-6 border border-primary/10 relative overflow-hidden">
              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-               <span className="text-8xl">🚀</span>
+               <span className="text-8xl">💎</span>
              </div>
              <div className="relative z-10">
-                <div className="text-[11px] font-black text-primary uppercase tracking-[0.2em] mb-2 text-center">EduTrack v5.0</div>
-                <h3 className="text-xl font-display font-black tracking-tight text-center mb-6">Log Pembaruan Sistem</h3>
-                <div className="grid gap-6">
-                  {updates.map((u, i) => (
+                <div className="text-[11px] font-black text-primary uppercase tracking-[0.2em] mb-2 text-center">Keunggulan</div>
+                <h3 className="text-xl font-display font-black tracking-tight text-center mb-6">Kenapa EduTrack?</h3>
+                <div className="grid gap-5">
+                  {[
+                    { icon: '🔒', t: 'Privasi 100%', d: 'Data Anda tidak dikirim ke server mana pun. Semuanya tersimpan aman di browser Anda.' },
+                    { icon: '🚀', t: 'Super Ringan', d: 'Aplikasi berjalan sangat cepat bahkan di ponsel dengan spesifikasi rendah.' },
+                    { icon: '🎯', t: 'Estimasi Presisi', d: 'Satu-satunya asisten yang menghitung sisa materi vs sisa hari efektif secara akurat.' },
+                  ].map((u, i) => (
                     <div key={i} className="flex gap-4">
-                      <div className="w-11 h-11 bg-background rounded-2xl border border-border flex items-center justify-center text-xl flex-shrink-0 shadow-sm">{u.icon}</div>
+                      <div className="w-10 h-10 bg-background rounded-xl border border-border flex items-center justify-center text-lg flex-shrink-0 shadow-sm">{u.icon}</div>
                       <div>
-                        <div className="text-sm font-bold text-foreground mb-1 leading-none">{u.t}</div>
+                        <div className="text-[13px] font-bold text-foreground mb-0.5 leading-none">{u.t}</div>
                         <div className="text-[12px] text-text2 leading-relaxed font-medium opacity-80">{u.d}</div>
                       </div>
                     </div>
@@ -173,7 +178,29 @@ export default function InfoView() {
              </div>
           </div>
 
-          <div className="text-center py-6">
+          {/* Capabilities Section */}
+          <div className="px-1">
+            <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">Apa saja yang bisa dilakukan?</div>
+            <div className="space-y-3">
+              {[
+                { icon: '📅', t: 'Manajemen Jadwal Otomatis', d: 'Input jadwal sekali, asisten akan mendeteksi kelas mana yang harus Anda ajar setiap saat.' },
+                { icon: '📝', t: 'Input Materi Massal', d: 'Punya 20 bab materi? Copy-paste semua barisnya sekaligus. EduTrack akan memecahnya otomatis.' },
+                { icon: '🏥', t: 'Kelola Izin & Tugas', d: 'Guru tidak hadir? Tandai sebagai izin dan berikan Tugas Mandiri agar progres materi tidak terhenti.' },
+                { icon: '📊', t: 'Dashboard Progres Real-time', d: 'Lihat status semua kelas dalam satu pandangan. Mana yang "Behind" dan mana yang "On Track".' },
+                { icon: '💾', t: 'Cetak Laporan (CSV)', d: 'Butuh laporan fisik? Export semua riwayat sesi mengajar Anda ke format file Excel/CSV.' },
+              ].map((f, i) => (
+                <div key={i} className="flex items-center gap-4 bg-surface2/30 border border-border/50 p-4 rounded-2xl hover:bg-surface2/50 transition-colors">
+                  <div className="text-2xl">{f.icon}</div>
+                  <div>
+                    <div className="text-[13px] font-bold text-foreground">{f.t}</div>
+                    <div className="text-[11px] text-text2 leading-relaxed mt-0.5">{f.d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center py-4">
             <div className="text-[10px] text-text3 font-bold uppercase tracking-widest opacity-40 italic">
               "Terus Berinovasi untuk Guru Indonesia"
             </div>
