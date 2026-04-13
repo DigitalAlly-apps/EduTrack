@@ -4,7 +4,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  getData, updateData, genId, DAYS_SHORT, fmt, checkOverlap, saveData,
+  getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary,
 } from '@/lib/data';
@@ -549,7 +549,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
             <div key={group.day} className="animate-slide-up">
               <div className="flex items-center gap-2 mb-2 px-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[12px] font-bold text-foreground capitalize">{['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][group.day]}</span>
+                <span className="text-[12px] font-bold text-foreground capitalize">{DAYS_ID[group.day]}</span>
                 <div className="flex-1 h-[1px] bg-border/40 ml-1" />
               </div>
               <div className="space-y-2">
