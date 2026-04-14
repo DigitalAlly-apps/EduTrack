@@ -664,19 +664,34 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
   const { toast } = useToast();
   const holidays = getHolidays();
   const impacts = getHolidayImpactSummary();
+  const [level, setLevel] = useState('');
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const handleAdd = () => {
     if (!date) return toast({ title: 'Pilih tanggal libur' });
-    addHoliday(date);
+    updateData(d => {
+      if (!d.holidays) d.holidays = [];
+      const index = d.holidays.findIndex(h => typeof h === 'string' ? h === date : h.date === date);
+      if (index !== -1) {
+        d.holidays.splice(index, 1); // remove existing
+      }
+      d.holidays.push(level ? { date, level } : date);
+      d.holidays.sort((a, b) => {
+        const da = typeof a === 'string' ? a : a.date;
+        const db = typeof b === 'string' ? b : b.date;
+        return da.localeCompare(db);
+      });
+    });
     setDate('');
+    setLevel('');
     toast({ title: 'Hari libur ditambahkan ✓' });
     refresh();
   };
 
-  const handleRemove = (d: string) => {
-    removeHoliday(d);
+  const handleRemove = (d: any) => {
+    const dStr = typeof d === 'string' ? d : d.date;
+    updateData(data => { if (data.holidays) data.holidays = data.holidays.filter(h => (typeof h === 'string' ? h : h.date) !== dStr); });
     toast({ title: 'Libur dihapus' });
     refresh();
   };
@@ -689,10 +704,16 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-6 shadow-sm">
         <div className="text-[12px] font-bold text-foreground mb-3">Tambah Hari Libur / Skip Dadakan</div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 h-10 border-border focus:border-primary" min={todayStr} />
-          <button onClick={handleAdd} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold whitespace-nowrap shadow-sm">+ Tambah</button>
+          <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style flex-1 h-10 border-border">
+            <option value="">Semua Jenjang</option>
+            <option value="SD/MI">SD / MI</option>
+            <option value="SMP/MTs">SMP / MTs</option>
+            <option value="SMA/MA">SMA / MA</option>
+          </select>
         </div>
+        <button onClick={handleAdd} className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold shadow-sm">+ Tambah Libur</button>
         <p className="text-[11px] text-text3 mt-2 leading-relaxed">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
       </div>
 
@@ -711,21 +732,24 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
       {holidays.length === 0 && (
         <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg">Belum ada hari libur yang diinput</div>
       )}
-      {holidays.map(d => {
-        const isToday = d === todayStr;
-        const isPast = d < todayStr;
+      {holidays.map((h, i) => {
+        const dStr = typeof h === 'string' ? h : h.date;
+        const levelStr = typeof h === 'string' || !h.level ? 'Semua Jenjang' : h.level;
+        const isToday = dStr === todayStr;
+        const isPast = dStr < todayStr;
         return (
-          <div key={d} className={`bg-surface border rounded-lg p-[12px] flex items-center justify-between mb-[6px] ${
+          <div key={i} className={`bg-surface border rounded-lg p-[12px] flex items-center justify-between mb-[6px] ${
             isToday ? 'border-primary-border bg-primary-dim' : isPast ? 'border-border opacity-60' : 'border-border'
           }`}>
             <div>
-              <div className="text-sm font-medium">{formatDate(d)}</div>
-              <div className="flex gap-1 mt-[3px]">
+              <div className="text-sm font-medium">{formatDate(dStr)}</div>
+              <div className="flex gap-1 mt-[3px] items-center">
+                <span className="text-[10px] bg-surface2 text-text2 rounded px-[5px] py-[1px] border">{levelStr}</span>
                 {isToday && <span className="text-[10px] bg-primary text-white rounded px-[5px] py-[1px] font-bold">Hari ini</span>}
                 {isPast && <span className="text-[10px] text-text3">(Sudah lewat)</span>}
               </div>
             </div>
-            <button onClick={() => handleRemove(d)} className="w-[30px] h-[30px] rounded-lg bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-xs grid place-items-center flex-shrink-0">✕</button>
+            <button onClick={() => handleRemove(h)} className="w-[30px] h-[30px] rounded-lg bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-xs grid place-items-center flex-shrink-0">✕</button>
           </div>
         );
       })}
@@ -773,6 +797,24 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
           <button onClick={() => { loadDemo(); toast({ title: 'Data demo dimuat' }); onRefresh(); }} className="data-btn-style text-text2">🧪 Muat Demo</button>
         </div>
       </div>
+      
+      <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-[20px] p-[18px] mb-[10px]">
+        <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-[14px]">Push Notifikasi</div>
+        <p className="text-[13px] text-text2 leading-[1.7] mb-3">
+          Izinkan notifikasi agar EduTrack bisa mengingatkan Anda **5 menit sebelum sesi kelas dimulai**.
+        </p>
+        <button 
+          onClick={async () => {
+            const mod = await import('@/lib/notifications');
+            const res = await mod.requestNotifPermission();
+            alert(res ? 'Notifikasi aktif!' : 'Gagal mengaktifkan notifikasi / izin ditolak.');
+          }}
+          className="w-full py-[12px] bg-teal text-teal-950 text-sm font-bold rounded-lg shadow-teal transition-all active:scale-[0.98]"
+        >
+          🔔 Aktifkan Notifikasi Web
+        </button>
+      </div>
+
       <div className="bg-[hsl(0_91%_71%/0.04)] border border-[hsl(0_91%_71%/0.12)] rounded-[20px] p-4 mb-[10px]">
         <div className="text-[12px] font-bold mb-[10px] text-[#FCA5A5] uppercase tracking-wide">⚠️ Zona Berbahaya</div>
         {!showReset ? (

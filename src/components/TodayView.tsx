@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
-  markDone, skipSession, postponeSchedule, timeToMin, currentMin, fmt, fmtCountdown,
-  todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHoliday,
+  markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
+  todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
@@ -117,7 +117,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: 'Catatan disimpan' });
   };
 
-  if (isTodayHoliday()) {
+  if (isTodayHolidayGlobal()) {
     return (
       <div className="text-center py-12 px-6 animate-slide-up flex flex-col items-center">
         <div className="w-20 h-20 bg-primary-dim rounded-full grid place-items-center mb-6 shadow-sm">
@@ -522,7 +522,42 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* Timeline */}
       <div className="flex items-center justify-between mt-4 mb-2 sticky top-[80px] z-30 bg-background/90 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
-        <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
+        <div className="flex items-center gap-2">
+          <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
+          {!active && items.length > 0 && !items.every(x => x.done) && (
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  if(confirm('Semua sisa sesi hari ini durasinya dipotong jadi setengah dan akan dirapatkan waktunya. Lanjutkan?')) {
+                    applyShortDayOverride(new Date().toISOString().slice(0, 10));
+                    onRefresh();
+                    toast({ title: 'Jadwal hari ini diubah jadi setengah hari ⚡' });
+                  }
+                }}
+                className="text-[9px] font-bold text-amber px-2 py-0.5 rounded-full border border-amber/30 bg-amber/10 transition-colors hover:bg-amber/20 whitespace-nowrap"
+              >
+                ⚡ Pangkas Durasi
+              </button>
+              <button 
+                onClick={() => {
+                  const input = prompt('Mulai jam berapa jadwal akan diliburkan? (contoh: 10:00 atau 10:30)');
+                  if(input) {
+                    if (/^\d{1,2}:\d{2}$/.test(input.trim())) {
+                      const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), input.trim());
+                      onRefresh();
+                      toast({ title: `🏠 ${count} kelas setelah ${input.trim()} diliburkan` });
+                    } else {
+                      toast({ variant: 'destructive', title: 'Format waktu salah (harus HH:MM)' });
+                    }
+                  }
+                }}
+                className="text-[9px] font-bold text-blue-500 px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap"
+              >
+                🏠 Pulang Awal
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {active && (
             <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]">

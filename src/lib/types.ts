@@ -61,8 +61,8 @@ export interface AppData {
   notes: string[];
   lastBackup: string | null;
   reminderDismissed: string | null;
-  holidays: string[]; // tanggal libur/skip: YYYY-MM-DD
-  scheduleOverrides?: { date: string; scheduleId: string; startTime: string }[]; // override jam mulai untuk tanggal tertentu
+  holidays: (string | { date: string; level?: string })[]; // tanggal libur/skip: YYYY-MM-DD
+  scheduleOverrides?: { date: string; scheduleId: string; startTime: string; durationOverride?: number; skipped?: boolean }[]; // override jam mulai untuk tanggal tertentu
 }
 export interface TodayScheduleItem extends Schedule {
   className: string;

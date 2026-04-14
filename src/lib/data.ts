@@ -64,8 +64,7 @@ export function checkOverlap(classId: string, days: number[], startTime: string,
 
 // Returns the number of schedule sessions available in the next `daysLeft` days,
 // minus any sessions that fall on a holiday date.
-function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: number, holidays: string[]): { sessLeft: number; holidaysInPeriod: number } {
-  const holidaySet = new Set(holidays);
+function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: number, holidays: (string | { date: string; level?: string })[], subjectLevel?: string): { sessLeft: number; holidaysInPeriod: number } {
   let sessLeft = 0, holidaysInPeriod = 0;
   const base = new Date();
   for (let d = 0; d < daysLeft; d++) {
@@ -73,7 +72,16 @@ function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: nu
     date.setDate(base.getDate() + d);
     const dayOfWeek = date.getDay();
     const dateStr = date.toISOString().slice(0, 10);
-    const isHoliday = holidaySet.has(dateStr);
+    
+    let isHoliday = false;
+    for (const h of holidays) {
+      if (typeof h === 'string') {
+        if (h === dateStr) { isHoliday = true; break; }
+      } else {
+        if (h.date === dateStr && (!h.level || h.level === subjectLevel)) { isHoliday = true; break; }
+      }
+    }
+
     schedules.forEach(s => {
       if (s.days.includes(dayOfWeek)) {
         if (isHoliday) {
@@ -92,20 +100,37 @@ function getRemainingSessNeeded(mats: { sessions?: number }[], doneSoFar: number
   return mats.slice(doneSoFar).reduce((sum, m) => sum + (m.sessions ?? 1), 0);
 }
 
-export function isTodayHoliday(): boolean {
+export function isDateHolidayForSubject(dateStr: string, subjectLevel?: string): boolean {
+  const data = getData();
+  const holidays = data.holidays || [];
+  for (const h of holidays) {
+    if (typeof h === 'string') {
+      if (h === dateStr) return true;
+    } else {
+      if (h.date === dateStr && (!h.level || h.level === subjectLevel)) return true;
+    }
+  }
+  return false;
+}
+export function isTodayHolidayGlobal(): boolean {
   const data = getData();
   const todayStr = now().toISOString().slice(0, 10);
-  return (data.holidays || []).includes(todayStr);
+  const holidays = data.holidays || [];
+  return holidays.some(h => (typeof h === 'string' ? h === todayStr : (h.date === todayStr && !h.level)));
 }
 
 export function getTodaySchedules(): TodayScheduleItem[] {
-  if (isTodayHoliday()) return [];
   const data = getData();
   const today = todayNum();
   const todayStr = now().toISOString().slice(0, 10);
   
-  return data.schedules
-    .filter(s => s.days.includes(today))
+  return (data.schedules
+    .filter(s => {
+      if (!s.days.includes(today)) return false;
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      if (isDateHolidayForSubject(todayStr, sub?.level)) return false;
+      return true;
+    })
     .map(s => {
       const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
       const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
@@ -116,14 +141,18 @@ export function getTodaySchedules(): TodayScheduleItem[] {
       const done = !!session;
       
       const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === todayStr);
+      if (override?.skipped) return null;
+
       const effectiveStartTime = override ? override.startTime : s.startTime;
+      const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
       
-      const endMin = timeToMin(effectiveStartTime) + (s.duration || 45);
+      const endMin = timeToMin(effectiveStartTime) + effectiveDuration;
       const curMin = currentMin();
       const active = curMin >= timeToMin(effectiveStartTime) && curMin < endMin && !done;
       
       return { 
         ...s, 
+        duration: effectiveDuration,
         startTime: effectiveStartTime, // apply override
         className: cls.name, 
         subjectName: sub.name, 
@@ -138,6 +167,7 @@ export function getTodaySchedules(): TodayScheduleItem[] {
         skipped: session?.materialId === 'SKIPPED'
       };
     })
+    .filter(Boolean) as TodayScheduleItem[])
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
@@ -166,7 +196,7 @@ export function getInsights(): Insight[] {
       
       if (sub.examDate) {
         const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
-        const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays);
+        const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
         
         if (sessLeft > 0 && sessionsNeeded > sessLeft + 1) {
           const extra = sessionsNeeded - sessLeft;
@@ -225,7 +255,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   if (sub.examDate) {
     const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
     const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
-    const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays);
+    const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
     if (remaining === 0) {
       status = 'on-track'; label = 'Selesai ✓'; rec = 'Semua materi sudah selesai!';
     } else if (sessLeft === 0) {
@@ -295,6 +325,68 @@ export function postponeSchedule(scheduleId: string, diffMinutes: number) {
     data.scheduleOverrides.push({ date: todayStr, scheduleId, startTime: newStartTime });
   }
   saveData(data);
+}
+
+export function applyShortDayOverride(dateStr: string) {
+  const data = getData();
+  const dayOfWeek = new Date(dateStr).getDay();
+  
+  const scheds = data.schedules
+    .filter(s => s.days.includes(dayOfWeek) && !isDateHolidayForSubject(dateStr, data.subjects.find(x => x.id === s.subjectId)?.level))
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+  
+  if (!scheds.length) return;
+  if (!data.scheduleOverrides) data.scheduleOverrides = [];
+  
+  // Clear existing overrides for this date
+  data.scheduleOverrides = data.scheduleOverrides.filter(o => o.date !== dateStr);
+  
+  let currentStart = timeToMin(scheds[0].startTime);
+  
+  for (const s of scheds) {
+    const originalDur = s.duration || 45;
+    const newDur = Math.round(originalDur / 2);
+    
+    data.scheduleOverrides.push({
+      date: dateStr,
+      scheduleId: s.id,
+      startTime: minToTime(currentStart),
+      durationOverride: newDur
+    });
+    currentStart += newDur;
+  }
+  saveData(data);
+}
+
+export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
+  const data = getData();
+  const dayOfWeek = new Date(dateStr).getDay();
+  const limitMin = timeToMin(skipAfterTime);
+  
+  const scheds = data.schedules.filter(s => s.days.includes(dayOfWeek));
+  if (!data.scheduleOverrides) data.scheduleOverrides = [];
+  
+  let count = 0;
+  for (const s of scheds) {
+    const override = data.scheduleOverrides.find(o => o.scheduleId === s.id && o.date === dateStr);
+    const effectiveStartMin = timeToMin(override ? override.startTime : s.startTime);
+    
+    if (effectiveStartMin >= limitMin) {
+      if (override) {
+        override.skipped = true;
+      } else {
+        data.scheduleOverrides.push({
+          date: dateStr,
+          scheduleId: s.id,
+          startTime: s.startTime,
+          skipped: true
+        });
+      }
+      count++;
+    }
+  }
+  saveData(data);
+  return count;
 }
 
 function getFutureDate(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
@@ -443,7 +535,7 @@ export function markBackupDone() {
 }
 
 // ── Holiday helpers ─────────────────────────────────────────────────────────
-export function getHolidays(): string[] {
+export function getHolidays(): (string | { date: string; level?: string })[] {
   return getData().holidays ?? [];
 }
 export function addHoliday(date: string) {
@@ -466,7 +558,10 @@ export function getHolidayImpactSummary(): { subjectName: string; className: str
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (!sched.length) return;
       let impact = 0;
-      holidays.forEach(dateStr => {
+      holidays.forEach(h => {
+        const dateStr = typeof h === 'string' ? h : h.date;
+        const level = typeof h === 'string' ? undefined : h.level;
+        if (level && level !== sub.level) return;
         const dayOfWeek = new Date(dateStr).getDay();
         if (sched.some(s => s.days.includes(dayOfWeek))) impact++;
       });

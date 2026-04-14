@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getData, getSubjectStatus, getTodaySchedules, DAYS_ID, todayNum, isTodayHoliday } from '@/lib/data';
+import { getData, getSubjectStatus, getTodaySchedules, DAYS_ID, todayNum, isTodayHolidayGlobal } from '@/lib/data';
 
 interface AIPoint {
   icon: string;
@@ -91,7 +91,7 @@ export default function AICard() {
       }
 
       // Suggestion 3: Global holiday impact or Today's action
-      const todayHoliday = isTodayHoliday();
+      const todayHoliday = isTodayHolidayGlobal();
       if (todayHoliday) {
         suggestions.push({
           icon: '☕',
