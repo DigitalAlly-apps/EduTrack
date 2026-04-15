@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
-  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary,
+  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -392,6 +392,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
 function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [subId, setSubId] = useState('');
+  const [classId, setClassId] = useState('');
   const [name, setName] = useState('');
   const [sessions, setSessions] = useState(1);
   const [bulkMode, setBulkMode] = useState(false);
@@ -401,15 +402,21 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const data = getData();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
+  // Kelas yang pakai mapel ini (sudah ada jadwal)
+  const classesForSubject = subId
+    ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
+    : [];
+
   const add = () => {
     if (!subId) return toast({ title: 'Pilih mapel dulu' });
+    if (!classId) return toast({ title: 'Pilih kelas dulu' });
     if (bulkMode) {
       if(!bulkText.trim()) return toast({ title: 'Masukkan materi' });
-      bulkAddMaterials(subId, bulkText.split('\n').filter(x => x.trim()), bulkSessions);
+      bulkAddMaterials(subId, bulkText.split('\n').filter(x => x.trim()), bulkSessions, classId);
       setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
     } else {
       if(!name.trim()) return toast({ title: 'Isi nama materi' });
-      bulkAddMaterials(subId, [name], sessions);
+      bulkAddMaterials(subId, [name], sessions, classId);
       setName(''); toast({ title: 'Materi ditambahkan' }); onRefresh();
     }
   };
@@ -419,31 +426,45 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   };
   const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
 
-  const mats = subId ? data.materials.filter(m => m.subjectId === subId).sort((a, b) => a.order - b.order) : [];
-  
+  const mats = (subId && classId) ? getMaterials(subId, classId) : [];
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (active.id !== over.id) {
       const oldIndex = mats.findIndex(x => x.id === active.id);
       const newIndex = mats.findIndex(x => x.id === over.id);
       const reordered = arrayMove(mats, oldIndex, newIndex);
-      reorderMaterials(subId, reordered.map(x => x.id));
+      reorderMaterials(subId, reordered.map(x => x.id), classId);
       onRefresh();
     }
   };
 
   return (
     <div>
-      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm">
+      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm space-y-3">
         <FormField label="Pilih Mata Pelajaran" className="mb-0">
-          <select value={subId} onChange={e => {setSubId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+          <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setBulkText(''); }} className="form-select-style border-primary">
             <option value="">Pilih mata pelajaran...</option>
             {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </FormField>
+        {subId && (
+          <FormField label="Pilih Kelas" className="mb-0">
+            {classesForSubject.length === 0 ? (
+              <p className="text-[11px] text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                Mapel ini belum ada jadwal di kelas manapun. Tambahkan jadwal dulu di tab Jadwal.
+              </p>
+            ) : (
+              <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+                <option value="">Pilih kelas...</option>
+                {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+          </FormField>
+        )}
       </div>
 
-      {subId && (
+      {subId && classId && (
         <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] font-bold text-foreground">Tambah Materi</span>
@@ -484,7 +505,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
       )}
 
-      {subId && (
+      {subId && classId && (
         <>
           <div className="mt-5 mb-2 flex justify-between items-center">
             <span className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Materi ({mats.length})</span>
@@ -498,7 +519,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada materi</div>}
         </>
       )}
-      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel di atas untuk melihat daftar materi</div>}
+      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel dan kelas untuk melihat daftar materi</div>}
+      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih kelas untuk melihat materi</div>}
     </div>
   );
 }

@@ -12,6 +12,7 @@ export interface Subject {
 export interface Material {
   id: string;
   subjectId: string;
+  classId?: string; // opsional — jika diisi, materi ini khusus untuk kelas tersebut
   name: string;
   order: number;
   sessions?: number; // jumlah pertemuan yang dibutuhkan untuk bab ini (default 1)

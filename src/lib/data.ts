@@ -23,6 +23,17 @@ export function updateData(fn: (d: AppData) => void): AppData {
 
 export function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
+// Helper utama: ambil materi untuk kombinasi mapel+kelas
+// - Jika ada materi dengan classId spesifik => pakai itu
+// - Jika tidak ada => fallback ke materi tanpa classId (shared/lama)
+export function getMaterials(subjectId: string, classId: string) {
+  const data = getData();
+  const specific = data.materials.filter(m => m.subjectId === subjectId && m.classId === classId);
+  if (specific.length > 0) return specific.sort((a, b) => a.order - b.order);
+  // fallback: materi lama yang tidak punya classId (backward-compat)
+  return data.materials.filter(m => m.subjectId === subjectId && !m.classId).sort((a, b) => a.order - b.order);
+}
+
 // Time utils
 export const DAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 export const DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -135,7 +146,7 @@ export function getTodaySchedules(): TodayScheduleItem[] {
       const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
       const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
       const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
-      const mats = data.materials.filter(m => m.subjectId === s.subjectId).sort((a, b) => a.order - b.order);
+      const mats = getMaterials(s.subjectId, s.classId);
       const nextMat = mats[prog.materialsDone] || null;
       const session = data.sessions.find(se => se.scheduleId === s.id && se.date === todayStr);
       const done = !!session;
@@ -181,11 +192,11 @@ export function getInsights(): Insight[] {
   const seen = new Set<string>();
 
   data.subjects.forEach(sub => {
-    const mats = data.materials.filter(m => m.subjectId === sub.id);
-    if (!mats.length) return;
     data.classes.forEach(cls => {
+      const mats = getMaterials(sub.id, cls.id);
+      if (!mats.length) return;
       const key = `${cls.id}-${sub.id}`;
-      // FIX: hanya generate insight jika kelas ini punya jadwal untuk mapel ini
+      // hanya generate insight jika kelas ini punya jadwal untuk mapel ini
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (sched.length === 0) return;
 
@@ -244,7 +255,7 @@ export function getNextScheduleForClass(classId: string, subjectId: string) {
 }
 
 export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): SubjectStatus {
-  const mats = data.materials.filter(m => m.subjectId === sub.id);
+  const mats = getMaterials(sub.id, cls.id);
   if (!mats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
   const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
   const done = prog.materialsDone, total = mats.length, remaining = total - done, pct = Math.round((done / total) * 100);
@@ -288,7 +299,7 @@ export function markDone(scheduleId: string, note?: string) {
   const todayStr = now().toISOString().slice(0, 10);
   if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === todayStr)) return;
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
-  const mats = data.materials.filter(m => m.subjectId === sched.subjectId).sort((a, b) => a.order - b.order);
+  const mats = getMaterials(sched.subjectId, sched.classId);
   const mat = mats[prog ? prog.materialsDone : 0] || null;
   data.sessions.push({ id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: mat?.id || null, completedAt: now().toISOString(), note });
   if (prog) { if (mat) prog.materialsDone = Math.min(prog.materialsDone + 1, mats.length); prog.lastSession = todayStr; }
@@ -399,14 +410,21 @@ export function loadDemo() {
     classes: [{ id: 'c1', name: '10A', color: 'blue' }, { id: 'c2', name: '10B', color: 'green' }, { id: 'c3', name: '11 IPA', color: 'purple' }],
     subjects: [{ id: 's1', name: 'Matematika', examDate: getFutureDate(45) }, { id: 's2', name: 'Fisika', examDate: getFutureDate(30) }],
     materials: [
-      { id: 'm1', subjectId: 's1', name: 'Bab 1 — Persamaan Linear', order: 1, sessions: 1 },
-      { id: 'm2', subjectId: 's1', name: 'Bab 2 — Sistem Persamaan', order: 2, sessions: 2 },
-      { id: 'm3', subjectId: 's1', name: 'Bab 3 — Fungsi Kuadrat', order: 3, sessions: 2 },
-      { id: 'm4', subjectId: 's1', name: 'Bab 4 — Pertidaksamaan', order: 4, sessions: 1 },
-      { id: 'm5', subjectId: 's1', name: 'Bab 5 — Trigonometri', order: 5, sessions: 3 },
-      { id: 'm6', subjectId: 's2', name: 'Bab 1 — Gerak Lurus', order: 1, sessions: 1 },
-      { id: 'm7', subjectId: 's2', name: 'Bab 2 — Gerak Melingkar', order: 2, sessions: 2 },
-      { id: 'm8', subjectId: 's2', name: 'Bab 3 — Hukum Newton', order: 3, sessions: 2 },
+      // Matematika — kelas 10A punya materi sendiri
+      { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1 — Persamaan Linear', order: 1, sessions: 1 },
+      { id: 'm2', subjectId: 's1', classId: 'c1', name: 'Bab 2 — Sistem Persamaan', order: 2, sessions: 2 },
+      { id: 'm3', subjectId: 's1', classId: 'c1', name: 'Bab 3 — Fungsi Kuadrat', order: 3, sessions: 2 },
+      // Matematika — kelas 10B punya materi sendiri (progress berbeda)
+      { id: 'm9', subjectId: 's1', classId: 'c2', name: 'Bab 1 — Persamaan Linear', order: 1, sessions: 1 },
+      { id: 'm10', subjectId: 's1', classId: 'c2', name: 'Bab 2 — Sistem Persamaan', order: 2, sessions: 2 },
+      { id: 'm11', subjectId: 's1', classId: 'c2', name: 'Bab 3 — Pertidaksamaan', order: 3, sessions: 1 },
+      { id: 'm12', subjectId: 's1', classId: 'c2', name: 'Bab 4 — Trigonometri', order: 4, sessions: 3 },
+      // Fisika — kelas 11 IPA & 10A berbagi subjectId tapi materi terpisah
+      { id: 'm6', subjectId: 's2', classId: 'c3', name: 'Bab 1 — Gerak Lurus', order: 1, sessions: 1 },
+      { id: 'm7', subjectId: 's2', classId: 'c3', name: 'Bab 2 — Gerak Melingkar', order: 2, sessions: 2 },
+      { id: 'm8', subjectId: 's2', classId: 'c3', name: 'Bab 3 — Hukum Newton', order: 3, sessions: 2 },
+      { id: 'm13', subjectId: 's2', classId: 'c1', name: 'Bab 1 — Gerak Lurus', order: 1, sessions: 1 },
+      { id: 'm14', subjectId: 's2', classId: 'c1', name: 'Bab 2 — Dinamika', order: 2, sessions: 2 },
     ],
     schedules: [
       { id: 'sc1', classId: 'c1', subjectId: 's1', days: [1, 3], startTime: '08:00', duration: 45 },
@@ -484,19 +502,19 @@ export function updateMaterial(id: string, name: string, sessions?: number) {
 export function updateSchedule(id: string, days: number[], startTime: string, duration: number) {
   updateData(d => { const s = d.schedules.find(x => x.id === id); if (s) { s.days = [...days]; s.startTime = startTime; s.duration = duration; }});
 }
-export function reorderMaterials(subjectId: string, orderedIds: string[]) {
+export function reorderMaterials(subjectId: string, orderedIds: string[], classId?: string) {
   updateData(d => {
     orderedIds.forEach((id, i) => {
       const m = d.materials.find(x => x.id === id);
-      if (m && m.subjectId === subjectId) m.order = i + 1;
+      if (m && m.subjectId === subjectId && (classId ? m.classId === classId : !m.classId)) m.order = i + 1;
     });
   });
 }
-export function bulkAddMaterials(subjectId: string, names: string[], sessions = 1) {
+export function bulkAddMaterials(subjectId: string, names: string[], sessions = 1, classId?: string) {
   updateData(d => {
-    let maxOrder = Math.max(0, ...d.materials.filter(m => m.subjectId === subjectId).map(m => m.order));
+    let maxOrder = Math.max(0, ...d.materials.filter(m => m.subjectId === subjectId && (classId ? m.classId === classId : !m.classId)).map(m => m.order));
     names.forEach(name => {
-      if (name.trim()) d.materials.push({ id: genId(), subjectId, name: name.trim(), order: ++maxOrder, sessions });
+      if (name.trim()) d.materials.push({ id: genId(), subjectId, classId, name: name.trim(), order: ++maxOrder, sessions });
     });
   });
 }
@@ -602,7 +620,7 @@ export function applyTeacherLeave(dateStr: string, reason: string, resolutions: 
       if (session) return; // Don't override existing session
 
       const prog = d.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
-      const mats = d.materials.filter(m => m.subjectId === sched.subjectId).sort((a, b) => a.order - b.order);
+      const mats = getMaterials(sched.subjectId, sched.classId);
       const mat = mats[prog ? prog.materialsDone : 0] || null;
 
       session = {
