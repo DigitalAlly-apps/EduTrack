@@ -11,7 +11,19 @@ export function getData(): AppData {
   try {
     const raw = localStorage.getItem(DB_KEY) || localStorage.getItem('pengajar_v3') || localStorage.getItem('pengajar_v2');
     if (!raw) return structuredClone(DEFAULT_DATA);
-    return { ...structuredClone(DEFAULT_DATA), ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    const result = { ...structuredClone(DEFAULT_DATA), ...parsed };
+    // Mencegah array tertimpa menjadi null/undefined dari versi schema lama
+    result.classes = result.classes || [];
+    result.subjects = result.subjects || [];
+    result.materials = result.materials || [];
+    result.schedules = result.schedules || [];
+    result.progress = result.progress || [];
+    result.sessions = result.sessions || [];
+    result.tasks = result.tasks || [];
+    result.holidays = result.holidays || [];
+    result.scheduleOverrides = result.scheduleOverrides || [];
+    return result;
   } catch { return structuredClone(DEFAULT_DATA); }
 }
 
