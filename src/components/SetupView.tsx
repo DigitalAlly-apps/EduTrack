@@ -409,11 +409,17 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const data = getData();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  // Semua Rombel untuk mapel ini
-  const classesForSubject = data.classes; // Ambil semua supaya user bebas mengatur sebelum bikin jadwal
+  // Filter kelas yang relevan dengan mapel ini
+  const scheduledClasses = subId 
+    ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
+    : [];
+  
+  // Jika mapel ini eksklusif di kelas tertentu (sudah dijadwalkan), hanya tampilkan kelas tersebut.
+  // Jika belum punya jadwal sama sekali, tampilkan semua kelas sebagai opsi awal (fallback).
+  const classesForSubject = scheduledClasses.length > 0 ? scheduledClasses : data.classes;
 
-  // Level unik dari seluruh kelas
-  const levelsForSubject = [...new Set(data.classes.map(c => c.level).filter(Boolean))] as string[];
+  // Level unik dari kelas-kelas relevan
+  const levelsForSubject = [...new Set(classesForSubject.map(c => c.level).filter(Boolean))] as string[];
 
   const resolvedLevel = scope?.type === 'level' ? scope.value : undefined;
   const resolvedClassId = scope?.type === 'class' ? scope.value : undefined;
@@ -500,7 +506,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                 >
                   <span className="font-bold">Tingkat {lv}</span>
                   <span className="text-[11px] ml-2 opacity-60">
-                    ({data.classes.filter(c => c.level === lv).map(c => c.name).join(', ')})
+                    ({classesForSubject.filter(c => c.level === lv).map(c => c.name).join(', ')})
                   </span>
                 </button>
               ))}
@@ -509,7 +515,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                 <summary className="text-[11px] text-text3 cursor-pointer hover:text-text2 px-1 focus:outline-none">Rombel Spesifik (Override/Beda Silabus)</summary>
                 <div className="mt-2 flex flex-col gap-1.5 pl-1">
                   {/* Opsi per kelas */}
-                  {data.classes.map(c => (
+                  {classesForSubject.map(c => (
                     <button key={c.id}
                       onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
                       className={`w-full text-left px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${
