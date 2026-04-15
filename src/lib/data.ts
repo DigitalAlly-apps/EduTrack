@@ -351,7 +351,7 @@ export function postponeSchedule(scheduleId: string, diffMinutes: number) {
   saveData(data);
 }
 
-export function applyShortDayOverride(dateStr: string) {
+export function applyShortDayOverride(dateStr: string, customDurationMin?: number) {
   const data = getData();
   const dayOfWeek = new Date(dateStr).getDay();
   
@@ -369,7 +369,7 @@ export function applyShortDayOverride(dateStr: string) {
   
   for (const s of scheds) {
     const originalDur = s.duration || 45;
-    const newDur = Math.round(originalDur / 2);
+    const newDur = customDurationMin !== undefined ? customDurationMin : Math.round(originalDur / 2);
     
     data.scheduleOverrides.push({
       date: dateStr,

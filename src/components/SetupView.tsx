@@ -398,8 +398,8 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
 function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [subId, setSubId] = useState('');
-  // scope: { type: 'level', value: '4' } | { type: 'class', value: classId } | null
-  const [scope, setScope] = useState<{ type: 'level' | 'class'; value: string } | null>(null);
+  // scope: { type: 'global' | 'level' | 'class', value: string } | null
+  const [scope, setScope] = useState<{ type: 'global' | 'level' | 'class'; value: string } | null>(null);
   const [name, setName] = useState('');
   const [sessions, setSessions] = useState(1);
   const [bulkMode, setBulkMode] = useState(false);
@@ -409,13 +409,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const data = getData();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  // Kelas yang punya jadwal mapel ini
-  const classesForSubject = subId
-    ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
-    : [];
+  // Semua Rombel untuk mapel ini
+  const classesForSubject = data.classes; // Ambil semua supaya user bebas mengatur sebelum bikin jadwal
 
-  // Level unik dari kelas-kelas tersebut
-  const levelsForSubject = [...new Set(classesForSubject.map(c => c.level).filter(Boolean))] as string[];
+  // Level unik dari seluruh kelas
+  const levelsForSubject = [...new Set(data.classes.map(c => c.level).filter(Boolean))] as string[];
 
   const resolvedLevel = scope?.type === 'level' ? scope.value : undefined;
   const resolvedClassId = scope?.type === 'class' ? scope.value : undefined;
@@ -442,6 +440,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   // Ambil materi sesuai scope yang dipilih
   const mats = (() => {
     if (!subId || !scope) return [];
+    if (scope.type === 'global') return data.materials.filter(m => m.subjectId === subId && !m.level && !m.classId).sort((a, b) => a.order - b.order);
     if (scope.type === 'class') return getMaterials(subId, scope.value);
     // scope level: tampilkan materi level ini (bukan override rombel)
     return data.materials
@@ -470,64 +469,60 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </select>
         </FormField>
 
-        {subId && classesForSubject.length === 0 && (
-          <p className="text-[11px] text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-            Mapel ini belum ada jadwal. Tambahkan jadwal dulu di tab Jadwal.
-          </p>
-        )}
-
-        {subId && classesForSubject.length > 0 && (
-          <FormField label="Materi untuk" className="mb-0">
+        {subId && (
+          <FormField label="Materi/Silabus untuk" className="mb-0">
             <div className="flex flex-col gap-1.5">
+              {/* Opsi Universal / Global */}
+              <button 
+                onClick={() => { setScope({ type: 'global', value: 'global' }); setName(''); setBulkText(''); }}
+                className={`w-full text-left px-3 py-2.5 rounded-xl border text-[13px] font-medium transition-all flex flex-col ${
+                  scope?.type === 'global'
+                    ? 'bg-primary-dim border-primary-border text-primary shadow-sm'
+                    : 'bg-surface border-border text-text2 hover:border-border2'
+                }`}
+              >
+                <span className="font-bold">Semua Kelas Sekaligus</span>
+                <span className="text-[10px] opacity-70 leading-snug mt-0.5">Satu silabus untuk semua rombel (cocok jika mapel ini hanya diajarkan di satu tingkat/kelas yang sama).</span>
+              </button>
+
               {/* Opsi per tingkatan */}
+              {levelsForSubject.length > 0 && (
+                <div className="mt-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-text3 px-1">Per Tingkat Kelas</div>
+              )}
               {levelsForSubject.map(lv => (
                 <button key={lv}
                   onClick={() => { setScope({ type: 'level', value: lv }); setName(''); setBulkText(''); }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
                     scope?.type === 'level' && scope.value === lv
-                      ? 'bg-primary-dim border-primary-border text-primary'
+                      ? 'bg-primary-dim border-primary-border text-primary shadow-sm'
                       : 'bg-surface border-border text-text2 hover:border-border2'
                   }`}
                 >
                   <span className="font-bold">Tingkat {lv}</span>
                   <span className="text-[11px] ml-2 opacity-60">
-                    ({classesForSubject.filter(c => c.level === lv).map(c => c.name).join(', ')})
+                    ({data.classes.filter(c => c.level === lv).map(c => c.name).join(', ')})
                   </span>
                 </button>
               ))}
-              {/* Opsi kelas tanpa level */}
-              {classesForSubject.filter(c => !c.level).map(c => (
-                <button key={c.id}
-                  onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
-                    scope?.type === 'class' && scope.value === c.id
-                      ? 'bg-primary-dim border-primary-border text-primary'
-                      : 'bg-surface border-border text-text2 hover:border-border2'
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
-              {/* Override per rombel (advanced) */}
-              {levelsForSubject.length > 0 && (
-                <details className="mt-1">
-                  <summary className="text-[11px] text-text3 cursor-pointer hover:text-text2 px-1">Override materi per rombel (opsional)</summary>
-                  <div className="mt-1.5 flex flex-col gap-1">
-                    {classesForSubject.filter(c => c.level).map(c => (
-                      <button key={c.id}
-                        onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
-                        className={`w-full text-left px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${
-                          scope?.type === 'class' && scope.value === c.id
-                            ? 'bg-primary-dim border-primary-border text-primary'
-                            : 'bg-surface border-border text-text2 hover:border-border2'
-                        }`}
-                      >
-                        {c.name} <span className="opacity-50 text-[11px]">(override)</span>
-                      </button>
-                    ))}
-                  </div>
-                </details>
-              )}
+
+              <details className="mt-1">
+                <summary className="text-[11px] text-text3 cursor-pointer hover:text-text2 px-1 focus:outline-none">Rombel Spesifik (Override/Beda Silabus)</summary>
+                <div className="mt-2 flex flex-col gap-1.5 pl-1">
+                  {/* Opsi per kelas */}
+                  {data.classes.map(c => (
+                    <button key={c.id}
+                      onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
+                      className={`w-full text-left px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${
+                        scope?.type === 'class' && scope.value === c.id
+                          ? 'bg-primary-dim border-primary-border text-primary'
+                          : 'bg-surface border-border text-text2 hover:border-border2'
+                      }`}
+                    >
+                      Kelas {c.name} {c.level && <span className="opacity-50 text-[10px]">(Tingkat {c.level})</span>}
+                    </button>
+                  ))}
+                </div>
+              </details>
             </div>
           </FormField>
         )}
@@ -588,8 +583,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada materi</div>}
         </>
       )}
-      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel dan tingkatan untuk melihat materi</div>}
-      {subId && !scope && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih tingkatan atau rombel di atas</div>}
+      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel untuk mengatur materi</div>}
+      {subId && !scope && data.classes.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih target kelas di atas</div>}
     </div>
   );
 }
