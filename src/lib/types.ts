@@ -2,7 +2,6 @@ export interface ClassItem {
   id: string;
   name: string;
   color: string;
-  level?: string; // tingkatan kelas, cth: "3", "4", "7", "10"
 }
 export interface Subject {
   id: string;
@@ -13,8 +12,6 @@ export interface Subject {
 export interface Material {
   id: string;
   subjectId: string;
-  level?: string;   // tingkatan kelas — materi shared untuk semua rombel di level ini
-  classId?: string; // override rombel — jika diisi, materi ini khusus untuk rombel tertentu
   name: string;
   order: number;
   sessions?: number; // jumlah pertemuan yang dibutuhkan untuk bab ini (default 1)

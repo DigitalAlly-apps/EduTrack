@@ -23,28 +23,8 @@ export function updateData(fn: (d: AppData) => void): AppData {
 
 export function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-/**
- * Ambil materi untuk kombinasi mapel + rombel, dengan hierarki fallback:
- * 1. Materi override khusus rombel ini (classId match)
- * 2. Materi shared untuk level/tingkatan rombel ini (level match)
- * 3. Materi lama tanpa level/classId (backward-compat)
- */
-export function getMaterials(subjectId: string, classId: string): import('./types').Material[] {
-  const data = getData();
-  const cls = data.classes.find(c => c.id === classId);
-
-  // Prioritas 1: override khusus rombel
-  const byClass = data.materials.filter(m => m.subjectId === subjectId && m.classId === classId);
-  if (byClass.length > 0) return byClass.sort((a, b) => a.order - b.order);
-
-  // Prioritas 2: shared per tingkatan (level)
-  if (cls?.level) {
-    const byLevel = data.materials.filter(m => m.subjectId === subjectId && m.level === cls.level && !m.classId);
-    if (byLevel.length > 0) return byLevel.sort((a, b) => a.order - b.order);
-  }
-
-  // Prioritas 3: fallback data lama (tidak ada level/classId)
-  return data.materials.filter(m => m.subjectId === subjectId && !m.level && !m.classId).sort((a, b) => a.order - b.order);
+export function getMaterials(subjectId: string, classId?: string): import('./types').Material[] {
+  return getData().materials.filter(m => m.subjectId === subjectId).sort((a, b) => a.order - b.order);
 }
 
 // Time utils
@@ -205,7 +185,7 @@ export function getInsights(): Insight[] {
   const seen = new Set<string>();
 
   data.subjects.forEach(sub => {
-    const mats = getMaterials(sub.id, cls.id);
+    const mats = getMaterials(sub.id);
     if (!mats.length) return;
     data.classes.forEach(cls => {
       const key = `${cls.id}-${sub.id}`;
@@ -420,22 +400,17 @@ export function loadDemo() {
   const currentName = getData().teacherName || '';
   saveData({
     teacherName: currentName,
-    classes: [{ id: 'c1', name: '10A', color: 'blue', level: '10' }, { id: 'c2', name: '10B', color: 'green', level: '10' }, { id: 'c3', name: '11 IPA', color: 'purple', level: '11' }],
+    classes: [{ id: 'c1', name: '10A', color: 'blue' }, { id: 'c2', name: '10B', color: 'green' }, { id: 'c3', name: '11 IPA', color: 'purple' }],
     subjects: [{ id: 's1', name: 'Matematika', examDate: getFutureDate(45) }, { id: 's2', name: 'Fisika', examDate: getFutureDate(30) }],
     materials: [
-      // Matematika level 10 — shared untuk 10A dan 10B
-      { id: 'm1', subjectId: 's1', level: '10', name: 'Bab 1 — Persamaan Linear', order: 1, sessions: 1 },
-      { id: 'm2', subjectId: 's1', level: '10', name: 'Bab 2 — Sistem Persamaan', order: 2, sessions: 2 },
-      { id: 'm3', subjectId: 's1', level: '10', name: 'Bab 3 — Fungsi Kuadrat', order: 3, sessions: 2 },
-      { id: 'm4', subjectId: 's1', level: '10', name: 'Bab 4 — Pertidaksamaan', order: 4, sessions: 1 },
-      { id: 'm5', subjectId: 's1', level: '10', name: 'Bab 5 — Trigonometri', order: 5, sessions: 3 },
-      // Fisika level 11
-      { id: 'm6', subjectId: 's2', level: '11', name: 'Bab 1 — Gerak Lurus', order: 1, sessions: 1 },
-      { id: 'm7', subjectId: 's2', level: '11', name: 'Bab 2 — Gerak Melingkar', order: 2, sessions: 2 },
-      { id: 'm8', subjectId: 's2', level: '11', name: 'Bab 3 — Hukum Newton', order: 3, sessions: 2 },
-      // Fisika level 10 — materi berbeda dari level 11
-      { id: 'm9', subjectId: 's2', level: '10', name: 'Bab 1 — Besaran & Satuan', order: 1, sessions: 1 },
-      { id: 'm10', subjectId: 's2', level: '10', name: 'Bab 2 — Gerak Lurus', order: 2, sessions: 2 },
+      { id: 'm1', subjectId: 's1', name: 'Bab 1 — Persamaan Linear', order: 1, sessions: 1 },
+      { id: 'm2', subjectId: 's1', name: 'Bab 2 — Sistem Persamaan', order: 2, sessions: 2 },
+      { id: 'm3', subjectId: 's1', name: 'Bab 3 — Fungsi Kuadrat', order: 3, sessions: 2 },
+      { id: 'm4', subjectId: 's1', name: 'Bab 4 — Pertidaksamaan', order: 4, sessions: 1 },
+      { id: 'm5', subjectId: 's1', name: 'Bab 5 — Trigonometri', order: 5, sessions: 3 },
+      { id: 'm6', subjectId: 's2', name: 'Bab 1 — Gerak Lurus', order: 1, sessions: 1 },
+      { id: 'm7', subjectId: 's2', name: 'Bab 2 — Gerak Melingkar', order: 2, sessions: 2 },
+      { id: 'm8', subjectId: 's2', name: 'Bab 3 — Hukum Newton', order: 3, sessions: 2 },
     ],
     schedules: [
       { id: 'sc1', classId: 'c1', subjectId: 's1', days: [1, 3], startTime: '08:00', duration: 45 },
@@ -513,29 +488,19 @@ export function updateMaterial(id: string, name: string, sessions?: number) {
 export function updateSchedule(id: string, days: number[], startTime: string, duration: number) {
   updateData(d => { const s = d.schedules.find(x => x.id === id); if (s) { s.days = [...days]; s.startTime = startTime; s.duration = duration; }});
 }
-export function reorderMaterials(subjectId: string, orderedIds: string[], level?: string, classId?: string) {
+export function reorderMaterials(subjectId: string, orderedIds: string[]) {
   updateData(d => {
     orderedIds.forEach((id, i) => {
       const m = d.materials.find(x => x.id === id);
-      if (m && m.subjectId === subjectId &&
-          (classId ? m.classId === classId : m.classId === undefined) &&
-          (level ? m.level === level : m.level === undefined)) {
-        m.order = i + 1;
-      }
+      if (m && m.subjectId === subjectId) m.order = i + 1;
     });
   });
 }
-export function bulkAddMaterials(subjectId: string, names: string[], sessions = 1, level?: string, classId?: string) {
+export function bulkAddMaterials(subjectId: string, names: string[], sessions = 1) {
   updateData(d => {
-    // Hitung maxOrder hanya untuk scope yang sama (level atau classId)
-    const scopedMats = d.materials.filter(m =>
-      m.subjectId === subjectId &&
-      (classId ? m.classId === classId : m.classId === undefined) &&
-      (level ? m.level === level : m.level === undefined)
-    );
-    let maxOrder = Math.max(0, ...scopedMats.map(m => m.order));
+    let maxOrder = Math.max(0, ...d.materials.filter(m => m.subjectId === subjectId).map(m => m.order));
     names.forEach(name => {
-      if (name.trim()) d.materials.push({ id: genId(), subjectId, level, classId, name: name.trim(), order: ++maxOrder, sessions });
+      if (name.trim()) d.materials.push({ id: genId(), subjectId, name: name.trim(), order: ++maxOrder, sessions });
     });
   });
 }
