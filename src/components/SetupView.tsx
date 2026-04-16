@@ -831,7 +831,15 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
         <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📤 EXPORT DATA</div>
         <div className="flex gap-[7px] flex-wrap">
-          <button onClick={() => { exportJSON(); toast({ title: 'Backup JSON diunduh' }); }} className="data-btn-style bg-primary-dim text-primary border-primary-border">💾 Backup Full (JSON)</button>
+          <button onClick={() => { 
+            try {
+              exportJSON(); 
+              toast({ title: 'Backup JSON diunduh' }); 
+            } catch (e) {
+              console.error('Backup error:', e);
+              toast({ variant: 'destructive', title: 'Backup gagal' });
+            }
+          }} className="data-btn-style bg-primary-dim text-primary border-primary-border">💾 Backup Full (JSON)</button>
           <button onClick={() => { exportCSV(); toast({ title: 'Riwayat CSV diunduh' }); }} className="data-btn-style">📋 Riwayat Sesi (CSV)</button>
         </div>
       </div>
@@ -1043,18 +1051,20 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
 
 function StorageInfo() {
   const info = estimateStorageSize();
+  // Fallback jika info undefined (shouldn't happen, but safety first)
+  const safeInfo = info ?? { used: 0, total: 5242880, pct: 0 };
   const data = getData();
-  const color = info.pct > 80 ? 'text-red' : info.pct > 50 ? 'text-amber' : 'text-green';
-  const barColor = info.pct > 80 ? 'bg-red' : info.pct > 50 ? 'bg-amber' : 'bg-green';
-  const kb = Math.round(info.used / 1024);
+  const color = safeInfo.pct > 80 ? 'text-red' : safeInfo.pct > 50 ? 'text-amber' : 'text-green';
+  const barColor = safeInfo.pct > 80 ? 'bg-red' : safeInfo.pct > 50 ? 'bg-amber' : 'bg-green';
+  const kb = Math.round(safeInfo.used / 1024);
   return (
     <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
-      <div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
-        <span className="flex items-center gap-[6px]">💾 PENYIMPANAN LOKAL</span>
-        <span className={"text-[11px] font-bold " + color}>{info.pct}% terpakai</span>
-      </div>
-      <div className="h-2 bg-surface3 rounded-full overflow-hidden mb-2">
-        <div className={"h-full rounded-full transition-all " + barColor} style={{ width: info.pct + '%' }} />
+<div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
+          <span className="flex items-center gap-[6px]">💾 PENYIMPANAN LOKAL</span>
+          <span className={"text-[11px] font-bold " + color}>{safeInfo.pct}% terpakai</span>
+        </div>
+        <div className="h-2 bg-surface3 rounded-full overflow-hidden mb-2">
+          <div className={"h-full rounded-full transition-all " + barColor} style={{ width: safeInfo.pct + '%' }} />
       </div>
       <div className="text-[11px] text-text3 flex justify-between mb-3">
         <span>{kb} KB digunakan</span>

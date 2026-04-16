@@ -462,13 +462,20 @@ export function loadDemo() {
 }
 
 export function exportJSON() {
-  const data = getData();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `edutrack_backup_${now().toISOString().slice(0, 10)}.json`; a.click();
-  URL.revokeObjectURL(url);
-  markBackupDone();
+  try {
+    const data = getData();
+    console.log('[Backup] Starting export, data keys:', Object.keys(data));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `edutrack_backup_${now().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    markBackupDone();
+    console.log('[Backup] Export completed');
+  } catch (err) {
+    console.error('[Backup] Export failed:', err);
+  }
 }
 
 export function exportCSV() {
@@ -730,7 +737,10 @@ export function estimateStorageSize(): { used: number; total: number; pct: numbe
       used += (localStorage.getItem(key) ?? '').length * 2; // UTF-16
     }
     const total = 5 * 1024 * 1024; // 5MB typical
-} catch { return { used: 0, total: 5242880, pct: 0 }; }
+    return { used, total, pct: Math.round(used / total * 100) };
+  } catch { 
+    return { used: 0, total: 5242880, pct: 0 }; 
+  }
 }
 
 // ── Killer Features ──────────────────────────────────────────────────────────
