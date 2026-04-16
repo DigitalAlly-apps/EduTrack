@@ -589,7 +589,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="flex items-center gap-2">
           <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
           {!active && items.length > 0 && !items.every(x => x.done) && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button 
                 onClick={() => {
                   if(confirm('Semua sisa sesi hari ini durasinya dipotong jadi setengah dan akan dirapatkan waktunya. Lanjutkan?')) {
