@@ -72,25 +72,30 @@ export default function InfoView() {
 
   const featureGroups = [
     {
-      title: '✨ Fitur Terbaru v5.1',
+      title: '✨ Fitur Utama',
       items: [
-        { icon: '📊', t: 'Laporan Minggu Ini', d: 'Ringkasan aktivitas mengajar setiap minggu: sesi selesai, dilewati, materi diajarkan, dan tingkat kehadiran. Langsung salin jurnal untuk dilaporkan.' },
-        { icon: '🤖', t: 'AI Assistant', d: 'Asisten pintar yang menganalisis progres mengajar, memberikan rekomendasi kelas fokus, dan saran sesi tambahan jika diperlukan.' },
-        { icon: '📅', t: 'Kalender Bulanan', d: 'Lihat gambaran keseluruhan mengajar per bulan dengan status harian: Selesai, Sebagian, Terlewat, atau Libur.' },
-        { icon: '📜', t: 'Riwayat Sesi per Bulan', d: 'Telusuri histori sesi mengajar berdasarkan bulan. Dilengkapi filter dan pencarian materi.' },
-        { icon: '⚡', t: 'Pangkas Durasi & Pulang Awal', d: 'Fitur "Pangkas Durasi" untuk setengah hari dan "Pulang Awal" untuk meliburkan kelas setelah jam tertentu.' },
-        { icon: '📌', t: 'Reminder Pertemuan Depan', d: 'Catat pesan untuk pertemuan berikutnya, seperti "Budi belum kumpul" atau "Lanjut Bab 3 hal 45".' },
-        { icon: '📋', t: 'Generate Jurnal Harian', d: 'Buat ringkasan harian otomatis siap salin ke WhatsApp atau laporan lainnya.' },
+        { icon: '🤖', t: 'AI Assistant', d: 'Asisten pribadi yang menganalisis progres mengajar dan memberikan rekomendasi strategis untuk kelas yang perlu difokuskan.' },
+        { icon: '📊', t: 'Laporan Mingguan', d: 'Ringkasan otomatis aktivitas mengajar per minggu — sesi selesai, dilewati, dan materi yang telah diajarkan. Siap salin untuk pelaporan.' },
+        { icon: '🗓️', t: 'Kalender Bulanan', d: 'Pemandangan luas aktivitas mengajar per bulan. Setiap hari ditandai status: Selesai, Sebagian, Terlewat, atau Libur.' },
+        { icon: '📜', t: 'Riwayat Sesi', d: 'Jelajahi jejak mengajar berdasarkan bulan. Dilengkapi filter dan pencarian materi untuk menelusuri sejarah kelas.' },
+        { icon: '📋', t: 'Jurnal Harian', d: 'Buat ringkasan harian otomatis dalam satu ketukan. Siap salin ke WhatsApp atau laporan lainnya.' },
       ]
     },
     {
-      title: '🚀 Fitur Lainnya',
+      title: '🆕 Terbaru di v5.1',
       items: [
-        { icon: '🏥', t: 'Manajemen Izin & Sakit', d: 'Sistem cerdas untuk menangani ketidakhadiran pengajar. Anda dapat memilih untuk memberikan Tugas Mandiri atau Skip Sesi dengan pencatatan otomatis di jurnal.' },
-        { icon: '📅', t: 'Penataan Jadwal Mingguan', d: 'Jadwal mingguan di Kelola dikelompokkan berdasarkan hari (Senin-Minggu) dan diurutkan berdasarkan waktu.' },
-        { icon: '🎯', t: 'Timeline Beranda Presisi', d: 'Desain ulang timeline harian dengan kartu yang lebih bersih, indikator status "DONE" yang elegan.' },
-        { icon: '✨', t: 'Minimalist Header v5.0', d: 'Header baru yang lebih lega dengan penghapusan sapaan yang mengganggu dan ikon berlebih.' },
-        { icon: '📱', t: 'Optimalisasi PWA', d: 'Peningkatan performa aplikasi web saat diinstal ke layar beranda (Home Screen).' },
+        { icon: '⚡', t: 'Pangkas Durasi & Pulang Awal', d: 'Kurangi durasi sesi untuk jadwal setengah hari, atau akhiri lebih awal dengan tetap tercatat di jurnal.' },
+        { icon: '📌', t: 'Catatan Pertemuan', d: 'Simpan pengingat untuk pertemuan berikutnya. Bisa berupa catatan siswa, materi yang harus dilanjut, atau instruksi khusus.' },
+        { icon: '🏥', t: 'Manajemen Ketidakhadiran', d: 'Tandai ketidakhadiran Anda dan pilih aksi: Tugas Mandiri untuk siswa atau Skip Sesi. Semua tercatat otomatis.' },
+        { icon: '📆', t: 'Jadwal Mingguan', d: 'Jadwal dikelompokkan per hari (Senin-Minggu) dan diurutkan berdasarkan waktu. Lebih rapi dan mudah dibaca.' },
+      ]
+    },
+    {
+      title: '🔧 Fitur Pendukung',
+      items: [
+        { icon: '🎯', t: 'Timeline Presisi', d: 'Tampilan timeline harian yang lebih bersih dan informatif. Indikator status DONE yang elegan.' },
+        { icon: '📱', t: 'PWA-installable', d: 'Instal ke layar utama ponsel untuk pengalaman seperti aplikasi native. Lebih cepat dan responsif.' },
+        { icon: '🎨', t: 'Header Minimalis', d: 'Tampilan header yang lebih lega dan bersih. Fokus pada hal yang penting saja.' },
       ]
     },
   ];
@@ -113,7 +118,7 @@ export default function InfoView() {
             activeSubTab === 'updates' ? 'bg-background text-primary shadow-sm' : 'text-text3 hover:text-text2'
           }`}
         >
-          💡 Fitur & Keunggulan
+          ✨ Fitur & Keunggulan
         </button>
       </div>
 
@@ -168,7 +173,39 @@ export default function InfoView() {
           </div>
         </div>
       ) : (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+          {/* Keunggulan Section - USP - FIRST */}
+          <div className="bg-gradient-to-br from-primary/8 via-primary/4 to-background rounded-[24px] p-6 border border-primary/20 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                <span className="text-8xl">💎</span>
+              </div>
+              <div className="relative z-10">
+                 <div className="flex items-center justify-center gap-2 mb-1">
+                   <div className="w-1 h-1 rounded-full bg-primary"></div>
+                   <div className="text-[11px] font-bold text-primary uppercase tracking-[0.2em]">Keunggulan</div>
+                   <div className="w-1 h-1 rounded-full bg-primary"></div>
+                 </div>
+                 <h3 className="text-xl font-display font-bold tracking-tight text-center mb-6">Mengapa EduTrack?</h3>
+                 <div className="grid gap-3">
+                   {[
+                     { icon: '🔒', t: 'Data Pribadi 100%', d: 'Semua data tersimpan lokal di browser. Tidak ada yang dikirim ke server manapun — privasi Anda terjamin.' },
+                     { icon: '⚡', t: 'Ringan & Cepat', d: 'Dioptimalkan untuk berjalan mulus di ponsel apa pun, termasuk yang berspesifikasi rendah.' },
+                     { icon: '🎯', t: 'Estimasi Akurat', d: 'Hitung sisa materi vs sisa hari kerja secara presisi. Tidak perlu lagi menebak-nebak.' },
+                     { icon: '💾', t: 'Backup Cerdas', d: 'Reminder otomatis untuk mengingatkan backup rutin. Data Anda aman dan tidak akan hilang.' },
+                   ].map((u, i) => (
+                     <div key={i} className="flex items-start gap-3 p-3 bg-background/60 rounded-xl border border-border/50">
+                       <div className="w-9 h-9 bg-primary-dim border border-primary-border rounded-lg flex items-center justify-center text-base flex-shrink-0">{u.icon}</div>
+                       <div className="flex-1">
+                         <div className="text-[13px] font-bold text-foreground mb-0.5">{u.t}</div>
+                         <div className="text-[11px] text-text2 leading-relaxed">{u.d}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+          </div>
+
           {/* Feature Groups */}
           {featureGroups.map((group, gIdx) => (
             <div key={gIdx} className="px-1">
@@ -187,46 +224,20 @@ export default function InfoView() {
             </div>
           ))}
 
-          {/* Keunggulan Section */}
-          <div className="bg-primary/5 rounded-[24px] p-6 border border-primary/10 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-               <span className="text-8xl">💎</span>
-             </div>
-             <div className="relative z-10">
-                <div className="text-[11px] font-black text-primary uppercase tracking-[0.2em] mb-2 text-center">Keunggulan</div>
-                <h3 className="text-xl font-display font-black tracking-tight text-center mb-6">Kenapa EduTrack?</h3>
-                <div className="grid gap-5">
-                  {[
-                    { icon: '🔒', t: 'Privasi 100%', d: 'Data Anda tidak dikirim ke server mana pun. Semuanya tersimpan aman di browser Anda.' },
-                    { icon: '🚀', t: 'Super Ringan', d: 'Aplikasi berjalan sangat cepat bahkan di ponsel dengan spesifikasi rendah.' },
-                    { icon: '🎯', t: 'Estimasi Presisi', d: 'Satu-satunya asisten yang menghitung sisa materi vs sisa hari efektif secara akurat.' },
-                  ].map((u, i) => (
-                    <div key={i} className="flex gap-4">
-                      <div className="w-10 h-10 bg-background rounded-xl border border-border flex items-center justify-center text-lg flex-shrink-0 shadow-sm">{u.icon}</div>
-                      <div>
-                        <div className="text-[13px] font-bold text-foreground mb-0.5 leading-none">{u.t}</div>
-                        <div className="text-[12px] text-text2 leading-relaxed font-medium opacity-80">{u.d}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
-          </div>
-
           {/* Capabilities Section */}
           <div className="px-1">
-            <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">Apa saja yang bisa dilakukan?</div>
-            <div className="space-y-3">
+            <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">Semua Kemampuan</div>
+            <div className="grid grid-cols-1 gap-3">
               {[
-                { icon: '📅', t: 'Manajemen Jadwal Otomatis', d: 'Input jadwal sekali, asisten akan mendeteksi kelas mana yang harus Anda ajar setiap saat.' },
-                { icon: '📝', t: 'Input Materi Massal', d: 'Punya 20 bab materi? Copy-paste semua barisnya sekaligus. EduTrack akan memecahnya otomatis.' },
-                { icon: '🏥', t: 'Kelola Izin & Tugas', d: 'Guru tidak hadir? Tandai sebagai izin dan berikan Tugas Mandiri agar progres materi tidak terhenti.' },
-                { icon: '📊', t: 'Dashboard Progres Real-time', d: 'Lihat status semua kelas dalam satu pandangan. Mana yang "Behind" dan mana yang "On Track".' },
-                { icon: '💾', t: 'Cetak Laporan (CSV)', d: 'Butuh laporan fisik? Export semua riwayat sesi mengajar Anda ke format file Excel/CSV.' },
+                { icon: '📅', t: 'Jadwal Otomatis', d: 'Input jadwal sekali, sistem akan mendeteksi kelas mana yang harus Anda ajar setiap saat — tanpa buka-tutup.' },
+                { icon: '📝', t: 'Input Massal', d: 'Punya 20+ bab materi? Copy-paste dari Word/Excel sekaligus. EduTrack akan memecahnya secara otomatis.' },
+                { icon: '📊', t: 'Progres Real-time', d: 'Pantau status semua kelas dalam satu layar. Mana yang "On Track" dan mana yang perlu percepatan.' },
+                { icon: '💾', t: 'Backup & Restore', d: 'Export JSON untuk backup penuh, atau CSV untuk laporan spreadsheet. Import ulang kapan saja.' },
+                { icon: '📲', t: 'Install ke Home Screen', d: 'Instal sebagai aplikasi native di ponsel. Lebih cepat dan praktis tanpa buka browser.' },
               ].map((f, i) => (
-                <div key={i} className="flex items-center gap-4 bg-surface2/30 border border-border/50 p-4 rounded-2xl hover:bg-surface2/50 transition-colors">
-                  <div className="text-2xl">{f.icon}</div>
-                  <div>
+                <div key={i} className="flex items-center gap-4 bg-surface border border-border p-4 rounded-xl hover:border-primary/30 transition-colors">
+                  <div className="text-xl flex-shrink-0 w-10 h-10 bg-surface2 rounded-lg flex items-center justify-center">{f.icon}</div>
+                  <div className="flex-1">
                     <div className="text-[13px] font-bold text-foreground">{f.t}</div>
                     <div className="text-[11px] text-text2 leading-relaxed mt-0.5">{f.d}</div>
                   </div>
@@ -235,9 +246,9 @@ export default function InfoView() {
             </div>
           </div>
 
-          <div className="text-center py-4">
-            <div className="text-[10px] text-text3 font-bold uppercase tracking-widest opacity-40 italic">
-              "Terus Berinovasi untuk Guru Indonesia"
+          <div className="text-center py-6 mt-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-full">
+              <span className="text-[10px] text-text3 font-semibold uppercase tracking-widest">Terus Berinovasi untuk Guru Indonesia</span>
             </div>
           </div>
         </div>
