@@ -213,9 +213,9 @@ export function getInsights(): Insight[] {
   const seen = new Set<string>();
 
   data.subjects.forEach(sub => {
-    const mats = getMaterials(sub.id, cls.id);
-    if (!mats.length) return;
     data.classes.forEach(cls => {
+      const mats = getMaterials(sub.id, cls.id);
+      if (!mats.length) return;
       const key = `${cls.id}-${sub.id}`;
       // FIX: hanya generate insight jika kelas ini punya jadwal untuk mapel ini
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
