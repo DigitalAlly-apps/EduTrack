@@ -11,7 +11,15 @@ export function getData(): AppData {
   try {
     const raw = localStorage.getItem(DB_KEY) || localStorage.getItem('pengajar_v3') || localStorage.getItem('pengajar_v2');
     if (!raw) return structuredClone(DEFAULT_DATA);
-    return { ...structuredClone(DEFAULT_DATA), ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return structuredClone(DEFAULT_DATA);
+    // Deep merge: pastikan semua array field tidak null/undefined agar tidak crash
+    const merged = { ...structuredClone(DEFAULT_DATA), ...parsed };
+    const arrayFields = ['classes','subjects','materials','schedules','progress','sessions','tasks','notes','holidays','scheduleOverrides'] as const;
+    for (const f of arrayFields) {
+      if (!Array.isArray(merged[f])) merged[f] = [] as any;
+    }
+    return merged;
   } catch { return structuredClone(DEFAULT_DATA); }
 }
 
@@ -484,11 +492,31 @@ export function importJSON(file: File): Promise<void> {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const d = JSON.parse(e.target?.result as string);
-        saveData(d);
+        const raw = JSON.parse(e.target?.result as string);
+        if (typeof raw !== 'object' || raw === null) throw new Error('Format tidak valid');
+        // Safe merge: pastikan semua field DEFAULT_DATA ada, tidak crash meski backup lama
+        const merged: AppData = {
+          ...structuredClone(DEFAULT_DATA),
+          ...raw,
+          // Pastikan array-array tidak null/undefined
+          classes: Array.isArray(raw.classes) ? raw.classes : [],
+          subjects: Array.isArray(raw.subjects) ? raw.subjects : [],
+          materials: Array.isArray(raw.materials) ? raw.materials : [],
+          schedules: Array.isArray(raw.schedules) ? raw.schedules : [],
+          progress: Array.isArray(raw.progress) ? raw.progress : [],
+          sessions: Array.isArray(raw.sessions) ? raw.sessions : [],
+          tasks: Array.isArray(raw.tasks) ? raw.tasks : [],
+          notes: Array.isArray(raw.notes) ? raw.notes : [],
+          holidays: Array.isArray(raw.holidays) ? raw.holidays : [],
+          scheduleOverrides: Array.isArray(raw.scheduleOverrides) ? raw.scheduleOverrides : [],
+        };
+        saveData(merged);
         resolve();
-      } catch { reject(new Error('File tidak valid')); }
+      } catch (err) {
+        reject(new Error('File tidak valid atau rusak'));
+      }
     };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
     reader.readAsText(file);
   });
 }

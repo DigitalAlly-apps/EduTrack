@@ -24,8 +24,8 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
   const tabs: { id: SetupTab; label: string; icon: string; group: string }[] = [
     { id: 'classes', label: 'Kelas', icon: '🏫', group: 'data' },
     { id: 'subjects', label: 'Mapel', icon: '📚', group: 'data' },
-    { id: 'materials', label: 'Materi', icon: '📖', group: 'data' },
     { id: 'schedules', label: 'Jadwal', icon: '🗓', group: 'data' },
+    { id: 'materials', label: 'Materi', icon: '📖', group: 'data' },
     { id: 'holidays', label: 'Libur', icon: '🏖', group: 'other' },
     { id: 'leave', label: 'Izin', icon: '🏥', group: 'other' },
     { id: 'data', label: 'Backup', icon: '💾', group: 'other' },
@@ -403,10 +403,14 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const data = getData();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
-  // Kelas yang punya jadwal mapel ini
-  const classesForSubject = subId
+  // Kelas yang punya jadwal mapel ini — fallback ke semua kelas jika belum ada jadwal
+  const classesWithSchedule = subId
     ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
     : [];
+  const classesForSubject = subId
+    ? (classesWithSchedule.length > 0 ? classesWithSchedule : data.classes)
+    : [];
+  const hasNoSchedule = subId && classesWithSchedule.length === 0 && data.classes.length > 0;
 
   const add = () => {
     if (!subId) return toast({ title: 'Pilih mapel dulu' });
@@ -459,9 +463,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </select>
         </FormField>
 
-        {subId && classesForSubject.length === 0 && (
-          <p className="text-[11px] text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-            Mapel ini belum ada jadwal kelas. Tambahkan jadwal dulu di tab Jadwal.
+        {hasNoSchedule && (
+          <p className="text-[11px] text-amber bg-amber/8 border border-amber/20 rounded-lg px-3 py-2">
+            ℹ️ Belum ada jadwal untuk mapel ini. Materi akan tersimpan tapi baru aktif setelah jadwal ditambahkan.
           </p>
         )}
 
@@ -469,9 +473,14 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           <FormField label="Pilih Kelas" className="mb-0">
             <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
               <option value="">Pilih kelas...</option>
-              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name} {classesWithSchedule.find(x => x.id === c.id) ? '' : '(belum ada jadwal)'}</option>)}
             </select>
           </FormField>
+        )}
+        {subId && classesForSubject.length === 0 && (
+          <p className="text-[11px] text-text3 bg-surface2 border border-border2 rounded-lg px-3 py-2">
+            Tambahkan kelas di tab Kelas terlebih dahulu.
+          </p>
         )}
       </div>
 
@@ -812,7 +821,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
 
   const handleReset = () => {
     if (resetVal !== 'RESET') return;
-    saveData({ teacherName: getData().teacherName || '', classes: [], subjects: [], materials: [], schedules: [], progress: [], sessions: [], notes: [], lastBackup: null, reminderDismissed: null });
+    saveData({ teacherName: getData().teacherName || '', classes: [], subjects: [], materials: [], schedules: [], progress: [], sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [] });
     setShowReset(false); setResetVal(''); toast({ title: 'Semua data dihapus' }); onRefresh();
   };
 
