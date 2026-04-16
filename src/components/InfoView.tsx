@@ -70,12 +70,29 @@ export default function InfoView() {
     setOpenGuides(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const updates = [
-    { icon: '🏥', t: 'Manajemen Izin & Sakit', d: 'Sistem cerdas untuk menangani ketidakhadiran pengajar. Anda dapat memilih untuk memberikan Tugas Mandiri (progres tetap jalan) atau Skip Sesi (jadwal dibatalkan) dengan pencatatan otomatis di jurnal.' },
-    { icon: '📅', t: 'Penataan Jadwal Mingguan', d: 'Kini jadwal mingguan di halaman Kelola dikelompokkan berdasarkan hari (Senin-Minggu) dan diurutkan berdasarkan waktu, membuat manajemen jadwal jauh lebih teratur.' },
-    { icon: '🎯', t: 'Timeline Beranda Presisi', d: 'Desain ulang timeline harian dengan kartu yang lebih bersih, indikator status "DONE" yang elegan, dan visualisasi alur yang lebih profesional.' },
-    { icon: '✨', t: 'Minimalist Header v5.0', d: 'Header baru yang lebih lega dengan penghapusan sapaan yang mengganggu dan ikon berlebih, memberikan fokus penuh pada identitas pengajar dan efisiensi akses.' },
-    { icon: '📱', t: 'Optimalisasi PWA', d: 'Peningkatan performa aplikasi web saat diinstal ke layar beranda (Home Screen) perangkat Anda.' },
+  const featureGroups = [
+    {
+      title: '✨ Fitur Terbaru v5.1',
+      items: [
+        { icon: '📊', t: 'Laporan Minggu Ini', d: 'Ringkasan aktivitas mengajar setiap minggu: sesi selesai, dilewati, materi diajarkan, dan tingkat kehadiran. Langsung salin jurnal untuk dilaporkan.' },
+        { icon: '🤖', t: 'AI Assistant', d: 'Asisten pintar yang menganalisis progres mengajar, memberikan rekomendasi kelas fokus, dan saran sesi tambahan jika diperlukan.' },
+        { icon: '📅', t: 'Kalender Bulanan', d: 'Lihat gambaran keseluruhan mengajar per bulan dengan status harian: Selesai, Sebagian, Terlewat, atau Libur.' },
+        { icon: '📜', t: 'Riwayat Sesi per Bulan', d: 'Telusuri histori sesi mengajar berdasarkan bulan. Dilengkapi filter dan pencarian materi.' },
+        { icon: '⚡', t: 'Pangkas Durasi & Pulang Awal', d: 'Fitur "Pangkas Durasi" untuk setengah hari dan "Pulang Awal" untuk meliburkan kelas setelah jam tertentu.' },
+        { icon: '📌', t: 'Reminder Pertemuan Depan', d: 'Catat pesan untuk pertemuan berikutnya, seperti "Budi belum kumpul" atau "Lanjut Bab 3 hal 45".' },
+        { icon: '📋', t: 'Generate Jurnal Harian', d: 'Buat ringkasan harian otomatis siap salin ke WhatsApp atau laporan lainnya.' },
+      ]
+    },
+    {
+      title: '🚀 Fitur Lainnya',
+      items: [
+        { icon: '🏥', t: 'Manajemen Izin & Sakit', d: 'Sistem cerdas untuk menangani ketidakhadiran pengajar. Anda dapat memilih untuk memberikan Tugas Mandiri atau Skip Sesi dengan pencatatan otomatis di jurnal.' },
+        { icon: '📅', t: 'Penataan Jadwal Mingguan', d: 'Jadwal mingguan di Kelola dikelompokkan berdasarkan hari (Senin-Minggu) dan diurutkan berdasarkan waktu.' },
+        { icon: '🎯', t: 'Timeline Beranda Presisi', d: 'Desain ulang timeline harian dengan kartu yang lebih bersih, indikator status "DONE" yang elegan.' },
+        { icon: '✨', t: 'Minimalist Header v5.0', d: 'Header baru yang lebih lega dengan penghapusan sapaan yang mengganggu dan ikon berlebih.' },
+        { icon: '📱', t: 'Optimalisasi PWA', d: 'Peningkatan performa aplikasi web saat diinstal ke layar beranda (Home Screen).' },
+      ]
+    },
   ];
 
   return (
@@ -152,6 +169,24 @@ export default function InfoView() {
         </div>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+          {/* Feature Groups */}
+          {featureGroups.map((group, gIdx) => (
+            <div key={gIdx} className="px-1">
+              <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">{group.title}</div>
+              <div className="space-y-3">
+                {group.items.map((u, i) => (
+                  <div key={i} className="flex items-start gap-4 bg-surface border border-border p-4 rounded-2xl hover:border-primary/30 transition-colors">
+                    <div className="w-10 h-10 bg-primary-dim border border-primary-border rounded-xl flex items-center justify-center text-lg flex-shrink-0">{u.icon}</div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-bold text-foreground mb-1">{u.t}</div>
+                      <div className="text-[11px] text-text2 leading-relaxed">{u.d}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
           {/* Keunggulan Section */}
           <div className="bg-primary/5 rounded-[24px] p-6 border border-primary/10 relative overflow-hidden">
              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
@@ -209,7 +244,7 @@ export default function InfoView() {
       )}
 
       <div className="text-center text-[10px] text-text3 py-8 opacity-60">
-        EduTrack • 2026 • v5.0.0
+        EduTrack • 2026 • v5.1.0
       </div>
     </div>
   );
