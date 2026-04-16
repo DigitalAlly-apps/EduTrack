@@ -310,8 +310,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
 
                 <div className="font-display text-3xl font-extrabold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
-                <div className="text-[15px] font-semibold text-text2 mb-6 flex items-center gap-2.5">
+                <div className="text-[15px] font-semibold text-text2 mb-6 flex flex-wrap items-center gap-2.5 w-full">
                   <span className="opacity-90">{active.subjectName}</span>
+                  <span className="opacity-20">•</span>
+                  <span className="font-bold text-primary">Sesi ke-{Math.min(active.materialsDone + 1, active.totalMats)} / {active.totalMats}</span>
                   <span className="opacity-20">•</span>
                   <span className="opacity-90 tabular-nums bg-surface2/50 px-2.5 py-1 rounded-lg border border-border/40 leading-none">{fmt(active.startTime)} – {fmt(active.endTime)}</span>
                 </div>
@@ -391,7 +393,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
 
                 <div className="font-display text-3xl font-black tracking-[-0.04em] leading-[0.95] bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent mb-2">{upcoming.className}</div>
-                <div className="text-[16px] font-bold text-text2/80 mb-5">{upcoming.subjectName}</div>
+                <div className="text-[16px] font-bold text-text2/80 mb-5 flex items-center gap-2">
+                  <span>{upcoming.subjectName}</span>
+                  <span className="opacity-30">•</span>
+                  <span className="text-[14px] text-teal">Sesi {Math.min(upcoming.materialsDone + 1, upcoming.totalMats)}/{upcoming.totalMats}</span>
+                </div>
                 
                 <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-[24px] p-5 flex items-center gap-5 shadow-inner">
                   <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
@@ -466,7 +472,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="w-[38px] h-[38px] rounded-[10px] bg-teal-dim border border-teal grid place-items-center text-base flex-shrink-0">📚</div>
           <div className="flex-1 min-w-0">
             <div className="text-[9px] font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
-            <div className="text-sm font-semibold">{next.className} — {next.subjectName}</div>
+            <div className="text-sm font-semibold">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
             {next.nextMat && <div className="text-[11px] text-text2 mt-[1px]">📖 {next.nextMat.name}</div>}
           </div>
           <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
@@ -618,11 +624,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     )}
                   </div>
                   
-                  <div className="text-[12px] text-text2 font-medium flex items-center gap-2">
-                    <span>{item.subjectName}</span>
+                  <div className="text-[12px] text-text2 font-medium flex items-center gap-2 min-w-0">
+                    <span className="truncate flex-shrink-0 max-w-[80px]">{item.subjectName}</span>
+                    <span className="opacity-30">•</span>
+                    <span className="font-bold text-foreground">Sesi {Math.min(item.materialsDone + (item.done ? 0 : 1), item.totalMats)}/{item.totalMats}</span>
                     {!item.done && item.nextMat && (
-                      <div className="flex items-center gap-1.5 text-text3/70">
-                        <span className="w-1 h-1 rounded-full bg-border" />
+                      <div className="flex items-center gap-1.5 text-text3/70 min-w-0">
+                        <span className="w-1 h-1 rounded-full bg-border flex-shrink-0" />
                         <span className="truncate max-w-[120px]">📖 {item.nextMat.name}</span>
                       </div>
                     )}

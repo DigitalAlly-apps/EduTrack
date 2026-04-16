@@ -228,14 +228,14 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
           </div>
           
           <div className="flex items-center gap-2 text-[11px] text-text2 flex-wrap font-medium">
-            <span><strong className="text-foreground">{st.done}</strong>/{st.total} Bab</span>
+            <span>Bab: <strong className="text-foreground">{st.done}</strong>/{st.total}</span>
             <span className="opacity-40">•</span>
-            <span>{st.pct}% Selesai</span>
+            <span>Materi (Sesi): <strong className="text-foreground">{totalSessDone}</strong>/{totalSessAll}</span>
             {st.daysLeft !== undefined && (
               <>
                 <span className="opacity-40">•</span>
                 <span className={st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold' : 'text-amber font-bold') : 'text-text3'}>
-                  ⏳ {st.daysLeft} hari ujian
+                   ⏳ {st.daysLeft} hari ujian
                 </span>
               </>
             )}
@@ -250,15 +250,20 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
       {/* Expanded Details Area */}
       {showMats && (
         <div className="p-4 pt-2 border-t border-border/40 bg-surface3/10 shadow-inner">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-1.5 flex-1 bg-surface3 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-700 ${effectiveColor === 'green' ? 'bg-green' : effectiveColor === 'amber' ? 'bg-amber' : 'bg-red'}`} 
-                style={{ width: `${Math.max(2, st.pct)}%` }} 
-              />
-            </div>
-            {mats.length > 0 && <span className="text-[10px] font-bold text-text3">PROGRES BAB</span>}
-          </div>
+           {st.daysLeft !== undefined && (
+             <div className="flex flex-wrap items-center justify-between mb-4 bg-surface border border-border2 rounded-xl p-3 shadow-sm">
+               <div className="text-[11px] font-medium text-text2 flex flex-col gap-[2px]">
+                  <span>Sisa Jadwal Mengajar</span>
+                  <strong className="text-foreground text-[14px]">{st.sessLeft} <span className="text-[11px] font-normal">Sesi</span></strong>
+               </div>
+               <div className="w-[1px] h-8 bg-border2"></div>
+               <div className="text-[11px] font-medium text-text2 flex flex-col gap-[2px]">
+                  <span>Materi Tertinggal</span>
+                  <strong className="text-foreground text-[14px]">{st.sessionsNeeded} <span className="text-[11px] font-normal">Sesi</span></strong>
+               </div>
+             </div>
+           )}
+           <div className="mb-3 text-[10px] font-bold text-text3 uppercase tracking-wider">Daftar Materi</div>
 
           <div className="space-y-[3px]">
             {mats.map((mat: any, idx: number) => {

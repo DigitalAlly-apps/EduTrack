@@ -249,18 +249,17 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
 function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
-  const [level, setLevel] = useState('');
   const { toast } = useToast();
   const data = getData();
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama kelas' });
-    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue', level: level.trim() || undefined }));
-    setName(''); setLevel(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
+    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue' }));
+    setName(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
   };
-  const saveItem = (id: string, newName: string, _unused?: any, extras?: any) => {
+  const saveItem = (id: string, newName: string) => {
     if(!newName.trim()) return;
-    updateData(d => { const c = d.classes.find(x => x.id === id); if (c) { c.name = newName.trim(); if (extras?.level !== undefined) c.level = extras.level || undefined; } });
+    updateData(d => { const c = d.classes.find(x => x.id === id); if (c) { c.name = newName.trim(); } });
     toast({ title: 'Kelas diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
@@ -279,17 +278,13 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-6 shadow-sm">
         <FormField label="Tambah Kelas Baru">
           <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-            className="form-input-style mb-2" placeholder="cth: 4A, 10B, XI IPA 2..." />
-          <input value={level} onChange={e => setLevel(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-            className="form-input-style mb-3" placeholder="Tingkatan, cth: 4, 10, 11 (opsional)" />
+            className="form-input-style mb-3" placeholder="cth: 4A, 10B, XI IPA 2..." />
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
         </FormField>
       </div>
       <div className="mt-6 mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Kelas</div>
       {data.classes.map(c => (
-        <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: c.level ? `Tingkat ${c.level}` : undefined, extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v: any, setV: any) => (
-          <input value={v.level} onChange={e => setV({ ...v, level: e.target.value })} placeholder="Tingkatan (cth: 4, 10)" className="form-input-style text-xs" />
-        )} />
+        <EditableItem key={c.id} item={{ id: c.id, name: c.name, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} />
       ))}
       {!data.classes.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada kelas</div>}
     </div>
@@ -398,8 +393,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
 function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [subId, setSubId] = useState('');
-  // scope: { type: 'level', value: '4' } | { type: 'class', value: classId } | null
-  const [scope, setScope] = useState<{ type: 'level' | 'class'; value: string } | null>(null);
+  const [classId, setClassId] = useState('');
   const [name, setName] = useState('');
   const [sessions, setSessions] = useState(1);
   const [bulkMode, setBulkMode] = useState(false);
@@ -414,22 +408,16 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
     : [];
 
-  // Level unik dari kelas-kelas tersebut
-  const levelsForSubject = [...new Set(classesForSubject.map(c => c.level).filter(Boolean))] as string[];
-
-  const resolvedLevel = scope?.type === 'level' ? scope.value : undefined;
-  const resolvedClassId = scope?.type === 'class' ? scope.value : undefined;
-
   const add = () => {
     if (!subId) return toast({ title: 'Pilih mapel dulu' });
-    if (!scope) return toast({ title: 'Pilih tingkat atau rombel dulu' });
+    if (!classId) return toast({ title: 'Pilih kelas dulu' });
     if (bulkMode) {
       if(!bulkText.trim()) return toast({ title: 'Masukkan materi' });
-      bulkAddMaterials(subId, bulkText.split('\n').filter(x => x.trim()), bulkSessions, resolvedLevel, resolvedClassId);
+      bulkAddMaterials(subId, bulkText.split('\n').filter(x => x.trim()), bulkSessions, undefined, classId);
       setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
     } else {
       if(!name.trim()) return toast({ title: 'Isi nama materi' });
-      bulkAddMaterials(subId, [name], sessions, resolvedLevel, resolvedClassId);
+      bulkAddMaterials(subId, [name], sessions, undefined, classId);
       setName(''); toast({ title: 'Materi ditambahkan' }); onRefresh();
     }
   };
@@ -439,23 +427,24 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   };
   const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
 
-  // Ambil materi sesuai scope yang dipilih
+  // Ambil materi untuk kelas ini
   const mats = (() => {
-    if (!subId || !scope) return [];
-    if (scope.type === 'class') return getMaterials(subId, scope.value);
-    // scope level: tampilkan materi level ini (bukan override rombel)
-    return data.materials
-      .filter(m => m.subjectId === subId && m.level === scope.value && !m.classId)
-      .sort((a, b) => a.order - b.order);
+    if (!subId || !classId) return [];
+    return getMaterials(subId, classId);
   })();
   
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
+    if (active && over && active.id !== over.id) {
       const oldIndex = mats.findIndex(x => x.id === active.id);
       const newIndex = mats.findIndex(x => x.id === over.id);
       const reordered = arrayMove(mats, oldIndex, newIndex);
-      reorderMaterials(subId, reordered.map(x => x.id), resolvedLevel, resolvedClassId);
+      updateData(d => {
+        reordered.forEach((matItem, idx) => {
+          const m = d.materials.find(x => x.id === matItem.id);
+          if (m) m.order = idx + 1;
+        });
+      });
       onRefresh();
     }
   };
@@ -464,7 +453,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm space-y-3">
         <FormField label="Pilih Mata Pelajaran" className="mb-0">
-          <select value={subId} onChange={e => { setSubId(e.target.value); setScope(null); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+          <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setBulkText(''); }} className="form-select-style border-primary">
             <option value="">Pilih mata pelajaran...</option>
             {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -472,71 +461,24 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
         {subId && classesForSubject.length === 0 && (
           <p className="text-[11px] text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-            Mapel ini belum ada jadwal. Tambahkan jadwal dulu di tab Jadwal.
+            Mapel ini belum ada jadwal kelas. Tambahkan jadwal dulu di tab Jadwal.
           </p>
         )}
 
         {subId && classesForSubject.length > 0 && (
-          <FormField label="Materi untuk" className="mb-0">
-            <div className="flex flex-col gap-1.5">
-              {/* Opsi per tingkatan */}
-              {levelsForSubject.map(lv => (
-                <button key={lv}
-                  onClick={() => { setScope({ type: 'level', value: lv }); setName(''); setBulkText(''); }}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
-                    scope?.type === 'level' && scope.value === lv
-                      ? 'bg-primary-dim border-primary-border text-primary'
-                      : 'bg-surface border-border text-text2 hover:border-border2'
-                  }`}
-                >
-                  <span className="font-bold">Tingkat {lv}</span>
-                  <span className="text-[11px] ml-2 opacity-60">
-                    ({classesForSubject.filter(c => c.level === lv).map(c => c.name).join(', ')})
-                  </span>
-                </button>
-              ))}
-              {/* Opsi kelas tanpa level */}
-              {classesForSubject.filter(c => !c.level).map(c => (
-                <button key={c.id}
-                  onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${
-                    scope?.type === 'class' && scope.value === c.id
-                      ? 'bg-primary-dim border-primary-border text-primary'
-                      : 'bg-surface border-border text-text2 hover:border-border2'
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
-              {/* Override per rombel (advanced) */}
-              {levelsForSubject.length > 0 && (
-                <details className="mt-1">
-                  <summary className="text-[11px] text-text3 cursor-pointer hover:text-text2 px-1">Override materi per rombel (opsional)</summary>
-                  <div className="mt-1.5 flex flex-col gap-1">
-                    {classesForSubject.filter(c => c.level).map(c => (
-                      <button key={c.id}
-                        onClick={() => { setScope({ type: 'class', value: c.id }); setName(''); setBulkText(''); }}
-                        className={`w-full text-left px-3 py-2 rounded-xl border text-[12px] font-medium transition-all ${
-                          scope?.type === 'class' && scope.value === c.id
-                            ? 'bg-primary-dim border-primary-border text-primary'
-                            : 'bg-surface border-border text-text2 hover:border-border2'
-                        }`}
-                      >
-                        {c.name} <span className="opacity-50 text-[11px]">(override)</span>
-                      </button>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </div>
+          <FormField label="Pilih Kelas" className="mb-0">
+            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+              <option value="">Pilih kelas...</option>
+              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </FormField>
         )}
       </div>
 
-      {subId && scope && (
+      {subId && classId && (
         <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[12px] font-bold text-foreground">Tambah Materi</span>
+            <span className="text-[12px] font-bold text-foreground">Tambah Materi ({classesForSubject.find(c => c.id === classId)?.name})</span>
             <button onClick={() => setBulkMode(!bulkMode)} className="text-[11px] font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
           </div>
           {bulkMode ? (
@@ -574,7 +516,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
       )}
 
-      {subId && scope && (
+      {subId && classId && (
         <>
           <div className="mt-5 mb-2 flex justify-between items-center">
             <span className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Materi ({mats.length})</span>
@@ -588,12 +530,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada materi</div>}
         </>
       )}
-      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel dan tingkatan untuk melihat materi</div>}
-      {subId && !scope && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih tingkatan atau rombel di atas</div>}
+      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
+      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih kelas di atas</div>}
     </div>
   );
 }
-
 
 function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
   const [classId, setClassId] = useState('');
