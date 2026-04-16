@@ -19,7 +19,6 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
   // Hapus gelar akademik (S.H, M.Pd, S.Pd, dll) untuk header
   const nameWithoutTitle = rawName.replace(/,?\s*[A-Z][A-Za-z]*\.[A-Za-z]+(\s*,?\s*[A-Z][A-Za-z]*\.[A-Za-z]+)*/g, '').trim();
   const parts = nameWithoutTitle.split(' ').filter(Boolean);
-  // Tampilkan nama depan + belakang jika ada, maks 20 karakter, otherwise nama depan saja
   const displayName = parts.length >= 2
     ? (parts[0] + ' ' + parts[parts.length - 1]).length <= 20
       ? parts[0] + ' ' + parts[parts.length - 1]
@@ -27,6 +26,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
     : parts[0] || 'Guru';
   const isLongName = displayName.length > 12;
   const dateStr = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+  const activeClassCount = data.classes.length;
 
   return (
     <div className="flex-shrink-0 px-5 pt-4 pb-3 bg-background/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-40 transition-all shadow-sm">
@@ -42,7 +42,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
           </div>
           <div className="text-[10px] font-bold text-primary/80 mt-0.5 flex items-center gap-1 uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
-            Guru Pengampu
+            {activeClassCount > 0 ? `${activeClassCount} Kelas Aktif` : 'Guru Pengampu'}
           </div>
         </div>
 
@@ -72,10 +72,10 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
 
           <button
             onClick={onToggleTheme}
-            className="px-3 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-90 shadow-sm text-text2 hover:text-foreground"
+            className="w-11 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center transition-all active:scale-90 shadow-sm text-text2 hover:text-foreground"
+            title="Ganti Tema"
           >
             <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
-            <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Tema</span>
           </button>
         </div>
       </div>
