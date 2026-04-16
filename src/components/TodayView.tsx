@@ -592,18 +592,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="flex gap-2 flex-wrap">
               <button 
                 onClick={() => {
-                  if(confirm('Semua sisa sesi hari ini durasinya dipotong jadi setengah dan akan dirapatkan waktunya. Lanjutkan?')) {
-                    applyShortDayOverride(new Date().toISOString().slice(0, 10));
-                    onRefresh();
-                    toast({ title: 'Jadwal hari ini diubah jadi setengah hari ⚡' });
-                  }
-                }}
-                className="text-[9px] font-bold text-amber px-2 py-0.5 rounded-full border border-amber/30 bg-amber/10 transition-colors hover:bg-amber/20 whitespace-nowrap"
-              >
-                ⚡ Pangkas Durasi
-              </button>
-              <button 
-                onClick={() => {
                   const input = prompt('Mulai jam berapa jadwal akan diliburkan? (contoh: 10:00 atau 10:30)');
                   if(input) {
                     if (/^\d{1,2}:\d{2}$/.test(input.trim())) {
