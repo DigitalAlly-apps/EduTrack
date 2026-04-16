@@ -103,10 +103,10 @@ export default function InfoView() {
   return (
     <div className="pt-2">
       {/* Sub-tab Switcher */}
-      <div className="flex bg-surface2/50 p-1.5 rounded-[18px] mb-6 border border-border/40">
+      <div className="flex bg-surface2/50 p-1 rounded-full mb-6 border border-border/30">
         <button
           onClick={() => setActiveSubTab('guides')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-[14px] transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-full transition-all ${
             activeSubTab === 'guides' ? 'bg-background text-primary shadow-sm' : 'text-text3 hover:text-text2'
           }`}
         >
@@ -114,7 +114,7 @@ export default function InfoView() {
         </button>
         <button
           onClick={() => setActiveSubTab('updates')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-[14px] transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-full transition-all ${
             activeSubTab === 'updates' ? 'bg-background text-primary shadow-sm' : 'text-text3 hover:text-text2'
           }`}
         >
@@ -125,10 +125,10 @@ export default function InfoView() {
       {activeSubTab === 'guides' ? (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           {/* Backup Banner */}
-          <div className="bg-amber/5 border border-amber/20 rounded-xl p-[14px_16px] flex items-start gap-3 mb-6">
-            <div className="text-[22px] flex-shrink-0 mt-[1px]">💾</div>
+          <div className="bg-amber/5 border border-amber/20 rounded-xl p-4 flex items-start gap-3 mb-6">
+            <div className="text-xl flex-shrink-0">💾</div>
             <div>
-              <div className="text-[11px] font-bold text-amber-700 mb-1 uppercase tracking-wider">Penting: Pencadangan Data</div>
+              <div className="text-xs font-bold text-amber-700 mb-1 uppercase tracking-wider">Penting: Pencadangan Data</div>
               <div className="text-xs text-text2 leading-relaxed">
                 Mohon lakukan <strong>Backup JSON</strong> secara berkala. Seluruh data disimpan lokal, pencadangan manual diperlukan untuk mencegah kehilangan data.
               </div>
@@ -136,7 +136,7 @@ export default function InfoView() {
           </div>
 
           <div className="mb-6 px-1">
-            <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-3">Panduan Penggunaan</div>
+            <div className="text-xs font-bold tracking-wide uppercase text-text3 mb-3">Panduan Penggunaan</div>
             {guides.map(g => {
               let proTitle = g.title;
               if (g.id === 'g1') proTitle = "Mengelola Tab 'Hari Ini'";
@@ -147,21 +147,21 @@ export default function InfoView() {
               if (g.id === 'g6') proTitle = "Personalisasi & Setelan Lanjutan";
 
               return (
-                <div key={g.id} className={`acc-item ${openGuides[g.id] ? 'open' : ''} bg-surface border border-border rounded-xl mb-2 overflow-hidden transition-all shadow-sm`}>
+                <div key={g.id} className={`acc-item ${openGuides[g.id] ? 'open' : ''} bg-surface border border-border rounded-xl mb-2 overflow-hidden transition-all`}>
                   <button className="w-full flex items-center justify-between p-4 text-left gap-3 active:bg-surface2 transition-colors" onClick={() => toggleGuide(g.id)}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl border grid place-items-center text-base flex-shrink-0 transition-colors ${openGuides[g.id] ? 'bg-primary-dim border-primary-border text-primary' : 'bg-surface2 border-border'}`}>{g.icon}</div>
-                      <div className="text-[13px] font-bold">{proTitle}</div>
+                      <div className={`w-8 h-8 rounded-lg grid place-items-center text-sm flex-shrink-0 transition-colors ${openGuides[g.id] ? 'bg-primary-dim text-primary' : 'bg-surface2'}`}>{g.icon}</div>
+                      <div className="text-sm font-semibold">{proTitle}</div>
                     </div>
-                    <span className={`text-[10px] text-text3 flex-shrink-0 transition-transform ${openGuides[g.id] ? 'rotate-180 text-primary' : ''}`}>▼</span>
+                    <span className={`text-xs text-text3 flex-shrink-0 transition-transform ${openGuides[g.id] ? 'rotate-180 text-primary' : ''}`}>▼</span>
                   </button>
                   <div className={`overflow-hidden transition-all duration-300 ${openGuides[g.id] ? 'max-h-[800px]' : 'max-h-0'}`}>
-                    <div className="p-[0_16px_16px] border-t border-border/40 pt-4">
+                    <div className="p-4 border-t border-border/40">
                       {g.steps.map((s, i) => (
                         <div key={i} className="flex items-start gap-3 mb-3 last:mb-0">
-                          <div className="w-5 h-5 rounded-full bg-surface2 border border-border text-text3 text-[10px] font-bold grid place-items-center flex-shrink-0 mt-0.5">{i + 1}</div>
-                          <div className="text-[13px] text-text2 leading-relaxed font-medium">
-                            <span className="font-bold text-foreground">{s.t}:</span> <span dangerouslySetInnerHTML={{ __html: s.d }} />
+                          <div className="w-5 h-5 rounded-full bg-surface2 text-text3 text-[10px] font-bold grid place-items-center flex-shrink-0 mt-0.5">{i + 1}</div>
+                          <div className="text-sm text-text2 leading-relaxed">
+                            <span className="font-semibold text-foreground">{s.t}:</span> <span dangerouslySetInnerHTML={{ __html: s.d }} />
                           </div>
                         </div>
                       ))}
@@ -173,50 +173,47 @@ export default function InfoView() {
           </div>
         </div>
       ) : (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
           {/* Keunggulan Section - USP - FIRST */}
-          <div className="bg-gradient-to-br from-primary/8 via-primary/4 to-background rounded-[24px] p-6 border border-primary/20 relative overflow-hidden">
-              <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                <span className="text-8xl">💎</span>
-              </div>
+          <div className="bg-gradient-to-br from-primary/8 via-primary/4 to-background rounded-2xl p-5 border border-primary/20 relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-28 h-28 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="relative z-10">
-                 <div className="flex items-center justify-center gap-2 mb-1">
-                   <div className="w-1 h-1 rounded-full bg-primary"></div>
-                   <div className="text-[11px] font-bold text-primary uppercase tracking-[0.2em]">Keunggulan</div>
-                   <div className="w-1 h-1 rounded-full bg-primary"></div>
-                 </div>
-                 <h3 className="text-xl font-display font-bold tracking-tight text-center mb-6">Mengapa EduTrack?</h3>
-                 <div className="grid gap-3">
-                   {[
-                     { icon: '🔒', t: 'Data Pribadi 100%', d: 'Semua data tersimpan lokal di browser. Tidak ada yang dikirim ke server manapun — privasi Anda terjamin.' },
-                     { icon: '⚡', t: 'Ringan & Cepat', d: 'Dioptimalkan untuk berjalan mulus di ponsel apa pun, termasuk yang berspesifikasi rendah.' },
-                     { icon: '🎯', t: 'Estimasi Akurat', d: 'Hitung sisa materi vs sisa hari kerja secara presisi. Tidak perlu lagi menebak-nebak.' },
-                     { icon: '💾', t: 'Backup Cerdas', d: 'Reminder otomatis untuk mengingatkan backup rutin. Data Anda aman dan tidak akan hilang.' },
-                   ].map((u, i) => (
-                     <div key={i} className="flex items-start gap-3 p-3 bg-background/60 rounded-xl border border-border/50">
-                       <div className="w-9 h-9 bg-primary-dim border border-primary-border rounded-lg flex items-center justify-center text-base flex-shrink-0">{u.icon}</div>
-                       <div className="flex-1">
-                         <div className="text-[13px] font-bold text-foreground mb-0.5">{u.t}</div>
-                         <div className="text-[11px] text-text2 leading-relaxed">{u.d}</div>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="w-1 h-1 rounded-full bg-primary"></div>
+                    <div className="text-xs font-bold text-primary uppercase tracking-widest">Keunggulan</div>
+                    <div className="w-1 h-1 rounded-full bg-primary"></div>
+                  </div>
+                  <h3 className="text-lg font-bold text-center mb-4">Mengapa EduTrack?</h3>
+                  <div className="grid gap-3">
+                    {[
+                      { icon: '🔒', t: 'Data Pribadi 100%', d: 'Semua data tersimpan lokal di browser. Tidak ada yang dikirim ke server manapun — privasi Anda terjamin.' },
+                      { icon: '⚡', t: 'Ringan & Cepat', d: 'Dioptimalkan untuk berjalan mulus di ponsel apa pun, termasuk yang berspesifikasi rendah.' },
+                      { icon: '🎯', t: 'Estimasi Akurat', d: 'Hitung sisa materi vs sisa hari kerja secara presisi. Tidak perlu lagi menebak-nebak.' },
+                      { icon: '💾', t: 'Backup Cerdas', d: 'Reminder otomatis untuk mengingatkan backup rutin. Data Anda aman dan tidak akan hilang.' },
+                    ].map((u, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 bg-background/60 rounded-lg border border-border/30">
+                        <div className="w-8 h-8 bg-primary-dim rounded-lg flex items-center justify-center text-sm flex-shrink-0">{u.icon}</div>
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-foreground mb-0.5">{u.t}</div>
+                          <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
               </div>
           </div>
 
           {/* Feature Groups */}
           {featureGroups.map((group, gIdx) => (
             <div key={gIdx} className="px-1">
-              <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">{group.title}</div>
+              <div className="text-xs font-bold tracking-wide uppercase text-text3 mb-3">{group.title}</div>
               <div className="space-y-3">
                 {group.items.map((u, i) => (
-                  <div key={i} className="flex items-start gap-4 bg-surface border border-border p-4 rounded-2xl hover:border-primary/30 transition-colors">
-                    <div className="w-10 h-10 bg-primary-dim border border-primary-border rounded-xl flex items-center justify-center text-lg flex-shrink-0">{u.icon}</div>
+                  <div key={i} className="flex items-start gap-3 bg-surface border border-border p-4 rounded-xl hover:border-primary/30 transition-colors">
+                    <div className="w-9 h-9 bg-primary-dim rounded-lg flex items-center justify-center text-base flex-shrink-0">{u.icon}</div>
                     <div className="flex-1">
-                      <div className="text-[13px] font-bold text-foreground mb-1">{u.t}</div>
-                      <div className="text-[11px] text-text2 leading-relaxed">{u.d}</div>
+                      <div className="text-sm font-semibold text-foreground mb-1">{u.t}</div>
+                      <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
                     </div>
                   </div>
                 ))}
@@ -226,7 +223,7 @@ export default function InfoView() {
 
           {/* Capabilities Section */}
           <div className="px-1">
-            <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3 mb-4">Semua Kemampuan</div>
+            <div className="text-xs font-bold tracking-wide uppercase text-text3 mb-3">Semua Kemampuan</div>
             <div className="grid grid-cols-1 gap-3">
               {[
                 { icon: '📅', t: 'Jadwal Otomatis', d: 'Input jadwal sekali, sistem akan mendeteksi kelas mana yang harus Anda ajar setiap saat — tanpa buka-tutup.' },
@@ -235,26 +232,26 @@ export default function InfoView() {
                 { icon: '💾', t: 'Backup & Restore', d: 'Export JSON untuk backup penuh, atau CSV untuk laporan spreadsheet. Import ulang kapan saja.' },
                 { icon: '📲', t: 'Install ke Home Screen', d: 'Instal sebagai aplikasi native di ponsel. Lebih cepat dan praktis tanpa buka browser.' },
               ].map((f, i) => (
-                <div key={i} className="flex items-center gap-4 bg-surface border border-border p-4 rounded-xl hover:border-primary/30 transition-colors">
-                  <div className="text-xl flex-shrink-0 w-10 h-10 bg-surface2 rounded-lg flex items-center justify-center">{f.icon}</div>
+                <div key={i} className="flex items-center gap-3 bg-surface border border-border p-4 rounded-xl hover:border-primary/30 transition-colors">
+                  <div className="text-lg flex-shrink-0 w-9 h-9 bg-surface2 rounded-lg flex items-center justify-center">{f.icon}</div>
                   <div className="flex-1">
-                    <div className="text-[13px] font-bold text-foreground">{f.t}</div>
-                    <div className="text-[11px] text-text2 leading-relaxed mt-0.5">{f.d}</div>
+                    <div className="text-sm font-semibold text-foreground">{f.t}</div>
+                    <div className="text-xs text-text2 leading-relaxed mt-0.5">{f.d}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="text-center py-6 mt-2">
+          <div className="text-center py-4 mt-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-full">
-              <span className="text-[10px] text-text3 font-semibold uppercase tracking-widest">Terus Berinovasi untuk Guru Indonesia</span>
+              <span className="text-xs text-text3 font-medium uppercase tracking-widest">Terus Berinovasi untuk Guru Indonesia</span>
             </div>
           </div>
         </div>
       )}
 
-      <div className="text-center text-[10px] text-text3 py-8 opacity-60">
+      <div className="text-center text-xs text-text3 py-6 opacity-60">
         EduTrack • 2026 • v5.1.0
       </div>
     </div>
