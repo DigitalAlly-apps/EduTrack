@@ -730,6 +730,153 @@ export function estimateStorageSize(): { used: number; total: number; pct: numbe
       used += (localStorage.getItem(key) ?? '').length * 2; // UTF-16
     }
     const total = 5 * 1024 * 1024; // 5MB typical
-    return { used, total, pct: Math.round((used / total) * 100) };
-  } catch { return { used: 0, total: 5242880, pct: 0 }; }
+} catch { return { used: 0, total: 5242880, pct: 0 }; }
 }
+
+// ── Killer Features ──────────────────────────────────────────────────────────
+
+export function getTeacherStreak(): number {
+  const data = getData();
+  if (data.schedules.length === 0) return 0;
+  
+  let streak = 0;
+  const holidays = data.holidays ?? [];
+  const baseDate = new Date();
+  
+  // Check up to 365 days back
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayOfWeek = d.getDay();
+    
+    // Check if this day is a holiday
+    const isHoliday = holidays.some(h => typeof h === 'string' ? h === dateStr : (h.date === dateStr && !h.level));
+    
+    // Find all schedules for this day
+    const scheds = data.schedules.filter(s => {
+      if (!s.days.includes(dayOfWeek)) return false;
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      if (isDateHolidayForSubject(dateStr, sub?.level)) return false;
+      return true;
+    });
+    
+    if (scheds.length > 0 && !isHoliday) {
+      // It was a scheduled workday. Did they complete all sessions?
+      const sessionsThatDay = data.sessions.filter(s => s.date === dateStr);
+      // Wait, we just check if they did at least 1 session to keep it forgiving
+      if (sessionsThatDay.length > 0) {
+        streak++;
+      } else {
+        // If today is not done yet, don't break the streak immediately
+        if (i > 0) break; 
+      }
+    }
+  }
+  return streak;
+}
+
+export function generateDailyJournal(): string {
+  const data = getData();
+  const todayStr = now().toISOString().slice(0, 10);
+  const dateFormatted = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  
+  const todaySessions = data.sessions.filter(s => s.date === todayStr);
+  if (todaySessions.length === 0) return `Jurnal Mengajar - ${dateFormatted}\n\nTidak ada sesi mengajar yang tercatat hari ini.`;
+  
+  let journal = `*JURNAL MENGAJAR*\n📅 ${dateFormatted}\n👨‍🏫 ${data.teacherName || 'Guru'}\n\n`;
+  
+  let completed = 0;
+  let skipped = 0;
+  
+  todaySessions.forEach(sess => {
+    const cls = data.classes.find(c => c.id === sess.classId)?.name || 'Kelas Terhapus';
+    const sub = data.subjects.find(s => s.id === sess.subjectId)?.name || 'Mapel Terhapus';
+    
+    if (sess.materialId === 'SKIPPED') {
+      skipped++;
+      journal += `⏩ *${cls} - ${sub}*\nStatus: Dilewati / Kosong\n`;
+    } else {
+      completed++;
+      const mat = data.materials.find(m => m.id === sess.materialId);
+      const matName = mat ? mat.name : 'Selesai tanpa materi';
+      journal += `✅ *${cls} - ${sub}*\nMateri: ${matName}\n`;
+    }
+    if (sess.note) {
+      journal += `Catatan: ${sess.note}\n`;
+    }
+    journal += '\n';
+  });
+  
+  journal += `*Ringkasan:* Selesai ${completed} kelas, Dilewati ${skipped} kelas.\n_Dibuat otomatis oleh EduTrack_`;
+  return journal;
+}
+
+// ── Weekly Review & Calendar ─────────────────────────────────────────────────
+
+export interface WeeklyStats {
+  completed: number;
+  skipped: number;
+  total: number;
+  prevCompleted: number;
+  materialsCovered: number;
+  weekStartStr: string;
+  weekEndStr: string;
+  uniqueClasses: number;
+}
+
+export function getWeeklyStats(): WeeklyStats {
+  const data = getData();
+  const today = now();
+  const dayOfWeek = today.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - daysFromMonday);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekEndStr = today.toISOString().slice(0, 10);
+  const prevWeekStart = new Date(weekStart);
+  prevWeekStart.setDate(weekStart.getDate() - 7);
+  const prevWeekEnd = new Date(weekStart);
+  prevWeekEnd.setDate(weekStart.getDate() - 1);
+  const prevWeekStartStr = prevWeekStart.toISOString().slice(0, 10);
+  const prevWeekEndStr = prevWeekEnd.toISOString().slice(0, 10);
+  const thisWeek = data.sessions.filter(s => s.date >= weekStartStr && s.date <= weekEndStr);
+  const prevWeek = data.sessions.filter(s => s.date >= prevWeekStartStr && s.date <= prevWeekEndStr);
+  const completed = thisWeek.filter(s => s.materialId !== 'SKIPPED').length;
+  const skipped = thisWeek.filter(s => s.materialId === 'SKIPPED').length;
+  const prevCompleted = prevWeek.filter(s => s.materialId !== 'SKIPPED').length;
+  const materialsCovered = new Set(thisWeek.filter(s => s.materialId && s.materialId !== 'SKIPPED').map(s => s.materialId)).size;
+  const uniqueClasses = new Set(thisWeek.map(s => s.classId)).size;
+  return { completed, skipped, total: thisWeek.length, prevCompleted, materialsCovered, weekStartStr, weekEndStr, uniqueClasses };
+}
+
+export type DayStatus = 'done' | 'partial' | 'missed' | 'holiday' | 'noclass' | 'future';
+
+export function getMonthCalendar(yearMonth: string): { date: string; status: DayStatus; sessionCount: number; schedCount: number }[] {
+  const data = getData();
+  const [year, month] = yearMonth.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const todayStr = now().toISOString().slice(0, 10);
+  const result: { date: string; status: DayStatus; sessionCount: number; schedCount: number }[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${yearMonth}-${String(d).padStart(2, '0')}`;
+    if (dateStr > todayStr) { result.push({ date: dateStr, status: 'future', sessionCount: 0, schedCount: 0 }); continue; }
+    const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
+    const isHoliday = (data.holidays ?? []).some(h => typeof h === 'string' ? h === dateStr : (h.date === dateStr && !h.level));
+    const scheds = data.schedules.filter(s => {
+      if (!s.days.includes(dayOfWeek)) return false;
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      return !isDateHolidayForSubject(dateStr, sub?.level);
+    });
+    if (isHoliday) { result.push({ date: dateStr, status: 'holiday', sessionCount: 0, schedCount: 0 }); continue; }
+    if (scheds.length === 0) { result.push({ date: dateStr, status: 'noclass', sessionCount: 0, schedCount: 0 }); continue; }
+    const sessions = data.sessions.filter(s => s.date === dateStr);
+    const sessionCount = sessions.length;
+    const schedCount = scheds.length;
+    if (sessionCount === 0) result.push({ date: dateStr, status: 'missed', sessionCount: 0, schedCount });
+    else if (sessionCount >= schedCount) result.push({ date: dateStr, status: 'done', sessionCount, schedCount });
+    else result.push({ date: dateStr, status: 'partial', sessionCount, schedCount });
+  }
+  return result;
+}
+

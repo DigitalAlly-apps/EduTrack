@@ -3,7 +3,7 @@ import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
-  getTasks, toggleTask, addTask, updateSessionNote, getData
+  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,29 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
+  const [belumKumpulDraft, setBelumKumpulDraft] = useState('');
+
+  // Helpers for reminder pertemuan depan
+  const REMINDER_PREFIX = '\n---REMINDER_DEPAN---\n';
+  const extractReminder = (note?: string) => {
+    if (!note) return { mainNote: '', reminder: '' };
+    // Support both old prefix and new
+    const oldIdx = note.indexOf('\n---BELUM_KUMPUL---\n');
+    if (oldIdx !== -1) return { mainNote: note.slice(0, oldIdx), reminder: note.slice(oldIdx + '\n---BELUM_KUMPUL---\n'.length) };
+    const idx = note.indexOf(REMINDER_PREFIX);
+    if (idx === -1) return { mainNote: note, reminder: '' };
+    return { mainNote: note.slice(0, idx), reminder: note.slice(idx + REMINDER_PREFIX.length) };
+  };
+  const getPrevReminder = (classId: string, subjectId: string, todayStr: string): string => {
+    try {
+      const data = getData();
+      const lastSess = data.sessions
+        .filter(s => s.classId === classId && s.subjectId === subjectId && s.date < todayStr && s.materialId !== 'SKIPPED')
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      if (!lastSess?.note) return '';
+      return extractReminder(lastSess.note).reminder;
+    } catch { return ''; }
+  };
   
   const tasks = getTasks();
   const [briefingOpen, setBriefingOpen] = useState(true);
@@ -88,10 +111,28 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     requestAnimationFrame(tick);
   }, [pendingId, onRefresh, toast]);
 
-  const handleSkip = (id: string) => {
+  const handleSkip = (id: string, className: string, subjectName: string, classId: string, subjectId: string) => {
     skipSession(id);
     onRefresh();
-    toast({ title: 'Sesi dilewati' });
+    // Smart Reschedule: offer to add makeup task
+    const nextWeek = new Date(); nextWeek.setDate(nextWeek.getDate() + 7);
+    const deadline = nextWeek.toISOString().slice(0, 10);
+    toast({
+      title: `⏭ Sesi ${className} dilewati`,
+      description: 'Tandai untuk dikejar minggu depan?',
+      action: (
+        <button
+          onClick={() => {
+            addTask(classId, subjectId, `Kejar sesi ${className} – ${subjectName} yang terlewat`, deadline);
+            onRefresh();
+            toast({ title: '📌 Ditambahkan ke Inbox Tugas!' });
+          }}
+          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
+        >
+          + Kejar
+        </button>
+      ) as any,
+    });
   };
 
   const handlePostpone = (id: string, mins: number) => {
@@ -111,8 +152,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
 
   const handleSaveNote = (sessionId: string) => {
-    updateSessionNote(sessionId, noteDraft);
+    const combinedNote = belumKumpulDraft.trim()
+      ? `${noteDraft}${REMINDER_PREFIX}${belumKumpulDraft.trim()}`
+      : noteDraft;
+    updateSessionNote(sessionId, combinedNote);
     setExpandedNoteId(null);
+    setBelumKumpulDraft('');
     onRefresh();
     toast({ title: 'Catatan disimpan' });
   };
@@ -187,12 +232,25 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         </div>
 
-        <button 
-          onClick={() => window.location.reload()}
-          className="w-full py-3.5 rounded-xl bg-surface2 border border-border text-sm font-bold text-text2 transition-all hover:bg-surface3 active:scale-[0.98]"
-        >
-          🔄 Refresh Status
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              const journal = generateDailyJournal();
+              navigator.clipboard.writeText(journal);
+              toast({ title: '📋 Jurnal Berhasil Disalin!', description: 'Siap di-paste ke WhatsApp/Laporan' });
+            }}
+            className="flex-1 py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all shadow-md active:scale-[0.98] mt-2 flex items-center justify-center gap-2"
+          >
+            📋 Salin Jurnal Harian
+          </button>
+          
+          <button 
+            onClick={() => window.location.reload()}
+            className="flex-[0.4] py-3.5 rounded-xl bg-surface2 border border-border text-sm font-bold text-text2 transition-all hover:bg-surface3 active:scale-[0.98] mt-2"
+          >
+            🔄 Refresh
+          </button>
+        </div>
       </div>
     );
   }
@@ -347,7 +405,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     ) : <>{isOvertime ? '🔥 SELESAI' : '✓ SELESAI'}</>}
                   </button>
                   <button
-                    onClick={() => handleSkip(active.id)}
+                    onClick={() => handleSkip(active.id, active.className, active.subjectName, active.classId, active.subjectId)}
                     className="w-[58px] h-[58px] rounded-2xl bg-surface2 border border-border2 text-text2 text-2xl grid place-items-center flex-shrink-0 transition-all hover:bg-surface3 hover:border-border3 active:scale-95 shadow-sm"
                     title="Lewati sesi ini"
                   >
@@ -576,6 +634,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {items.map((item, i) => {
         const state = item.active ? 'active' : item.done ? 'done' : '';
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const prevReminder = !item.done ? getPrevReminder(item.classId, item.subjectId, todayStr) : '';
         return (
           <div
             key={item.id}
@@ -642,8 +702,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     !item.skipped && (
                       <button
                         onClick={() => {
-                          if (expandedNoteId === item.id) setExpandedNoteId(null);
-                          else { setExpandedNoteId(item.id); setNoteDraft(item.note || ''); }
+                          if (expandedNoteId === item.id) { setExpandedNoteId(null); setBelumKumpulDraft(''); }
+                          else {
+                            setExpandedNoteId(item.id);
+                            const { mainNote, reminder } = extractReminder(item.note);
+                            setNoteDraft(mainNote);
+                            setBelumKumpulDraft(reminder);
+                          }
                         }}
                         className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${
                           item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
@@ -662,19 +727,45 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   )}
                 </div>
               </div>
+
+            {/* Reminder pertemuan depan dari sesi lalu */}
+            {prevReminder && (
+              <div className="mt-1.5 bg-amber/8 border border-amber/25 rounded-xl px-3 py-2 flex items-start gap-2 animate-slide-up">
+                <span className="text-base flex-shrink-0 mt-0.5">📌</span>
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-amber mb-0.5">📋 Catatan dari Pertemuan Lalu</div>
+                  <div className="text-[12px] text-foreground/80 font-medium leading-snug whitespace-pre-wrap">{prevReminder}</div>
+                </div>
+              </div>
+            )}
               
               {/* Expandable Note Section */}
               {item.done && expandedNoteId === item.id && item.sessionId && (
-                <div className="mt-1 bg-surface2 border border-border2 rounded-lg p-3 animate-slide-up origin-top">
+                <div className="mt-1 bg-surface2 border border-border2 rounded-xl p-3 animate-slide-up origin-top">
                   <div className="text-[10px] font-semibold text-text3 uppercase tracking-[0.5px] mb-2">Jurnal Sesi / Catatan</div>
                   <textarea
                     autoFocus
                     value={noteDraft}
                     onChange={e => setNoteDraft(e.target.value)}
-                    placeholder="Ada catatan untuk kelas ini? (mis. Budi remedial, tugas hal 12)..."
-                     className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[60px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
+                    placeholder="Catatan umum (mis. Budi remedial, tugas hal 12)..."
+                    className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[50px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
                   />
-                  <div className="flex justify-end gap-2 mt-2">
+                  
+                  {/* Reminder Pertemuan Depan */}
+                  <div className="mt-2.5">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-sm">📌</span>
+                      <span className="text-[10px] font-bold text-amber uppercase tracking-wider">Reminder Pertemuan Depan</span>
+                    </div>
+                    <textarea
+                      value={belumKumpulDraft}
+                      onChange={e => setBelumKumpulDraft(e.target.value)}
+                      placeholder="Contoh: Lanjut Bab 3 hal 45, Ahmad belum kumpul, Budi perlu remedial..."
+                      className="w-full bg-surface border border-amber/30 rounded-md p-2 text-[13px] min-h-[55px] resize-none focus:border-amber focus:outline-none placeholder:text-text3"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-2.5">
                     <button onClick={() => {
                        const title = prompt('Nama tugas (mis. Koreksi tugas matriks):');
                        if (title) {
@@ -687,7 +778,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       + Tugas Baru
                     </button>
                     <button onClick={() => handleSaveNote(item.sessionId!)} className="px-4 py-1.5 rounded bg-green text-surface shadow-sm text-[11px] font-bold">
-                      Simpan Catatan
+                      Simpan
                     </button>
                   </div>
                 </div>

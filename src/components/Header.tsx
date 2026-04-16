@@ -1,4 +1,4 @@
-import { getGreeting, getData, now } from '@/lib/data';
+import { getGreeting, getData, now, getTeacherStreak } from '@/lib/data';
 import InfoView from '@/components/InfoView';
 import {
   Dialog,
@@ -27,6 +27,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
   const isLongName = displayName.length > 12;
   const dateStr = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
   const activeClassCount = data.classes.length;
+  const streak = getTeacherStreak();
 
   return (
     <div className="flex-shrink-0 px-5 pt-4 pb-3 bg-background/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-40 transition-all shadow-sm">
@@ -40,9 +41,21 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
           <div className={`font-display font-black tracking-tight text-foreground leading-tight truncate max-w-[200px] ${isLongName ? 'text-[16px]' : 'text-xl'}`}>
             {displayName}
           </div>
-          <div className="text-[10px] font-bold text-primary/80 mt-0.5 flex items-center gap-1 uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
-            {activeClassCount > 0 ? `${activeClassCount} Kelas Aktif` : 'Guru Pengampu'}
+          <div className="text-[10px] font-bold text-primary/80 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
+            {activeClassCount > 0 ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
+                {activeClassCount} Kelas Aktif
+                {streak > 0 && (
+                  <>
+                    <span className="opacity-30">•</span>
+                    <span className="flex items-center gap-0.5 text-amber-500">
+                      <span className="text-xs -mt-[1px]">🔥</span> {streak} Hari
+                    </span>
+                  </>
+                )}
+              </>
+            ) : 'Guru Pengampu'}
           </div>
         </div>
 

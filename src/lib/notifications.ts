@@ -83,6 +83,30 @@ async function checkAndNotify() {
     });
   }
 
+  // 3.5. Notif cerdas persiapan mengajar (jam 20:00–20:05)
+  if (curMin >= 20 * 60 && curMin <= 20 * 60 + 5) {
+    const tomorrowNum = (today + 1) % 7;
+    const tomorrowScheds = data.schedules.filter(s => s.days.includes(tomorrowNum));
+    const key = `prep-tomorrow-${todayStr}`;
+    
+    if (!notifiedIds.has(key)) {
+      if (tomorrowScheds.length > 0) {
+        showNotif(
+          `Persiapan Besok: ${tomorrowScheds.length} Kelas`, 
+          `Kamu punya ${tomorrowScheds.length} jadwal mengajar besok. Jangan lupa istirahat yang cukup malam ini.`, 
+          key
+        );
+      } else if (today !== 6) { // Jangan notif "besok kosong" kalau besok minggu, karena itu normal
+        showNotif(
+          `Besok Kosong! 🎉`, 
+          `Tidak ada jadwal mengajar besok. Santai sedikit malam ini ya!`, 
+          key
+        );
+      }
+      notifiedIds.add(key);
+    }
+  }
+
   // 4. Notif koreksi overdue — jam 07:00–07:05
   if (curMin >= 7 * 60 && curMin <= 7 * 60 + 5) {
     const allExams = getAllExamSubjects();

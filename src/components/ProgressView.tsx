@@ -1,6 +1,7 @@
 import { useState, useMemo, memo, useCallback } from 'react';
-import { getData, getSubjectStatus, fmt, getSessionHistory, now } from '@/lib/data';
+import { getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus } from '@/lib/data';
 import AICard from './AICard';
+import WeeklyReviewCard from './WeeklyReviewCard';
 
 function getUrgencyScore(st: ReturnType<typeof getSubjectStatus>): number {
   let score = 0;
@@ -22,14 +23,17 @@ function getEffectiveStatus(st: ReturnType<typeof getSubjectStatus>): 'green' | 
 }
 
 export default function ProgressView() {
-  const [tab, setTab] = useState<'progress' | 'history'>('progress');
+  const [tab, setTab] = useState<'progress' | 'history' | 'kalender'>('progress');
   return (
     <div className="pt-1">
-      <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-[14px] mb-[18px] p-1 shadow-sm">
-        <button onClick={() => setTab('progress')} className={`flex-1 py-[8px] text-[12px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'progress' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Progres</button>
-        <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[12px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat Sesi</button>
+      <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-[14px] mb-[18px] p-1 shadow-sm gap-1">
+        <button onClick={() => setTab('progress')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'progress' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Progres</button>
+        <button onClick={() => setTab('kalender')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'kalender' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Kalender</button>
+        <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat</button>
       </div>
-      {tab === 'progress' ? <ProgressTab /> : <HistoryTab />}
+      {tab === 'progress' && <ProgressTab />}
+      {tab === 'kalender' && <CalendarTab />}
+      {tab === 'history' && <HistoryTab />}
     </div>
   );
 }
@@ -123,6 +127,7 @@ function ProgressTab() {
 
   return (
     <>
+      <WeeklyReviewCard />
       <AICard />
       <div className="mt-4">
         {/* Filter bar */}
@@ -356,6 +361,111 @@ function HistoryTab() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── CalendarTab ───────────────────────────────────────────────────────────────
+function CalendarTab() {
+  const [month, setMonth] = useState(now().toISOString().slice(0, 7));
+  const days = useMemo(() => getMonthCalendar(month), [month]);
+
+  const DAYS_HEAD = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+  const statusConfig: Record<DayStatus, { dot: string; bg: string; label: string }> = {
+    done:    { dot: 'bg-green',   bg: 'bg-green/10 border-green/30',   label: '✓ Semua' },
+    partial: { dot: 'bg-amber',   bg: 'bg-amber/10 border-amber/30',   label: '⚡ Sebagian' },
+    missed:  { dot: 'bg-red',     bg: 'bg-red/10 border-red/30',       label: '✗ Terlewat' },
+    holiday: { dot: 'bg-text3',   bg: 'bg-surface3 border-border2',    label: '🏖 Libur' },
+    noclass: { dot: '',           bg: 'bg-transparent border-transparent', label: '' },
+    future:  { dot: '',           bg: 'bg-transparent border-transparent', label: '' },
+  };
+
+  const summary = {
+    done: days.filter(d => d.status === 'done').length,
+    partial: days.filter(d => d.status === 'partial').length,
+    missed: days.filter(d => d.status === 'missed').length,
+    holiday: days.filter(d => d.status === 'holiday').length,
+  };
+
+  // Calendar needs offset: first day of month
+  const firstDay = new Date(month + '-01T12:00:00').getDay(); // 0=Sun
+  const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon=0
+
+  return (
+    <div className="animate-in fade-in duration-300">
+      {/* Month picker */}
+      <div className="bg-surface border border-border rounded-[16px] p-3 flex justify-between items-center mb-4">
+        <div className="text-[11px] font-bold text-text3 uppercase tracking-wide">Bulan</div>
+        <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+          className="form-input-style min-h-0 py-1.5 px-3 w-auto text-xs" />
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {([['done','Selesai'],['partial','Sebagian'],['missed','Terlewat'],['holiday','Libur']] as const).map(([s, l]) => (
+          <div key={s} className="flex items-center gap-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full ${statusConfig[s].dot}`} />
+            <span className="text-[10px] text-text2 font-medium">{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="bg-surface/60 border border-border/60 rounded-2xl overflow-hidden mb-4">
+        {/* Header */}
+        <div className="grid grid-cols-7 border-b border-border/40">
+          {DAYS_HEAD.map(d => (
+            <div key={d} className="text-center py-2 text-[10px] font-bold uppercase text-text3">{d}</div>
+          ))}
+        </div>
+        {/* Days grid */}
+        <div className="grid grid-cols-7">
+          {Array.from({ length: offset }).map((_, i) => <div key={`e${i}`} />)}
+          {days.map(day => {
+            const d = parseInt(day.date.slice(8));
+            const cfg = statusConfig[day.status];
+            const isToday = day.date === now().toISOString().slice(0, 10);
+            return (
+              <div key={day.date}
+                className={`border border-transparent m-0.5 rounded-lg flex flex-col items-center justify-center py-1.5 min-h-[36px] relative ${cfg.bg} ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+              >
+                <span className={`text-[12px] font-bold ${
+                  day.status === 'missed' ? 'text-red' :
+                  day.status === 'done' ? 'text-green' :
+                  day.status === 'partial' ? 'text-amber' :
+                  day.status === 'future' ? 'text-text3/40' :
+                  'text-text2'
+                }`}>{d}</span>
+                {cfg.dot && <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${cfg.dot}`} />}
+                {day.status !== 'noclass' && day.status !== 'future' && day.schedCount > 0 && (
+                  <span className="text-[8px] text-text3 mt-0.5">{day.sessionCount}/{day.schedCount}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="bg-green/8 border border-green/20 rounded-xl p-2 text-center">
+          <div className="text-xl font-black text-green">{summary.done}</div>
+          <div className="text-[9px] text-text3 font-bold uppercase">Selesai</div>
+        </div>
+        <div className="bg-amber/8 border border-amber/20 rounded-xl p-2 text-center">
+          <div className="text-xl font-black text-amber">{summary.partial}</div>
+          <div className="text-[9px] text-text3 font-bold uppercase">Sebagian</div>
+        </div>
+        <div className="bg-red/8 border border-red/20 rounded-xl p-2 text-center">
+          <div className="text-xl font-black text-red">{summary.missed}</div>
+          <div className="text-[9px] text-text3 font-bold uppercase">Terlewat</div>
+        </div>
+        <div className="bg-surface2 border border-border rounded-xl p-2 text-center">
+          <div className="text-xl font-black text-text2">{summary.holiday}</div>
+          <div className="text-[9px] text-text3 font-bold uppercase">Libur</div>
+        </div>
+      </div>
     </div>
   );
 }
