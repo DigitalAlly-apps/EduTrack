@@ -199,7 +199,7 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
 // ─── SubjectCard — Handles its own expansion state ────────
 const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const [showMats, setShowMats] = useState(false);
-  const { subName, st, effectiveColor, mats, matsDone } = card;
+  const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll } = card;
 
   return (
     <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors ${
