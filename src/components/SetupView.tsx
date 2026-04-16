@@ -34,19 +34,12 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
   return (
     <div className="pt-2">
       {/* Profile */}
-      <div className="bg-surface border border-border rounded-[24px] p-5 mb-[14px] shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center text-2xl flex-shrink-0 ring-4 ring-primary/5">
-            👤
-          </div>
+      <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-primary-dim border border-primary-border grid place-items-center text-xl flex-shrink-0">👤</div>
           <div className="flex-1 min-w-0">
-            <div className="text-base font-black tracking-tight truncate">
-              {data.teacherName || 'Belum diisi'}
-            </div>
-            <div className="text-[11px] text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
-            <div className="text-[9px] font-bold uppercase tracking-wider text-primary">
-              &#x2736; {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel
-            </div>
+            <div className="text-[15px] font-semibold">{data.teacherName || 'Belum diisi'}</div>
+            <div className="text-[11px] text-text2 mt-[2px]">Guru / Pengajar</div>
           </div>
           <EditTeacherButton onRefresh={refresh} />
         </div>
