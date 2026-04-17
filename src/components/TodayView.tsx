@@ -671,7 +671,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Card */}
             <div className="flex-1 mb-4">
-              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-3 flex items-center gap-2 transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
@@ -680,20 +680,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                    : 'border-border/60 hover:border-border hover:bg-surface/60'
               } ${markingId === item.id ? 'scale-[0.98] opacity-70' : ''}`}>
                 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
                     <div className={`text-[15px] font-bold tracking-tight leading-tight ${item.skipped ? 'text-text2' : 'text-foreground'}`}>
                       {item.className}
                     </div>
                     {state === 'done' && (
                       item.skipped
-                        ? <span className="text-[10px] font-bold text-amber bg-amber/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Dilewati</span>
-                        : <span className="text-[10px] font-bold text-green bg-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Selesai</span>
+                        ? <span className="text-[9px] font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded-full uppercase">Dilewati</span>
+                        : <span className="text-[9px] font-bold text-green bg-green/10 px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
                     )}
                   </div>
                   
-                  <div className="text-[12px] text-text2 font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-                    <span className="flex-shrink-0 max-w-[70px] truncate">{item.subjectName}</span>
+                  <div className="text-[12px] text-text2 font-medium flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
+                    <span className="flex-shrink-0">{item.subjectName}</span>
                     <span className="opacity-30">•</span>
                     <span className="font-bold text-foreground flex-shrink-0">
                       {item.totalMats > 0 
@@ -701,12 +701,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         : 'Belum ada materi'}
                     </span>
                     {!item.done && item.nextMat && (
-                      <span className="truncate text-text3/70 max-w-[90px]">📖 {item.nextMat.name}</span>
+                      <span className="text-text3/70 truncate max-w-full">📖 {item.nextMat.name}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex-shrink-0">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex-shrink-0">
                   {item.done ? (
                     !item.skipped && (
                       <button
