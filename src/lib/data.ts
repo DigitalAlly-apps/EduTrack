@@ -52,7 +52,12 @@ export function getMaterials(subjectId: string, classId: string): import('./type
   }
 
   // Prioritas 3: fallback data lama (tidak ada level/classId)
-  return data.materials.filter(m => m.subjectId === subjectId && !m.level && !m.classId).sort((a, b) => a.order - b.order);
+  const legacy = data.materials.filter(m => m.subjectId === subjectId && !m.level && !m.classId);
+  if (legacy.length > 0) return legacy.sort((a, b) => a.order - b.order);
+
+  // Prioritas 4: last resort — semua materi mapel ini, apapun classId/levelnya
+  // Berguna saat materi diinput sebelum jadwal dibuat
+  return data.materials.filter(m => m.subjectId === subjectId).sort((a, b) => a.order - b.order);
 }
 
 // Time utils

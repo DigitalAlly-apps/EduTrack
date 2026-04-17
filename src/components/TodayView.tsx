@@ -671,7 +671,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Card */}
             <div className="flex-1 mb-4">
-              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-4 flex items-center gap-4 transition-all duration-300 min-h-[80px] relative shadow-sm hover:shadow-md ${
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-3 flex items-center gap-2 transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
@@ -692,19 +692,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     )}
                   </div>
                   
-                  <div className="text-[12px] text-text2 font-medium flex items-center gap-2 min-w-0">
-                    <span className="truncate flex-shrink-0 max-w-[80px]">{item.subjectName}</span>
+                  <div className="text-[12px] text-text2 font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+                    <span className="flex-shrink-0 max-w-[70px] truncate">{item.subjectName}</span>
                     <span className="opacity-30">•</span>
-                    <span className="font-bold text-foreground">
+                    <span className="font-bold text-foreground flex-shrink-0">
                       {item.totalMats > 0 
                         ? `Sesi ${Math.min(item.materialsDone + (item.done ? 0 : 1), item.totalMats)}/${item.totalMats}`
-                        : 'Materi Kosong'}
+                        : 'Belum ada materi'}
                     </span>
                     {!item.done && item.nextMat && (
-                      <div className="flex items-center gap-1.5 text-text3/70 min-w-0">
-                        <span className="w-1 h-1 rounded-full bg-border flex-shrink-0" />
-                        <span className="truncate max-w-[120px]">📖 {item.nextMat.name}</span>
-                      </div>
+                      <span className="truncate text-text3/70 max-w-[90px]">📖 {item.nextMat.name}</span>
                     )}
                   </div>
                 </div>

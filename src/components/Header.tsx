@@ -38,7 +38,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
               {dateStr}
             </span>
           </div>
-          <div className={`font-display font-black tracking-tight text-foreground leading-tight truncate max-w-[200px] ${isLongName ? 'text-[16px]' : 'text-xl'}`}>
+          <div className={`font-display font-black tracking-tight text-foreground leading-tight truncate max-w-[170px] ${displayName.length > 15 ? 'text-[14px]' : displayName.length > 10 ? 'text-[17px]' : 'text-xl'}`}>
             {displayName}
           </div>
           <div className="text-[10px] font-bold text-primary/80 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
