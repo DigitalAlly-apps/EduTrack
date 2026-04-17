@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useCallback } from 'react';
-import { getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus } from '@/lib/data';
+import { getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded } from '@/lib/data';
 import AICard from './AICard';
 import WeeklyReviewCard from './WeeklyReviewCard';
 
@@ -72,15 +72,14 @@ function ProgressTab() {
         const st = getSubjectStatus(sub, cls, data);
         const mats = data.materials.filter(m => m.subjectId === sub.id).sort((a, b) => a.order - b.order);
         const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
-        const matsDone = prog?.materialsDone ?? 0;
-        const totalSessDone = mats.slice(0, matsDone).reduce((s, m) => s + ((m.sessions as number) ?? 1), 0);
-        const totalSessAll = mats.reduce((s, m) => s + ((m.sessions as number) ?? 1), 0);
+        const totalSessDone = prog?.materialsDone ?? 0;
+        const totalSessAll = getTotalSessionsNeeded(mats);
         cards.push({
           clsId: cls.id, clsName: cls.name,
           subId: sub.id, subName: sub.name,
           st, urgency: getUrgencyScore(st),
           effectiveColor: getEffectiveStatus(st),
-          mats, matsDone, totalSessDone, totalSessAll,
+          mats, matsDone: totalSessDone, totalSessDone, totalSessAll,
         });
       });
     });
@@ -271,24 +270,33 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
            <div className="mb-3 text-[10px] font-bold text-text3 uppercase tracking-wider">Daftar Materi</div>
 
           <div className="space-y-[3px]">
-            {mats.map((mat: any, idx: number) => {
-              const isDone = idx < matsDone;
-              const isActive = idx === matsDone;
-              return (
-                <div key={mat.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive ? 'bg-primary-dim/30 border border-primary-border/20 shadow-sm' : 
-                  isDone ? 'opacity-50' : 'opacity-[0.35]'
-                }`}>
-                  <span className={`text-[12px] mt-[1px] flex-shrink-0 ${isDone ? 'text-green' : isActive ? 'text-primary' : 'text-text3'}`}>
-                    {isDone ? '✓' : isActive ? '▶' : '○'}
-                  </span>
-                  <span className={`text-[13px] leading-snug flex-1 ${
-                    isDone ? 'line-through decoration-text3/50' :
-                    isActive ? 'font-bold text-foreground' : 'font-medium text-text2'
-                  }`}>{mat.name}</span>
-                </div>
-              );
-            })}
+            {(() => {
+              let currentTotal = 0;
+              return mats.map((mat: any) => {
+                const sessions = mat.sessions ?? 1;
+                const isFinished = totalSessDone >= currentTotal + sessions;
+                const isCurrent = totalSessDone >= currentTotal && totalSessDone < currentTotal + sessions;
+                currentTotal += sessions;
+                
+                return (
+                  <div key={mat.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                    isCurrent ? 'bg-primary-dim/30 border border-primary-border/20 shadow-sm' : 
+                    isFinished ? 'opacity-50' : 'opacity-[0.35]'
+                  }`}>
+                    <span className={`text-[12px] mt-[1px] flex-shrink-0 ${isFinished ? 'text-green' : isCurrent ? 'text-primary' : 'text-text3'}`}>
+                      {isFinished ? '✓' : isCurrent ? '▶' : '○'}
+                    </span>
+                    <span className={`text-[13px] leading-snug flex-1 ${
+                      isFinished ? 'line-through decoration-text3/50' :
+                      isCurrent ? 'font-bold text-foreground' : 'font-medium text-text2'
+                    }`}>
+                      {mat.name}
+                      {sessions > 1 && <span className="ml-2 text-[10px] opacity-60">({isCurrent ? `${totalSessDone - (currentTotal - sessions) + 1}/` : ''}{sessions}x)</span>}
+                    </span>
+                  </div>
+                );
+              });
+            })()}
             {mats.length === 0 && <div className="text-[12px] text-text3 italic py-2 text-center">Materi belum diatur untuk mapel ini.</div>}
           </div>
         </div>

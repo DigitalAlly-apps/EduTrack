@@ -342,21 +342,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               
               <div className="p-5 relative">
                 {/* Status + Exam Badges at Top */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                  <div className={`inline-flex items-center gap-2 border text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
+                <div className="flex items-center justify-between gap-3 mb-5">
+                  <div className={`inline-flex items-center gap-2 border text-[10px] font-bold tracking-wider uppercase px-2.5 py-1.5 rounded-md flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
                     <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
                   </div>
                   
-                  {hasExams && (
-                    <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-[60%]">
-                      {countdowns.slice(0, 2).map((cd, i) => (
-                        <div key={i} className={`whitespace-nowrap px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-tight ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
-                          {cd.subject}: {cd.daysLeft}h
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-1 overflow-x-auto scrollbar-none ml-auto">
+                    {hasExams && countdowns.slice(0, 2).map((cd, i) => (
+                      <div key={i} className={`whitespace-nowrap px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-tight flex-shrink-0 ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
+                        {cd.subject}: {cd.daysLeft}h
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Progress Bar */}
@@ -371,9 +369,31 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="text-[15px] font-semibold text-text2 mb-6 flex flex-wrap items-center gap-2.5 w-full">
                   <span className="opacity-90">{active.subjectName}</span>
                   <span className="opacity-20">•</span>
-                  <span className="font-bold text-primary">Sesi ke-{Math.min(active.materialsDone + 1, active.totalMats)} / {active.totalMats}</span>
-                  <span className="opacity-20">•</span>
-                  <span className="opacity-90 tabular-nums bg-surface2/50 px-2.5 py-1 rounded-lg border border-border/40 leading-none">{fmt(active.startTime)} – {fmt(active.endTime)}</span>
+                  <span className="font-bold text-primary">
+                    {active.totalMats > 0 
+                      ? `Pertemuan ${Math.min(active.materialsDone + 1, active.totalMats)} dari ${active.totalMats}`
+                      : 'Belum ada materi'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4 mb-6">
+                   <div className={`flex-1 p-4 rounded-2xl border flex items-center gap-4 ${isOvertime ? 'bg-red/10 border-red/20' : 'bg-surface2/60 border-border/40'}`}>
+                      <div className="w-10 h-10 rounded-xl bg-surface/50 flex items-center justify-center text-xl">
+                        {isOvertime ? '⏰' : '⏳'}
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-text3 mb-0.5">
+                          {isOvertime ? 'Kelebihan Waktu' : 'Sisa Waktu'}
+                        </div>
+                        <div className={`text-2xl font-black tabular-nums leading-none ${isOvertime ? 'text-red' : 'text-primary'}`}>
+                           {Math.abs(timeToMin(active.endTime) - currentMin())}m
+                        </div>
+                      </div>
+                   </div>
+                   <div className="bg-surface2/40 border border-border/40 rounded-2xl p-3 px-4 min-w-[100px] text-center">
+                      <div className="text-[9px] font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
+                      <div className="text-sm font-bold opacity-90">{fmt(active.endTime)}</div>
+                   </div>
                 </div>
 
                 <div className="bg-surface2/40 backdrop-blur-sm border border-border/40 rounded-2xl p-4 flex items-start gap-4">
@@ -585,7 +605,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-2 sticky top-[80px] z-30 bg-background/90 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
+      <div className="flex items-center justify-between mt-4 mb-2 sticky top-0 z-30 bg-background/95 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
         <div className="flex items-center gap-2">
           <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
           {!active && items.length > 0 && !items.every(x => x.done) && (
@@ -675,7 +695,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="text-[12px] text-text2 font-medium flex items-center gap-2 min-w-0">
                     <span className="truncate flex-shrink-0 max-w-[80px]">{item.subjectName}</span>
                     <span className="opacity-30">•</span>
-                    <span className="font-bold text-foreground">Sesi {Math.min(item.materialsDone + (item.done ? 0 : 1), item.totalMats)}/{item.totalMats}</span>
+                    <span className="font-bold text-foreground">
+                      {item.totalMats > 0 
+                        ? `Sesi ${Math.min(item.materialsDone + (item.done ? 0 : 1), item.totalMats)}/${item.totalMats}`
+                        : 'Materi Kosong'}
+                    </span>
                     {!item.done && item.nextMat && (
                       <div className="flex items-center gap-1.5 text-text3/70 min-w-0">
                         <span className="w-1 h-1 rounded-full bg-border flex-shrink-0" />

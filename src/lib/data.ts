@@ -127,9 +127,22 @@ function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: nu
   return { sessLeft, holidaysInPeriod };
 }
 
-// Returns total sessions needed to finish remaining materials (sum of material.sessions)
-function getRemainingSessNeeded(mats: { sessions?: number }[], doneSoFar: number): number {
-  return mats.slice(doneSoFar).reduce((sum, m) => sum + (m.sessions ?? 1), 0);
+// Helper to calculate total sessions needed across a list of materials
+export function getTotalSessionsNeeded(mats: import('./types').Material[]): number {
+  return mats.reduce((sum, m) => sum + (m.sessions ?? 1), 0);
+}
+
+// Helper to find which material and which session count we are on
+function getMaterialForSession(mats: import('./types').Material[], sessionsDone: number) {
+  let currentSess = 0;
+  for (const m of mats) {
+    const sessions = m.sessions ?? 1;
+    if (sessionsDone < currentSess + sessions) {
+      return { material: m, sessionIndex: sessionsDone - currentSess + 1, totalSessionsInMat: sessions };
+    }
+    currentSess += sessions;
+  }
+  return { material: null, sessionIndex: 0, totalSessionsInMat: 0 };
 }
 
 export function isDateHolidayForSubject(dateStr: string, subjectLevel?: string): boolean {
@@ -168,7 +181,8 @@ export function getTodaySchedules(): TodayScheduleItem[] {
       const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
       const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
       const mats = getMaterials(s.subjectId, s.classId);
-      const nextMat = mats[prog.materialsDone] || null;
+      const { material, sessionIndex, totalSessionsInMat } = getMaterialForSession(mats, prog.materialsDone);
+      
       const session = data.sessions.find(se => se.scheduleId === s.id && se.date === todayStr);
       const done = !!session;
       
@@ -185,14 +199,14 @@ export function getTodaySchedules(): TodayScheduleItem[] {
       return { 
         ...s, 
         duration: effectiveDuration,
-        startTime: effectiveStartTime, // apply override
+        startTime: effectiveStartTime, 
         className: cls.name, 
         subjectName: sub.name, 
-        nextMat, 
+        nextMat: material, 
         done, 
         active, 
         endTime: minToTime(endMin), 
-        totalMats: mats.length, 
+        totalMats: getTotalSessionsNeeded(mats), 
         materialsDone: prog.materialsDone, 
         sessionId: session?.id, 
         note: session?.note,
@@ -217,36 +231,35 @@ export function getInsights(): Insight[] {
       const mats = getMaterials(sub.id, cls.id);
       if (!mats.length) return;
       const key = `${cls.id}-${sub.id}`;
-      // FIX: hanya generate insight jika kelas ini punya jadwal untuk mapel ini
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (sched.length === 0) return;
 
       const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
-      const remaining = mats.length - prog.materialsDone;
-      if (remaining <= 0) return;
-      const sessionsNeeded = getRemainingSessNeeded(mats, prog.materialsDone);
+      const totalSess = getTotalSessionsNeeded(mats);
+      const remainingSess = totalSess - prog.materialsDone;
+      if (remainingSess <= 0) return;
       
       if (sub.examDate) {
         const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
         const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
         
-        if (sessLeft > 0 && sessionsNeeded > sessLeft + 1) {
-          const extra = sessionsNeeded - sessLeft;
+        if (sessLeft > 0 && remainingSess > sessLeft + 1) {
+          const extra = remainingSess - sessLeft;
           if (!seen.has(key)) {
             out.push({
               type: 'warn',
               directive: 'Perlu diperhatikan',
-              text: `<strong>${cls.name}</strong> butuh ${sessionsNeeded} sesi di ${sub.name}, tapi hanya ${sessLeft} tersedia${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} libur). ⚡ <b>Saran:</b> Jadwalkan ${extra} kelas pengganti / ekstra jam` : `. Kurangi ${extra} sesi atau tambah jadwal`}.`,
+              text: `<strong>${cls.name}</strong> butuh ${remainingSess} sesi di ${sub.name}, tapi hanya ${sessLeft} tersedia${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} libur). ⚡ <b>Saran:</b> Jadwalkan ${extra} kelas pengganti / ekstra jam` : `. Kurangi ${extra} sesi atau tambah jadwal`}.`,
             });
             seen.add(key);
           }
-        } else if (sessLeft > 0 && sessionsNeeded <= sessLeft) {
-          const nextMat = mats[prog.materialsDone];
+        } else if (sessLeft > 0 && remainingSess <= sessLeft) {
+          const { material } = getMaterialForSession(mats, prog.materialsDone);
           if (!seen.has(key)) {
             out.push({
               type: 'tip',
               directive: 'Disarankan hari ini',
-              text: `Fokus pada <strong>${nextMat ? nextMat.name : sub.name}</strong>${nextMat?.sessions && nextMat.sessions > 1 ? ` (${nextMat.sessions} pertemuan)` : ''} untuk kelas <strong>${cls.name}</strong>.`,
+              text: `Fokus pada <strong>${material ? material.name : sub.name}</strong>${material?.sessions && material.sessions > 1 ? ` (${material.sessions} pertemuan)` : ''} untuk kelas <strong>${cls.name}</strong>.`,
             });
             seen.add(key);
           }
@@ -279,8 +292,12 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   const mats = getMaterials(sub.id, cls.id);
   if (!mats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
   const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
-  const done = prog.materialsDone, total = mats.length, remaining = total - done, pct = Math.round((done / total) * 100);
-  const sessionsNeeded = getRemainingSessNeeded(mats, done);
+  
+  const totalSessions = getTotalSessionsNeeded(mats);
+  const doneSessions = prog.materialsDone;
+  const remainingSessions = totalSessions - doneSessions;
+  const pct = Math.round((doneSessions / totalSessions) * 100);
+
   let status: 'on-track' | 'tight' | 'behind' = 'on-track', label = 'Sesuai jadwal', rec = 'Lanjutkan seperti biasa.';
   const nextSched = getNextScheduleForClass(cls.id, sub.id);
   const holidays = data.holidays ?? [];
@@ -288,29 +305,29 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
     const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
     const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
     const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
-    if (remaining === 0) {
+    if (remainingSessions <= 0) {
       status = 'on-track'; label = 'Selesai ✓'; rec = 'Semua materi sudah selesai!';
     } else if (sessLeft === 0) {
       status = 'behind'; label = 'Perlu perhatian';
       rec = holidaysInPeriod > 0
         ? `Tidak ada sesi tersisa (${holidaysInPeriod} hari libur memangkas jadwal).`
         : 'Belum ada sesi terjadwal tersisa.';
-    } else if (sessionsNeeded > sessLeft + 2) {
+    } else if (remainingSessions > sessLeft + 2) {
       status = 'behind'; label = 'Perlu percepatan';
-      const ratio = (sessionsNeeded / sessLeft).toFixed(1);
-      rec = `Butuh ${sessionsNeeded} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Ideal: ${ratio}× per sesi.`;
-    } else if (sessionsNeeded > sessLeft) {
+      const ratio = (remainingSessions / sessLeft).toFixed(1);
+      rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Ideal: ${ratio}× per sesi.`;
+    } else if (remainingSessions > sessLeft) {
       status = 'tight'; label = 'Mepet target';
-      rec = `Butuh ${sessionsNeeded} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Jaga ritme.`;
+      rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Jaga ritme.`;
     } else {
       status = 'on-track'; label = 'Sesuai jadwal';
-      rec = sessionsNeeded === sessLeft
-        ? `Pas — ${sessLeft} sesi tersisa untuk ${sessionsNeeded} sesi materi. Jangan ada yang terlewat!`
+      rec = remainingSessions === sessLeft
+        ? `Pas — ${sessLeft} sesi tersisa untuk ${remainingSessions} sesi materi. Jangan ada yang terlewat!`
         : 'Pertahankan ritme ini.';
     }
-    return { status, label, pct, done, total, remaining, sessLeft, sessionsNeeded, holidaysInPeriod, rec, daysLeft, nextSched };
+    return { status, label, pct, done: doneSessions, total: totalSessions, remaining: remainingSessions, sessLeft, sessionsNeeded: remainingSessions, holidaysInPeriod, rec, daysLeft, nextSched };
   }
-  return { status, label, pct, done, total, remaining, sessLeft: 0, sessionsNeeded, holidaysInPeriod: 0, rec, nextSched };
+  return { status, label, pct, done: doneSessions, total: totalSessions, remaining: remainingSessions, sessLeft: 0, sessionsNeeded: remainingSessions, holidaysInPeriod: 0, rec, nextSched };
 }
 
 export function markDone(scheduleId: string, note?: string) {
@@ -319,12 +336,19 @@ export function markDone(scheduleId: string, note?: string) {
   if (!sched) return;
   const todayStr = now().toISOString().slice(0, 10);
   if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === todayStr)) return;
+  
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterials(sched.subjectId, sched.classId);
-  const mat = mats[prog ? prog.materialsDone : 0] || null;
-  data.sessions.push({ id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: mat?.id || null, completedAt: now().toISOString(), note });
-  if (prog) { if (mat) prog.materialsDone = Math.min(prog.materialsDone + 1, mats.length); prog.lastSession = todayStr; }
-  else data.progress.push({ id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: mat ? 1 : 0, lastSession: todayStr });
+  const { material } = getMaterialForSession(mats, prog ? prog.materialsDone : 0);
+  
+  data.sessions.push({ id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: material?.id || null, completedAt: now().toISOString(), note });
+  
+  if (prog) { 
+    prog.materialsDone = Math.min(prog.materialsDone + 1, getTotalSessionsNeeded(mats));
+    prog.lastSession = todayStr; 
+  } else {
+    data.progress.push({ id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 1, lastSession: todayStr });
+  }
   saveData(data);
 }
 
