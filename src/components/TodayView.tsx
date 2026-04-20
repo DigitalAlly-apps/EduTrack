@@ -657,9 +657,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="text-[11px] font-bold text-text2 tabular-nums text-center">{fmt(item.startTime)}</div>
                   <div className={`text-[9px] font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
                 </div>
-              ) : (
-                <div className="text-[11px] font-semibold text-text2 tabular-nums text-center whitespace-nowrap">{fmt(item.startTime)}</div>
-              )}
+               ) : (
+                 <div className="flex flex-col items-center">
+                   <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(item.startTime)}</div>
+                   {!item.active && !item.done && (
+                     <div className="text-[9px] font-medium text-teal tabular-nums mt-0.5">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
+                   )}
+                 </div>
+               )}
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] transition-all duration-500 relative ${
                 state === 'active' ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' :
                 state === 'done' ? (item.skipped ? 'bg-text3' : 'bg-green') : 'bg-border3'
@@ -682,9 +687,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <div className={`text-[15px] font-bold tracking-tight leading-tight ${item.skipped ? 'text-text2' : 'text-foreground'}`}>
-                      {item.className}
-                    </div>
+                     <div className={`text-[15px] font-bold tracking-tight leading-tight truncate ${item.skipped ? 'text-text2' : 'text-foreground'}`}>
+                       {item.className}
+                     </div>
                     {state === 'done' && (
                       item.skipped
                         ? <span className="text-[9px] font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded-full uppercase">Dilewati</span>

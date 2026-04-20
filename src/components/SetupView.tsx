@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
-  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials,
+  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,24 +31,87 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
     { id: 'data', label: 'Backup', icon: '💾', group: 'other' },
   ];
 
+  const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
+
   return (
     <div className="pt-2">
+      {/* Getting Started Guide — when no classes or subjects yet */}
+      {showGettingStarted && (
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-[24px] p-5 mb-4 shadow-sm animate-slide-up">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-xl flex-shrink-0">
+              👋
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-bold text-foreground mb-1">Selamat Datang di EduTrack!</div>
+              <div className="text-[13px] text-text2 leading-relaxed">
+                Mari kita atur data dasar dulu sebelum mulai mengajar. Ikuti langkah-langkah berikut:
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">1</span>
+                  <div>
+                    <div className="text-[13px] font-semibold text-foreground">Tambahkan Kelas</div>
+                    <div className="text-[12px] text-text2">Misal: 10A, 10B, 11 IPA (tab <strong>Kelas</strong>)</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">2</span>
+                  <div>
+                    <div className="text-[13px] font-semibold text-foreground">Tambahkan Mapel</div>
+                    <div className="text-[12px] text-text2">Misal: Matematika, Fisika (tab <strong>Mapel</strong>)</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">3</span>
+                  <div>
+                    <div className="text-[13px] font-semibold text-foreground">Atur Jadwal & Materi</div>
+                    <div className="text-[12px] text-text2">Setelah data dasar selesai, buka tab <strong>Jadwal</strong> dan <strong>Materi</strong></div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-primary/20">
+                <button
+                  onClick={() => setTab('classes')}
+                  className="text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-lg border border-primary/20 transition-colors"
+                >
+                  Mulai Mengatur Sekarang →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Profile */}
       <div className="bg-surface border border-border rounded-[24px] p-5 mb-[14px] shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center text-2xl flex-shrink-0 ring-4 ring-primary/5">
             👤
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-black tracking-tight truncate">
-              {data.teacherName || 'Belum diisi'}
-            </div>
-            <div className="text-[11px] text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
-            <div className="text-[9px] font-bold uppercase tracking-wider text-primary">
-              &#x2736; {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel
-            </div>
-          </div>
-          <EditTeacherButton onRefresh={refresh} />
+           <div className="flex-1 min-w-0">
+             <div className="text-base font-black tracking-tight truncate">
+               {data.teacherName || 'Belum diisi'}
+             </div>
+             <div className="text-[11px] text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
+             <div className="text-[9px] font-bold uppercase tracking-wider text-primary">
+               &#x2736; {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel
+             </div>
+             {data.academicYear ? (
+               <div className="text-[11px] text-text2 mt-1 flex items-center gap-1.5">
+                 <span className="opacity-60">📅</span>
+                 <span className="truncate">Tahun Ajaran: {data.academicYear}</span>
+               </div>
+             ) : (
+               <div className="text-[11px] text-amber mt-1 flex items-center gap-1.5">
+                 <span>⚠️</span>
+                 <span>Belum mengatur tahun ajaran</span>
+               </div>
+             )}
+           </div>
+           <div className="flex flex-col gap-2">
+             <EditTeacherButton onRefresh={refresh} />
+             <EditAcademicYearButton onRefresh={refresh} />
+           </div>
         </div>
       </div>
 
@@ -131,6 +194,36 @@ function EditTeacherButton({ onRefresh }: { onRefresh: () => void }) {
   return (
     <button onClick={startEdit} className="px-[13px] py-[7px] rounded-lg bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3">
       ✏️ Edit
+    </button>
+  );
+}
+
+function EditAcademicYearButton({ onRefresh }: { onRefresh: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [year, setYear] = useState('');
+  const { toast } = useToast();
+
+  const startEdit = () => { setYear(getData().academicYear || ''); setEditing(true); };
+  const save = () => {
+    if (!year.trim()) { toast({ title: 'Masukkan tahun ajaran' }); return; }
+    setAcademicYear(year.trim());
+    setEditing(false);
+    toast({ title: 'Tahun ajaran disimpan ✓' });
+    onRefresh();
+  };
+
+  if (editing) {
+    return (
+      <div className="flex gap-1">
+        <input value={year} onChange={e => setYear(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
+          className="w-32 bg-surface border border-border2 rounded-lg px-2 py-1 text-xs" autoFocus placeholder="Contoh: 2024/2025" />
+        <button onClick={save} className="px-2 py-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold">✓</button>
+      </div>
+    );
+  }
+  return (
+    <button onClick={startEdit} className="px-[13px] py-[7px] rounded-lg bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3">
+      🗓️ Atur
     </button>
   );
 }

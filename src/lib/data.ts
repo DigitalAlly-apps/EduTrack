@@ -5,6 +5,7 @@ const DB_KEY = 'pengajar_v4';
 const DEFAULT_DATA: AppData = {
   teacherName: '', classes: [], subjects: [], materials: [], schedules: [],
   progress: [], sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [],
+  academicYear: '',
 };
 
 export function getData(): AppData {
@@ -455,8 +456,10 @@ function getYesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); r
 
 export function loadDemo() {
   const currentName = getData().teacherName || '';
+  const currentYear = getData().academicYear || '';
   saveData({
     teacherName: currentName,
+    academicYear: currentYear,
     classes: [{ id: 'c1', name: '10A', color: 'blue', level: '10' }, { id: 'c2', name: '10B', color: 'green', level: '10' }, { id: 'c3', name: '11 IPA', color: 'purple', level: '11' }],
     subjects: [{ id: 's1', name: 'Matematika', examDate: getFutureDate(45) }, { id: 's2', name: 'Fisika', examDate: getFutureDate(30) }],
     materials: [
@@ -487,6 +490,7 @@ export function loadDemo() {
       { id: 'p4', classId: 'c1', subjectId: 's2', materialsDone: 1, lastSession: getYesterdayStr() },
     ],
     sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [],
+    academicYear: currentYear,
   });
 }
 
@@ -560,6 +564,9 @@ export function importJSON(file: File): Promise<void> {
 // v5 New helpers
 export function updateClass(id: string, name: string) {
   updateData(d => { const c = d.classes.find(x => x.id === id); if (c) c.name = name.trim(); });
+}
+export function setAcademicYear(year: string) {
+  updateData(d => { d.academicYear = year.trim(); });
 }
 export function updateSubject(id: string, name: string, level: string, examDate: string) {
   updateData(d => { const s = d.subjects.find(x => x.id === id); if (s) { s.name = name.trim(); s.level = level || ''; s.examDate = examDate || null; } });
