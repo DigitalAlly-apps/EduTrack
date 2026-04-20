@@ -43,7 +43,11 @@ function AppInner() {
       setView(detail);
     };
     window.addEventListener('edutrack-nav', handler);
-    return () => window.removeEventListener('edutrack-nav', handler);
+    window.addEventListener('set-tab', handler);
+    return () => {
+      window.removeEventListener('edutrack-nav', handler);
+      window.removeEventListener('set-tab', handler);
+    };
   }, []);
 
 

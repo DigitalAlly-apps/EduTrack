@@ -67,7 +67,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
                 <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Info</span>
               </button>
             </DialogTrigger>
-            <DialogContent className="max-w-[420px] h-[85vh] overflow-hidden flex flex-col rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl p-0">
+            <DialogContent className="max-w-[420px] h-[85vh] overflow-hidden flex flex-col rounded-3xl border-border/40 bg-background/95 backdrop-blur-xl p-0">
               <DialogHeader className="p-6 pb-2">
                 <DialogTitle className="flex items-center gap-4 font-display">
                   <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">📖</div>

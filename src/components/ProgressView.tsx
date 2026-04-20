@@ -2,7 +2,7 @@ import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
   getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  getHeatmapData, getPredictiveFinishes, getExamPrepItems,
+  getHeatmapData, getPredictiveFinishes, getExamPrepItems, undoLastSession,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
@@ -42,7 +42,7 @@ function PaceSuggestionsCard() {
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-sm">🧠</div>
           <div>
-            <div className="text-[13px] font-bold text-foreground">AI Auto-Pacing</div>
+            <div className="text-[13px] font-bold text-foreground">Pengaturan Tempo Otomatis</div>
             <div className="text-[10px] text-text3">Saran cerdas untuk target ujian</div>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function ProgressView() {
 
   return (
     <div className="pt-1">
-      <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-[14px] mb-[18px] p-1 shadow-sm gap-1">
+      <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-2xl mb-[18px] p-1 shadow-sm gap-1">
         <button onClick={() => setTab('progress')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'progress' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Progres</button>
         <button onClick={() => setTab('kalender')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'kalender' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Kalender</button>
         <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat</button>
@@ -305,7 +305,7 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
         </div>
 
         {classIds.length === 0 && (
-          <div className="text-center py-10 border border-dashed border-border2 rounded-[20px]">
+          <div className="text-center py-10 border border-dashed border-border2 rounded-3xl">
             <span className="text-3xl block mb-2">✅</span>
             <div className="text-sm font-medium text-text2">Semua mapel sesuai target!</div>
           </div>
@@ -373,6 +373,8 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
 // ─── SubjectCard — Handles its own expansion state ────────
 const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const [showMats, setShowMats] = useState(false);
+  const [undoConfirm, setUndoConfirm] = useState(false);
+  const { toast } = useToast();
   const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, predictiveFinish } = card;
 
   return (
@@ -408,9 +410,13 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
             {st.daysLeft !== undefined && (
               <>
                 <span className="opacity-40">•</span>
-                <span className={st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold' : 'text-amber font-bold') : 'text-text3'}>
-                   ⏳ {st.daysLeft} hari ujian
-                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' })); }}
+                  className={`flex items-center gap-0.5 underline-offset-2 hover:underline transition-colors ${st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold' : 'text-amber font-bold') : 'text-text3'}`}
+                  title="Lihat di tab Ujian"
+                >
+                  📅 {st.daysLeft} hari ujian ↗
+                </button>
               </>
             )}
             {predictiveFinish?.predictedFinishDate && (
@@ -495,6 +501,49 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
             })()}
             {mats.length === 0 && <div className="text-[12px] text-text3 italic py-2 text-center">Materi belum diatur untuk mapel ini.</div>}
           </div>
+
+          {/* Undo/Koreksi progres */}
+          {totalSessDone > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/30 flex items-center justify-between">
+              <span className="text-[11px] text-text3">Salah input? Koreksi progres:</span>
+              <button
+                onClick={() => setUndoConfirm(true)}
+                className="text-[11px] font-bold text-amber border border-amber/30 bg-amber/8 px-3 py-1.5 rounded-lg hover:bg-amber/15 transition-colors flex items-center gap-1"
+              >
+                ↩ Mundur 1 Sesi
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Confirmation sheet for undo */}
+      {undoConfirm && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setUndoConfirm(false)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
+            <div className="text-base font-bold mb-1">↩ Koreksi Progres</div>
+            <p className="text-[13px] text-text2 mb-2 leading-relaxed">
+              Sesi terakhir <strong>{card.subName}</strong> ({card.clsName}) akan dihapus dan progres mundur 1.
+            </p>
+            <p className="text-[12px] text-red/80 bg-red/8 border border-red/20 rounded-lg px-3 py-2 mb-5">
+              ⚠️ Tindakan ini tidak bisa dibatalkan kembali.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setUndoConfirm(false)} className="flex-1 py-3 bg-surface border border-border2 rounded-xl text-sm font-medium">Batal</button>
+              <button
+                onClick={() => {
+                  const ok = undoLastSession(card.clsId, card.subId);
+                  setUndoConfirm(false);
+                  if (ok) toast({ title: '↩ Progres dikoreksi' });
+                  else toast({ title: 'Tidak ada sesi untuk diundo', variant: 'destructive' });
+                }}
+                className="flex-1 py-3 bg-amber/15 border border-amber/30 text-amber rounded-xl text-sm font-bold"
+              >
+                Ya, Koreksi
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -517,12 +566,12 @@ function HistoryTab() {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
-      <div className="bg-surface border border-border rounded-[16px] p-3 flex justify-between items-center mb-4">
+      <div className="bg-surface border border-border rounded-2xl p-3 flex justify-between items-center mb-4">
         <div className="text-[11px] font-bold text-text3 uppercase tracking-wide">Pilih Bulan</div>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 py-1.5 px-3 w-auto text-xs" />
       </div>
       {dates.length === 0 ? (
-        <div className="text-center py-12 px-6 border border-dashed border-border2 rounded-[20px]">
+        <div className="text-center py-12 px-6 border border-dashed border-border2 rounded-3xl">
           <span className="text-4xl block mb-3 opacity-50">📜</span>
           <div className="text-[15px] font-medium mb-1">Tidak ada riwayat</div>
           <div className="text-xs text-text2">Belum ada sesi tercatat di bulan ini.</div>
@@ -599,7 +648,7 @@ function CalendarTab() {
   return (
     <div className="animate-in fade-in duration-300">
       {/* Month picker */}
-      <div className="bg-surface border border-border rounded-[16px] p-3 flex justify-between items-center mb-4">
+      <div className="bg-surface border border-border rounded-2xl p-3 flex justify-between items-center mb-4">
         <div className="text-[11px] font-bold text-text3 uppercase tracking-wide">Bulan</div>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)}
           className="form-input-style min-h-0 py-1.5 px-3 w-auto text-xs" />

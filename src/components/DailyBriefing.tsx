@@ -9,7 +9,7 @@ export default function DailyBriefing() {
   const dateStr = now().toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
 
   return (
-    <div className={`rounded-[20px] border p-4 mb-3 animate-slide-up relative overflow-hidden transition-all duration-300 ${
+    <div className={`rounded-3xl border p-4 mb-3 animate-slide-up relative overflow-hidden transition-all duration-300 ${
       hasUrgent
         ? 'bg-amber/5 border-amber/25 shadow-sm'
         : 'bg-surface/60 border-border2/60 shadow-sm'

@@ -3,7 +3,8 @@ import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
-  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule
+  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
+  undoLastSession,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -29,10 +30,24 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [undoProgress, setUndoProgress] = useState(0);
-  
+  // TL undo — same mechanism as hero
+  const [tlPendingId, setTlPendingId] = useState<string | null>(null);
+  const [tlUndoProgress, setTlUndoProgress] = useState(0);
+
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [belumKumpulDraft, setBelumKumpulDraft] = useState('');
+
+  // Bottom sheet states (replacing prompt())
+  const [earlyDismissSheet, setEarlyDismissSheet] = useState(false);
+  const [earlyDismissTime, setEarlyDismissTime] = useState('10:00');
+  const [newTaskSheet, setNewTaskSheet] = useState<{ classId: string; subjectId: string } | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  // Orange fixes
+  const [skipConfirm, setSkipConfirm] = useState<TodayScheduleItem | null>(null);
+  const [liveNoteOpen, setLiveNoteOpen] = useState(false);
+  const [liveNoteDraft, setLiveNoteDraft] = useState('');
+  const [geserSheet, setGeserSheet] = useState<string | null>(null); // scheduleId
 
   // Helpers for reminder pertemuan depan
   const REMINDER_PREFIX = '\n---REMINDER_DEPAN---\n';
@@ -147,15 +162,31 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: `Jadwal digeser ${mins} menit` });
   };
 
-  const handleTLDone = (id: string) => {
-    setMarkingId(id);
-    setTimeout(() => {
-      markDone(id);
-      setMarkingId(null);
-      onRefresh();
-      toast({ title: '✓ Tersimpan' });
-    }, 320);
-  };
+  const handleTLDone = useCallback((id: string) => {
+    if (tlPendingId === id) {
+      setTlPendingId(null);
+      setTlUndoProgress(0);
+      toast({ title: 'Aksi dibatalkan' });
+      return;
+    }
+    setTlPendingId(id);
+    setTlUndoProgress(0);
+    const start = Date.now();
+    const duration = 4000;
+    const tick = () => {
+      setTlPendingId(prev => {
+        if (prev !== id) return prev;
+        const p = Math.min(100, ((Date.now() - start) / duration) * 100);
+        setTlUndoProgress(p);
+        if (p < 100) { requestAnimationFrame(tick); return prev; }
+        markDone(id);
+        onRefresh();
+        toast({ title: '✓ Tersimpan' });
+        return null;
+      });
+    };
+    requestAnimationFrame(tick);
+  }, [tlPendingId, onRefresh, toast]);
 
   const handleSaveNote = (sessionId: string) => {
     const combinedNote = belumKumpulDraft.trim()
@@ -336,7 +367,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           const isOvertime = currentMin() >= timeToMin(active.endTime);
 
           return (
-            <div className={`bg-surface/60 backdrop-blur-xl border rounded-[32px] overflow-hidden relative shadow-lg mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/30'}`}>
+            <div className={`bg-surface/60 backdrop-blur-xl border rounded-3xl overflow-hidden relative shadow-lg mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/30'}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
               
               {/* Time Up Notification Banner */}
@@ -411,34 +442,54 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
               </div>
 
-              <div className="px-6 pb-6 pt-1">
-                <div className="flex gap-2 relative">
-                  <button
-                    onClick={() => handleHeroDone(active.id)}
-                    className={`flex-1 py-4.5 rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
-                      pendingId === active.id
-                        ? 'bg-surface3 text-text2 border border-border'
-                        : isOvertime 
-                          ? 'bg-red text-white' 
-                          : 'bg-primary text-primary-foreground'
-                    }`}
-                  >
-                    {pendingId === active.id ? (
-                      <>
-                        <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
-                        <span className="relative z-10 flex items-center gap-2 text-sm">✕ BATALKAN</span>
-                      </>
-                    ) : <>{isOvertime ? '🔥 SELESAI' : '✓ SELESAI'}</>}
-                  </button>
-                  <button
-                    onClick={() => handleSkip(active.id, active.className, active.subjectName, active.classId, active.subjectId)}
-                    className="w-[58px] h-[58px] rounded-2xl bg-surface2 border border-border2 text-text2 text-2xl grid place-items-center flex-shrink-0 transition-all hover:bg-surface3 hover:border-border3 active:scale-95 shadow-sm"
-                    title="Lewati sesi ini"
-                  >
-                    ⏭
-                  </button>
-                </div>
-              </div>
+                 <div className="px-6 pb-6 pt-1">
+                 {/* Main action buttons */}
+                 <div className="flex gap-2 relative">
+                   <button
+                     onClick={() => handleHeroDone(active.id)}
+                     className={`flex-1 py-4.5 rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
+                       pendingId === active.id
+                         ? 'bg-surface3 text-text2 border border-border'
+                         : isOvertime 
+                           ? 'bg-red text-white' 
+                           : 'bg-primary text-primary-foreground'
+                     }`}
+                   >
+                     {pendingId === active.id ? (
+                       <>
+                         <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
+                         <span className="relative z-10 flex items-center gap-2 text-sm">✕ BATALKAN</span>
+                       </>
+                     ) : <>{isOvertime ? '🔥 SELESAI' : '✓ SELESAI'}</>}
+                   </button>
+                   {/* Skip — now opens confirmation sheet */}
+                   <button
+                     onClick={() => setSkipConfirm(active)}
+                     className="w-[58px] h-[58px] rounded-2xl bg-surface2 border border-border2 text-text2 text-2xl grid place-items-center flex-shrink-0 transition-all hover:bg-surface3 hover:border-border3 active:scale-95 shadow-sm"
+                     title="Lewati sesi ini"
+                   >
+                     ⏭
+                   </button>
+                 </div>
+
+                 {/* Compact secondary actions row */}
+                 <div className="mt-2.5 flex gap-2">
+                   {/* Live note button — #4 */}
+                   <button
+                     onClick={() => { setLiveNoteDraft(''); setLiveNoteOpen(true); }}
+                     className="flex-1 py-2 rounded-xl bg-surface border border-border text-[11px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                   >
+                     📝 Catat
+                   </button>
+                   {/* Geser waktu button — #6 */}
+                   <button
+                     onClick={() => setGeserSheet(active.id)}
+                     className="flex-1 py-2 rounded-xl bg-surface border border-border text-[11px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                   >
+                     ⏱ Geser Waktu
+                   </button>
+                 </div>
+               </div>
             </div>
           );
         }
@@ -448,7 +499,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         if (upcoming) {
           const diff = timeToMin(upcoming.startTime) - currentMin();
           return (
-            <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-[32px] p-5 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
+            <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-3xl p-5 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,hsl(var(--teal-glow))_0%,transparent_70%)] pointer-events-none mix-blend-screen opacity-60" />
               <div className="absolute inset-x-0 top-0 h-[100px] bg-gradient-to-b from-teal/10 to-transparent pointer-events-none" />
               
@@ -475,7 +526,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <span className="text-[14px] text-teal">Sesi {Math.min(upcoming.materialsDone + 1, upcoming.totalMats)}/{upcoming.totalMats}</span>
                 </div>
                 
-                <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-[24px] p-5 flex items-center gap-5 shadow-inner">
+                <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-3xl p-5 flex items-center gap-5 shadow-inner">
                   <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
                   <div className="flex-1">
                     <div className="text-[11px] font-bold uppercase tracking-widest text-teal/70 mb-1">Mulai Pukul {fmt(upcoming.startTime)}</div>
@@ -508,7 +559,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         // State 3: No sessions today, but Exams exist
         if (hasExams) {
           return (
-             <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-[32px] p-7 mb-4 animate-slide-up shadow-lg">
+             <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-3xl p-7 mb-4 animate-slide-up shadow-lg">
                 <div className="flex items-center gap-2 mb-6">
                   <span className="text-2xl">⚡</span>
                    <div className="text-[11px] font-black uppercase tracking-widest text-text3">Fokus Ujian Mendatang</div>
@@ -609,18 +660,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
            {!active && items.length > 0 && !items.every(x => x.done) && (
              <div className="flex gap-2 flex-wrap">
                <button 
-                 onClick={() => {
-                   const input = prompt('Mulai jam berapa jadwal akan diliburkan? (contoh: 10:00 atau 10:30)');
-                   if(input) {
-                     if (/^\d{1,2}:\d{2}$/.test(input.trim())) {
-                       const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), input.trim());
-                       onRefresh();
-                       toast({ title: `🏠 ${count} kelas setelah ${input.trim()} diliburkan` });
-                     } else {
-                       toast({ variant: 'destructive', title: 'Format waktu salah (harus HH:MM)' });
-                     }
-                   }
-                 }}
+                 onClick={() => setEarlyDismissSheet(true)}
                  className="text-[9px] font-bold text-blue-500 px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap"
                >
                  🏠 Pulang Awal
@@ -684,7 +724,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Card */}
             <div className="flex-1 mb-4">
-              <div className={`group bg-surface/40 backdrop-blur-md border rounded-[24px] p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-3xl p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
@@ -742,9 +782,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   ) : (
                     <button
                       onClick={() => handleTLDone(item.id)}
-                      className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-lg flex items-center justify-center transition-all hover:bg-primary hover:text-white hover:scale-105 active:scale-95 shadow-sm"
+                      className={`w-11 h-11 rounded-2xl border text-sm font-bold flex items-center justify-center transition-all relative overflow-hidden shadow-sm ${
+                        tlPendingId === item.id
+                          ? 'bg-surface3 border-border text-text2'
+                          : 'bg-primary/10 border-primary/20 text-primary hover:bg-primary hover:text-white hover:scale-105 active:scale-95'
+                      }`}
                     >
-                      ✓
+                      {tlPendingId === item.id && (
+                        <div className="absolute inset-0 bg-primary/20" style={{ width: `${tlUndoProgress}%`, transition: 'width 0.1s linear' }} />
+                      )}
+                      <span className="relative z-10">{tlPendingId === item.id ? '✕' : '✓'}</span>
                     </button>
                   )}
                 </div>
@@ -789,13 +836,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
                   <div className="flex justify-end gap-2 mt-2.5">
                     <button onClick={() => {
-                       const title = prompt('Nama tugas (mis. Koreksi tugas matriks):');
-                       if (title) {
-                         const d = new Date(); d.setDate(d.getDate() + 7);
-                         addTask(item.classId, item.subjectId, title, d.toISOString().slice(0, 10));
-                         onRefresh();
-                         toast({ title: 'Tugas ditambahkan' });
-                       }
+                       setNewTaskTitle('');
+                       setNewTaskSheet({ classId: item.classId, subjectId: item.subjectId });
                     }} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-amber flex items-center gap-1">
                       + Tugas Baru
                     </button>
@@ -817,6 +859,173 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         dateStr={reschedulerDate}
         onSuccess={onRefresh}
       />
+
+      {/* ─── Bottom Sheet: Pulang Awal ─────────────────────────────────── */}
+      {earlyDismissSheet && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setEarlyDismissSheet(false)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
+            <div className="text-base font-bold mb-1">🏠 Pulang Awal</div>
+            <p className="text-[12px] text-text2 mb-4">Jadwal setelah jam ini akan dicoret dan tidak dihitung sebagai sesi terlewat.</p>
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Mulai libur dari jam:</label>
+            <input
+              type="time"
+              value={earlyDismissTime}
+              onChange={e => setEarlyDismissTime(e.target.value)}
+              className="form-input-style mb-4"
+              autoFocus
+            />
+            <button
+              onClick={() => {
+                const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), earlyDismissTime);
+                onRefresh();
+                setEarlyDismissSheet(false);
+                toast({ title: `🏠 ${count} kelas setelah ${earlyDismissTime} diliburkan` });
+              }}
+              className="btn-primary-style bg-primary text-primary-foreground font-bold"
+            >
+              Terapkan
+            </button>
+            <button onClick={() => setEarlyDismissSheet(false)} className="w-full py-3 text-text2 text-[13px] mt-2">Batal</button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bottom Sheet: Tugas Baru ──────────────────────────────────── */}
+      {newTaskSheet && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setNewTaskSheet(null)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
+            <div className="text-base font-bold mb-1">📋 Tugas Baru</div>
+            <p className="text-[12px] text-text2 mb-4">Deadline otomatis 7 hari ke depan. Akan muncul di Inbox Tugas.</p>
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Nama Tugas:</label>
+            <input
+              type="text"
+              value={newTaskTitle}
+              onChange={e => setNewTaskTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newTaskTitle.trim()) {
+                  const d = new Date(); d.setDate(d.getDate() + 7);
+                  addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), d.toISOString().slice(0, 10));
+                  onRefresh();
+                  setNewTaskSheet(null);
+                  toast({ title: 'Tugas ditambahkan' });
+                }
+              }}
+              placeholder="cth: Koreksi tugas matriks..."
+              className="form-input-style mb-4"
+              autoFocus
+            />
+            <button
+              onClick={() => {
+                if (!newTaskTitle.trim()) return;
+                const d = new Date(); d.setDate(d.getDate() + 7);
+                addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), d.toISOString().slice(0, 10));
+                onRefresh();
+                setNewTaskSheet(null);
+                toast({ title: 'Tugas ditambahkan' });
+              }}
+              className="btn-primary-style bg-amber text-black font-bold"
+            >
+              Tambah Tugas
+            </button>
+            <button onClick={() => setNewTaskSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-2">Batal</button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bottom Sheet: Skip Confirmation (#5) ────────────────────── */}
+      {skipConfirm && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setSkipConfirm(null)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
+            <div className="text-base font-bold mb-1">⏭ Lewati Sesi Ini?</div>
+            <p className="text-[13px] text-text2 mb-2 leading-relaxed">
+              Sesi <strong>{skipConfirm.className} — {skipConfirm.subjectName}</strong> akan ditandai dilewati.
+            </p>
+            <p className="text-[12px] text-amber/90 bg-amber/8 border border-amber/20 rounded-lg px-3 py-2 mb-5">
+              ⚠️ Materi tidak akan tercatat. Gunakan ini hanya jika kelas tidak jadi berlangsung.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setSkipConfirm(null)} className="flex-1 py-3 bg-surface border border-border2 rounded-xl text-sm font-medium">Batal</button>
+              <button
+                onClick={() => {
+                  handleSkip(skipConfirm.id, skipConfirm.className, skipConfirm.subjectName, skipConfirm.classId, skipConfirm.subjectId);
+                  setSkipConfirm(null);
+                }}
+                className="flex-1 py-3 bg-amber/15 border border-amber/30 text-amber rounded-xl text-sm font-bold"
+              >
+                Ya, Lewati
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bottom Sheet: Catatan Real-time (#4) ────────────────────── */}
+      {liveNoteOpen && active && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setLiveNoteOpen(false)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-4" />
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">📝</span>
+              <div className="text-base font-bold">Catatan Sesi</div>
+              <span className="ml-auto text-[11px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">{active.className}</span>
+            </div>
+            <p className="text-[11px] text-text3 mb-3">Akan tersimpan ke jurnal sesi setelah kelas selesai.</p>
+            <textarea
+              autoFocus
+              value={liveNoteDraft}
+              onChange={e => setLiveNoteDraft(e.target.value)}
+              placeholder="cth: Siswa ramai, lanjut dari hal 45, Ahmad belum hadir..."
+              className="form-input-style min-h-[120px] resize-none mb-4 font-mono text-[13px]"
+            />
+            <button
+              onClick={() => {
+                if (active.sessionId) {
+                  updateSessionNote(active.sessionId, liveNoteDraft);
+                  toast({ title: '📝 Catatan disimpan' });
+                } else {
+                  // Store in a temp key, applied when markDone
+                  localStorage.setItem(`pending_note_${active.id}`, liveNoteDraft);
+                  toast({ title: '📝 Catatan akan disimpan saat selesai' });
+                }
+                setLiveNoteOpen(false);
+              }}
+              className="btn-primary-style bg-green text-black font-bold"
+            >
+              Simpan Catatan
+            </button>
+            <button onClick={() => setLiveNoteOpen(false)} className="w-full py-3 text-text2 text-[13px] mt-2">Tutup</button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bottom Sheet: Geser Waktu (#6) ──────────────────────────── */}
+      {geserSheet && (
+        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setGeserSheet(null)}>
+          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
+            <div className="text-base font-bold mb-1">⏱ Geser Waktu Selesai</div>
+            <p className="text-[12px] text-text2 mb-5">Perpanjang durasi kelas hari ini (tidak mengubah jadwal permanen).</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[15, 30, 45, 60, 90].map(mins => (
+                <button
+                  key={mins}
+                  onClick={() => {
+                    handlePostpone(geserSheet, mins);
+                    setGeserSheet(null);
+                  }}
+                  className="py-3 rounded-xl bg-surface border border-border text-sm font-bold text-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+                >
+                  +{mins < 60 ? `${mins}m` : `${mins/60}j`}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setGeserSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-4">Batal</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

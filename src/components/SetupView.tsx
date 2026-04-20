@@ -16,28 +16,28 @@ interface SetupViewProps {
 }
 
 export default function SetupView({ onRefresh }: SetupViewProps) {
-  const [tab, setTab] = useState<SetupTab>('classes');
+  const data = getData();
+  const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
+  // Default to classes if first time, otherwise show menu
+  const [tab, setTab] = useState<SetupTab | null>(showGettingStarted ? 'classes' : null);
   const [, forceUpdate] = useState(0);
   const refresh = () => { forceUpdate(n => n + 1); onRefresh(); };
-  const data = getData();
 
-  const tabs: { id: SetupTab; label: string; icon: string; group: string }[] = [
-    { id: 'classes', label: 'Kelas', icon: '🏫', group: 'data' },
-    { id: 'subjects', label: 'Mapel', icon: '📚', group: 'data' },
-    { id: 'schedules', label: 'Jadwal', icon: '🗓', group: 'data' },
-    { id: 'materials', label: 'Materi', icon: '📖', group: 'data' },
-    { id: 'holidays', label: 'Libur', icon: '🏖', group: 'other' },
-    { id: 'leave', label: 'Izin', icon: '🏥', group: 'other' },
-    { id: 'data', label: 'Backup', icon: '💾', group: 'other' },
+  const tabs: { id: SetupTab; label: string; desc: string; icon: string; group: string }[] = [
+    { id: 'classes', label: 'Daftar Kelas', desc: 'Atur rombongan belajar', icon: '🏫', group: 'akademik' },
+    { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: '📚', group: 'akademik' },
+    { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: '🗓', group: 'akademik' },
+    { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: '📖', group: 'akademik' },
+    { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: '🏖', group: 'sistem' },
+    { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: '🏥', group: 'sistem' },
+    { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: '💾', group: 'sistem' },
   ];
 
-  const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
-
   return (
-    <div className="pt-2">
+    <div className="pt-2 animate-fade-in">
       {/* Getting Started Guide — when no classes or subjects yet */}
       {showGettingStarted && (
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-[24px] p-5 mb-4 shadow-sm animate-slide-up">
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-3xl p-5 mb-4 shadow-sm animate-slide-up">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-xl flex-shrink-0">
               👋
@@ -83,7 +83,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         </div>
       )}
       {/* Profile */}
-      <div className="bg-surface border border-border rounded-[24px] p-5 mb-[14px] shadow-sm">
+      <div className="bg-surface border border-border rounded-3xl p-5 mb-[14px] shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center text-2xl flex-shrink-0 ring-4 ring-primary/5">
             👤
@@ -115,55 +115,87 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         </div>
       </div>
 
-      {/* Tabs — grouped */}
-      <div className="mb-[14px] space-y-2">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-text3 px-1">Data Kelas</div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {tabs.filter(t => t.group === 'data').map(t => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 min-w-[64px] py-2.5 px-2 rounded-2xl text-[11px] font-bold border transition-all whitespace-nowrap flex flex-col items-center gap-1 ${
-                  active ? 'bg-primary-dim border-primary-border text-primary shadow-sm' :
-                  'bg-surface border-border text-text2 hover:border-border2 hover:text-foreground'
-                }`}
-              >
-                <span className="text-base">{t.icon}</span>
-                <span>{t.label}</span>
-              </button>
-            );
-          })}
+      {/* Main Content Area */}
+      {tab === null ? (
+        // ─── SETTINGS MENU LIST ───
+        <div className="space-y-4 animate-slide-up pb-10">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-text3 px-2 mb-2">Akademik & Jadwal</div>
+            <div className="bg-surface border border-border rounded-3xl overflow-hidden shadow-sm">
+              {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                    idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                      {t.icon}
+                    </div>
+                    <div>
+                      <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
+                      <div className="text-[11px] text-text3 mt-0.5">{t.desc}</div>
+                    </div>
+                  </div>
+                  <span className="text-text3 text-lg opacity-50">›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-text3 px-2 mb-2">Sistem & Lainnya</div>
+            <div className="bg-surface border border-border rounded-3xl overflow-hidden shadow-sm">
+              {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                    idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                      {t.icon}
+                    </div>
+                    <div>
+                      <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
+                      <div className="text-[11px] text-text3 mt-0.5">{t.desc}</div>
+                    </div>
+                  </div>
+                  <span className="text-text3 text-lg opacity-50">›</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-text3 px-1 mt-1">Lainnya</div>
-        <div className="flex gap-1.5">
-          {tabs.filter(t => t.group === 'other').map(t => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 py-2 px-3 rounded-2xl text-[11px] font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                  active ? 'bg-primary-dim border-primary-border text-primary shadow-sm' :
-                  'bg-surface border-border text-text2 hover:border-border2 hover:text-foreground'
-                }`}
-              >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
-              </button>
-            );
-          })}
+      ) : (
+        // ─── ACTIVE TAB COMPONENT ───
+        <div className="animate-slide-up">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <button
+              onClick={() => setTab(null)}
+              className="text-[13px] font-bold text-primary flex items-center gap-1.5 hover:underline decoration-primary/50 underline-offset-4 bg-primary/5 px-3 py-1.5 rounded-xl transition-all active:scale-95"
+            >
+              <span className="text-lg leading-none mt-[-2px]">‹</span> Kembali
+            </button>
+            <div className="text-[13px] font-bold text-text2 flex items-center gap-1.5">
+              <span>{tabs.find(t => t.id === tab)?.icon}</span>
+              {tabs.find(t => t.id === tab)?.label}
+            </div>
+          </div>
+          
+          {tab === 'classes' && <ClassesTab onRefresh={refresh} />}
+          {tab === 'subjects' && <SubjectsTab onRefresh={refresh} />}
+          {tab === 'materials' && <MaterialsTab onRefresh={refresh} />}
+          {tab === 'schedules' && <SchedulesTab onRefresh={refresh} />}
+          {tab === 'holidays' && <LiburTab onRefresh={refresh} />}
+          {tab === 'data' && <DataTab onRefresh={refresh} />}
+          {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
         </div>
-      </div>
-
-      {tab === 'classes' && <ClassesTab onRefresh={refresh} />}
-      {tab === 'subjects' && <SubjectsTab onRefresh={refresh} />}
-      {tab === 'materials' && <MaterialsTab onRefresh={refresh} />}
-      {tab === 'schedules' && <SchedulesTab onRefresh={refresh} />}
-      {tab === 'holidays' && <LiburTab onRefresh={refresh} />}
-      {tab === 'data' && <DataTab onRefresh={refresh} />}
-      {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
+      )}
     </div>
   );
 }
@@ -921,7 +953,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div>
       <StorageInfo />
-      <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
+      <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
         <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📤 EXPORT DATA</div>
         <div className="flex gap-[7px] flex-wrap">
           <button onClick={() => { 
@@ -936,7 +968,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
           <button onClick={() => { exportCSV(); toast({ title: 'Riwayat CSV diunduh' }); }} className="data-btn-style">📋 Riwayat Sesi (CSV)</button>
         </div>
       </div>
-      <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
+      <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
         <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📥 IMPORT DATA</div>
         <div className="flex gap-[7px] flex-wrap">
           <label className="data-btn-style cursor-pointer bg-surface2">
@@ -947,7 +979,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
       </div>
       
-      <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-[20px] p-[18px] mb-[10px]">
+      <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-3xl p-[18px] mb-[10px]">
         <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-[14px]">Push Notifikasi</div>
         <p className="text-[13px] text-text2 leading-[1.7] mb-3">
           Izinkan notifikasi agar EduTrack bisa mengingatkan Anda **5 menit sebelum sesi kelas dimulai**.
@@ -964,7 +996,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
         </button>
       </div>
 
-      <div className="bg-[hsl(0_91%_71%/0.04)] border border-[hsl(0_91%_71%/0.12)] rounded-[20px] p-4 mb-[10px]">
+      <div className="bg-[hsl(0_91%_71%/0.04)] border border-[hsl(0_91%_71%/0.12)] rounded-3xl p-4 mb-[10px]">
         <div className="text-[12px] font-bold mb-[10px] text-[#FCA5A5] uppercase tracking-wide">⚠️ Zona Berbahaya</div>
         {!showReset ? (
           <button onClick={() => setShowReset(true)} className="w-full py-3 rounded-lg bg-[hsl(0_91%_71%/0.07)] text-[#FCA5A5] font-semibold transition-all">🗑️ Reset Semua Data</button>
@@ -1039,7 +1071,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="bg-surface border border-border rounded-[20px] p-4">
+      <div className="bg-surface border border-border rounded-3xl p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">🏥</div>
           <div>
@@ -1151,7 +1183,7 @@ function StorageInfo() {
   const barColor = safeInfo.pct > 80 ? 'bg-red' : safeInfo.pct > 50 ? 'bg-amber' : 'bg-green';
   const kb = Math.round(safeInfo.used / 1024);
   return (
-    <div className="bg-surface border border-border rounded-[20px] p-4 mb-[10px]">
+    <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
 <div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
           <span className="flex items-center gap-[6px]">💾 PENYIMPANAN LOKAL</span>
           <span className={"text-[11px] font-bold " + color}>{safeInfo.pct}% terpakai</span>

@@ -368,6 +368,21 @@ export function skipSession(scheduleId: string) {
   saveData(data);
 }
 
+/** Undo/koreksi: hapus sesi terakhir (non-skipped) dan turunkan materialsDone 1 */
+export function undoLastSession(classId: string, subjectId: string): boolean {
+  const data = getData();
+  // Cari sesi terakhir yang bukan SKIPPED
+  const lastSess = data.sessions
+    .filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId !== 'SKIPPED')
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  if (!lastSess) return false;
+  data.sessions = data.sessions.filter(s => s.id !== lastSess.id);
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+  if (prog && prog.materialsDone > 0) prog.materialsDone--;
+  saveData(data);
+  return true;
+}
+
 export function postponeSchedule(scheduleId: string, diffMinutes: number) {
   const data = getData();
   const todayStr = now().toISOString().slice(0, 10);

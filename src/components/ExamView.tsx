@@ -47,7 +47,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
       <div className="space-y-3 animate-slide-up">
         {/* Hero: ujian sedang berlangsung */}
         {active && (
-          <div className="bg-surface/60 backdrop-blur-md border border-amber/30 rounded-[20px] overflow-hidden relative shadow-sm">
+          <div className="bg-surface/60 backdrop-blur-md border border-amber/30 rounded-3xl overflow-hidden relative shadow-sm">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,hsl(40_80%_60%/0.08)_0%,transparent_60%)] pointer-events-none" />
             <div className="p-5">
               <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/30 text-[10px] text-amber font-bold tracking-wider uppercase px-3 py-1.5 rounded-full mb-4">
@@ -78,7 +78,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
         {/* Berikutnya card */}
         {!active && next && (
-          <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-[20px] p-5 relative overflow-hidden shadow-sm">
+          <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-3xl p-5 relative overflow-hidden shadow-sm">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,hsl(var(--teal-glow))_0%,transparent_60%)] pointer-events-none opacity-60" />
             <div className="relative">
               <div className="inline-flex items-center gap-1.5 bg-teal-dim border border-teal/40 text-[10px] text-teal font-bold tracking-wider uppercase px-3 py-1.5 rounded-full mb-3">
@@ -121,7 +121,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
               </div>
               {/* Card */}
               <div className="flex-1 mb-3">
-                <div className={`border rounded-[18px] p-4 flex items-center gap-3 transition-all ${
+                <div className={`border rounded-2xl p-4 flex items-center gap-3 transition-all ${
                   state === 'active' ? 'bg-amber/8 border-amber/30' :
                   state === 'done' ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
                 }`}>
