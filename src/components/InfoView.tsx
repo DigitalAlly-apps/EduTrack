@@ -45,22 +45,43 @@ const guides: Guide[] = [
       { t: 'Restore / Import JSON', d: 'Pilih <strong>📂 Upload JSON</strong> dan pilih file backup Anda. Semua data akan dikembalikan seperti semula.' },
     ], tip: 'Data tersimpan di localStorage browser. Jika ganti browser atau hapus cache, data bisa hilang. Selalu backup JSON!'
   },
-  {
-    id: 'g5', icon: '✨', title: 'Fitur Unggulan EduTrack', steps: [
-      { t: 'Materi Drag-and-Drop', d: 'Anda sekarang bisa menekan ✏️ untuk mengubah nama, atau menahan ≡ untuk mengurutkan daftar materi.' },
-      { t: 'Sistem Multijenjang', d: 'Dapat membedakan materi dan tanggal ujian secara massal untuk berbagai tingkat (SD, MTs, MA).' },
-      { t: 'Riwayat Sesi Bulanan', d: 'Buka tab <strong>Progres</strong> lalu tekan <strong>Riwayat Sesi</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
-      { t: 'Notifikasi Background (Web Push)', d: 'Aktifkan notifikasi, EduTrack akan mengingatkan Anda 5 menit sebelum sesi mengajar meskipun app ditutup.' },
-    ], tip: 'PWA Shortcut HP juga tersedia! Tahan icon EduTrack di layar lalu tap "Jadwal Hari Ini".'
-  },
-  {
-    id: 'g6', icon: '🌙', title: 'Dark Mode & Pengaturan Lain', steps: [
-      { t: 'Toggle tema', d: 'Tekan tombol 🌙/☀️ di pojok kanan header untuk beralih antara Dark dan Light mode. Pilihan tersimpan otomatis.' },
-      { t: 'Edit nama guru', d: 'Di tab Kelola, tap tombol <strong>✏️ Edit</strong> di card profil untuk mengubah nama yang muncul di sapaan header.' },
-      { t: 'Reset data', d: 'Di tab Kelola → Data → Zona Berbahaya. Ketik "RESET" untuk konfirmasi. Nama guru tidak akan terhapus.' },
-    ], tip: 'Semua perubahan tersimpan otomatis di browser — tidak ada tombol Save yang perlu ditekan.'
-  },
-];
+    {
+      id: 'g5', icon: '✨', title: 'Fitur Unggulan EduTrack', steps: [
+        { t: 'Materi Drag-and-Drop', d: 'Anda sekarang bisa menekan ✏️ untuk mengubah nama, atau menahan ≡ untuk mengurutkan daftar materi.' },
+        { t: 'Sistem Multijenjang', d: 'Dapat membedakan materi dan tanggal ujian secara massal untuk berbagai tingkat (SD, MTs, MA).' },
+        { t: 'Riwayat Sesi Bulanan', d: 'Buka tab <strong>Progres</strong> lalu tekan <strong>Riwayat Sesi</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
+        { t: 'Notifikasi Background (Web Push)', d: 'Aktifkan notifikasi, EduTrack akan mengingatkan Anda 5 menit sebelum sesi mengajar meskipun app ditutup.' },
+      ], tip: 'PWA Shortcut HP juga tersedia! Tahan icon EduTrack di layar lalu tap "Jadwal Hari Ini".'
+    },
+    {
+      id: 'g7', icon: '🧠', title: 'AI Auto-Pacing & Smart Rescheduler', steps: [
+        { t: 'Saran Cerdas Target Ujian', d: 'Sistem menganalisis target ujian, sisa materi, dan hari libur untuk memberikan saran: "Perlu tambah jadwal", "Mepet target", atau "Gabungkan sesi". Klik <strong>Terapkan</strong> untuk otomatis buat task pengganti.' },
+        { t: 'Smart Rescheduler (Izin/Cuti)', d: 'Ketika unable mengajar, tekan tombol <strong>🏥 Izin/Cuti</strong> di timeline Hari Ini. Sistem akan sarankan: keep (jangan ubah), postpone (tunda ke minggu depan), skip (dilewati + auto task kejar), atau deliver (tandai selesai).' },
+        { t: 'Re-plan 1-Klik', d: 'Validasi pilihan, tekan "Terapkan Semua" — semua jadwal hari ini disesuaikan otomatis beserta task pengganti.' },
+      ], tip: 'AI tidak mengganti keputusan Anda. Setiap saran bisa diubah sebelum diterapkan.'
+    },
+    {
+      id: 'g8', icon: '🗺️', title: 'Heatmap Mingguan', steps: [
+        { t: 'Visualisasi Grid', d: 'Heatmap di tab <strong>Progres</strong> menampilkan grid Minggu x Mapel. Setiap cell berwarna: hijau (on track), amber (mepet), merah (behind).' },
+        { t: 'Baca Sel', d: 'Tekan dan tahan cell untuk melihat detail: jumlah sesi selesai vs total yang dijadwalkan pada minggu itu.' },
+        { t: 'Deteksi Pola', d: 'Gunakan heatmap untuk melihat apakah ada minggu yang Rogers (berlebihan) atau kurang padat.' },
+      ], tip: 'Heatmap cakup 8 minggu ke depan. Weekly review menjadi visual dan instant.'
+    },
+    {
+      id: 'g9', icon: '📅', title: 'Prediksi Tanggal Selesai', steps: [
+        { t: 'Prediksi Otomatis', d: 'Untuk setiap mapel, sistem menghitung prediksi tanggal selesai berdasarkan aktualitas akhir-akhir (4 minggu terakhir).' },
+        { t: 'Bandingkan dengan Ujian', d: 'Prediksi dibandingkan dengan tanggal ujian. Jika prediksi setelah ujian → status <strong>behind</strong>, jika sebelum → <strong>on-track</strong>.' },
+        { t: 'Tindak Lanjut', d: 'Gunakan saran "Percepatan" dari AI Auto-Pacing jika prediksi tidak memuaskan.' },
+      ], tip: 'Prediksi akurat jika Anda konsisten menginput sesi. Pasokan data real-time untuk hasil yang reliable.'
+    },
+    {
+      id: 'g10', icon: '🎯', title: 'Exam Prep Mode (H-14)', steps: [
+        { t: 'Auto-Activation', d: '14 hari sebelum ujian, sistem otomatis masuk mode exam prep. Muncul di tab <strong>Progres</strong> sebagai kartu teratas.' },
+        { t: 'Checklist Review', d: 'Sistem membersihkan materi yang sudah siap, menyoroti yang belum, dan memberikan action items: tambah sesi, fokus inti, mulai review.' },
+        { t: 'Prioritas', d: 'Urutkan berdasarkan urgency: critical (terlambat), warning (mepet), ok (aman). Fokus ke critical dulu.' },
+      ], tip: 'Exam Prep Mode menggantikan Daily Briefing selama H-14. Fokus penuh pada persiapan ujian.'
+    },
+  ];
 
 export default function InfoView() {
   const [activeSubTab, setActiveSubTab] = useState<'guides' | 'updates'>('guides');
@@ -82,12 +103,14 @@ export default function InfoView() {
       ]
     },
     {
-      title: '🆕 Terbaru di v5.1',
+      title: '🆕 Terbaru di v5.2',
       items: [
-        { icon: '⚡', t: 'Pangkas Durasi & Pulang Awal', d: 'Kurangi durasi sesi untuk jadwal setengah hari, atau akhiri lebih awal dengan tetap tercatat di jurnal.' },
-        { icon: '📌', t: 'Catatan Pertemuan', d: 'Simpan pengingat untuk pertemuan berikutnya. Bisa berupa catatan siswa, materi yang harus dilanjut, atau instruksi khusus.' },
-        { icon: '🏥', t: 'Manajemen Ketidakhadiran', d: 'Tandai ketidakhadiran Anda dan pilih aksi: Tugas Mandiri untuk siswa atau Skip Sesi. Semua tercatat otomatis.' },
-        { icon: '📆', t: 'Jadwal Mingguan', d: 'Jadwal dikelompokkan per hari (Senin-Minggu) dan diurutkan berdasarkan waktu. Lebih rapi dan mudah dibaca.' },
+        { icon: '🧠', t: 'AI Auto-Pacing', d: 'Sistem cerdas menganalisis target ujian, sisa materi, dan hari libur. Jika ketinggalan, akan menyarankan tambah jadwal dengan tanggal spesifik.' },
+        { icon: '🏥', t: 'Smart Rescheduler', d: 'Tombol "Izin/Cuti" di timeline hari ini. Sistem otomatis menyarankan aksi per-jadwal: keep, postpone, skip, atau deliver. Semua diterapkan sekaligus.' },
+        { icon: '🗺️', t: 'Heatmap Mingguan', d: 'Visualisasi grid progres 8 minggu ke depan di tab Progres. Lihat pola kelayakan setiap mapel dalam satu pandangan.' },
+        { icon: '📅', t: 'Prediksi Tanggal Selesai', d: 'Hitung prediksi selesai materi berdasarkan kecepatan 4 minggu terakhir. Bandingkan dengan tanggal ujian.' },
+        { icon: '🎯', t: 'Exam Prep Mode (H-14)', d: 'Ketika H-14, mode persiapan ujian otomatis aktif. Dapatkan checklist apa yang harus direview dan class status critical.' },
+        { icon: '📅', t: 'Tahun Ajaran', d: 'Atur tahun ajaran di tab Kelola — tampil di profil dan membantu kalkulasi target.' },
       ]
     },
     {
@@ -252,7 +275,7 @@ export default function InfoView() {
       )}
 
       <div className="text-center text-xs text-text3 py-6 opacity-60">
-        EduTrack • 2026 • v5.1.0
+        EduTrack • 2026 • v5.2.0
       </div>
     </div>
   );

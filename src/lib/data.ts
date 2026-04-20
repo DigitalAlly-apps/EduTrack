@@ -1,4 +1,4 @@
-import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem } from './types';
+import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, HeatmapRow, HeatmapCell, ExamPrepItem, PredictiveFinish } from './types';
 
 const DB_KEY = 'pengajar_v4';
 
@@ -489,9 +489,8 @@ export function loadDemo() {
       { id: 'p3', classId: 'c3', subjectId: 's2', materialsDone: 2, lastSession: getYesterdayStr() },
       { id: 'p4', classId: 'c1', subjectId: 's2', materialsDone: 1, lastSession: getYesterdayStr() },
     ],
-    sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [],
-    academicYear: currentYear,
-  });
+     sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [],
+   });
 }
 
 export function exportJSON() {
@@ -923,6 +922,599 @@ export function getMonthCalendar(yearMonth: string): { date: string; status: Day
     else if (sessionCount >= schedCount) result.push({ date: dateStr, status: 'done', sessionCount, schedCount });
     else result.push({ date: dateStr, status: 'partial', sessionCount, schedCount });
   }
-  return result;
+   return result;
+ }
+
+// ==================== SMART RESCHEDULER ====================
+
+/**
+ * Smart reschedule for an entire day — returns AI suggestions for each schedule
+ */
+export function suggestDayReschedule(dateStr: string): RescheduleAction[] {
+  const data = getData();
+  const dayOfWeek = new Date(dateStr).getDay();
+  const suggestions: RescheduleAction[] = [];
+
+  const daySchedules = data.schedules.filter(s => s.days.includes(dayOfWeek));
+
+  daySchedules.forEach(sched => {
+    const cls = data.classes.find(c => c.id === sched.classId);
+    const sub = data.subjects.find(su => su.id === sched.subjectId);
+    if (!cls || !sub) return;
+
+    // Check exam proximity — don't skip if exam within 7 days
+    if (sub.examDate) {
+      const daysToExam = Math.ceil((new Date(sub.examDate).getTime() - new Date(dateStr).getTime()) / 864e5);
+      if (daysToExam <= 7) {
+        suggestions.push({ 
+          scheduleId: sched.id, 
+          action: 'keep', 
+          reason: `Ujian ${sub.name} ${daysToExam} hari lagi`
+        });
+        return;
+      }
+    }
+
+    // Check subject status — can't skip if behind/tight
+    const status = getSubjectStatus(sub, cls, data);
+    if (status.status === 'behind' || status.status === 'tight') {
+      suggestions.push({ 
+        scheduleId: sched.id, 
+        action: 'keep', 
+        reason: status.label 
+      });
+      return;
+    }
+
+    // Otherwise safe to postpone
+    suggestions.push({ 
+      scheduleId: sched.id, 
+      action: 'postpone', 
+      days: 7, 
+      reason: 'Bisa ditunda ke minggu depan'
+    });
+  });
+
+  return suggestions;
 }
+
+/**
+ * Apply a batch of reschedule actions for a specific date
+ */
+export function applySmartReschedule(dateStr: string, actions: RescheduleAction[]) {
+  const data = getData();
+
+  actions.forEach(action => {
+    const sched = data.schedules.find(s => s.id === action.scheduleId);
+    if (!sched) return;
+
+    if (action.action === 'skip') {
+      if (!data.scheduleOverrides) data.scheduleOverrides = [];
+      const existing = data.scheduleOverrides.find(o => o.scheduleId === action.scheduleId && o.date === dateStr);
+      if (existing) {
+        existing.skipped = true;
+      } else {
+        data.scheduleOverrides.push({
+          date: dateStr,
+          scheduleId: action.scheduleId,
+          startTime: sched.startTime,
+          skipped: true,
+        });
+      }
+
+      // Auto-create catch-up task for skipped session
+      const cls = data.classes.find(c => c.id === sched.classId);
+      const sub = data.subjects.find(su => su.id === sched.subjectId);
+      if (cls && sub) {
+        const catchUpDate = new Date();
+        catchUpDate.setDate(catchUpDate.getDate() + 7);
+        addTask(sched.classId, sched.subjectId, `Kejar sesi ${cls.name} – ${sub.name} yang dilewati`, catchUpDate.toISOString().slice(0, 10));
+      }
+    }
+
+    if (action.action === 'postpone' && action.days) {
+      postponeSchedule(action.scheduleId, action.days * 24 * 60); // convert days to minutes
+    }
+
+    if (action.action === 'deliver' && action.note) {
+      // Mark as done with a note (teacher delivered remotely)
+      markDone(action.scheduleId, `[Izin] ${action.note}`);
+    }
+
+    // 'keep' → do nothing
+  });
+
+   saveData(data);
+ }
+
+// ==================== HEATMAP (FEATURE 4) ====================
+
+/**
+ * Get start of week (Monday) for a given date
+ */
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? 6 : day - 1); // Monday = 0
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Generate heatmap data for all class+subject combinations
+ * Returns rows for the next N weeks (default 8)
+ */
+export function getHeatmapData(weeks: number = 8): HeatmapRow[] {
+  const data = getData();
+  const rows: HeatmapRow[] = [];
+  const today = now();
+
+  // Build week buckets: weekStart -> { cells_by_class_subject }
+  const weekBuckets: Record<string, Record<string, { done: number; scheduled: number }>> = {};
+
+  for (let w = 0; w < weeks; w++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (w * 7));
+    weekStart.setHours(0, 0, 0, 0);
+    const weekKey = weekStart.toISOString().slice(0, 10);
+    weekBuckets[weekKey] = {};
+  }
+
+  // Iterate all class+subject schedules
+  data.classes.forEach(cls => {
+    data.subjects.forEach(sub => {
+      const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
+      if (scheds.length === 0) return;
+
+      // Create row
+      const row: HeatmapRow = {
+        className: cls.name,
+        subjectName: sub.name,
+        classId: cls.id,
+        subjectId: sub.id,
+        cells: []
+      };
+
+      // Build week-by-week stats
+      for (let w = 0; w < weeks; w++) {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() + (w * 7));
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+
+        const weekKey = weekStart.toISOString().slice(0, 10);
+        const bucket = weekBuckets[weekKey]![`${cls.id}-${sub.id}`] = { done: 0, scheduled: 0 };
+
+        // Count scheduled sessions in this week
+        for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().slice(0, 10);
+          const dayOfWeek = d.getDay();
+
+          scheds.forEach(s => {
+            if (!s.days.includes(dayOfWeek)) return;
+            // Check holiday
+            const subLevel = data.subjects.find(su => su.id === s.subjectId)?.level;
+            if (isDateHolidayForSubject(dateStr, subLevel)) return;
+            bucket.scheduled++;
+          });
+        }
+
+        // Count completed sessions in this week
+        data.sessions.forEach(sess => {
+          if (sess.classId !== cls.id || sess.subjectId !== sub.id) return;
+          const sessDate = new Date(sess.date);
+          if (sessDate >= weekStart && sessDate <= weekEnd && sess.materialId !== 'SKIPPED') {
+            bucket.done++;
+          }
+        });
+      }
+
+      // Build cells array
+      for (let w = 0; w < weeks; w++) {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() + (w * 7));
+        const weekKey = weekStart.toISOString().slice(0, 10);
+        const bucket = weekBuckets[weekKey]![`${cls.id}-${sub.id}`] || { done: 0, scheduled: 0 };
+
+        let status: HeatmapCell['status'] = 'no-data';
+        if (bucket.scheduled === 0) {
+          status = 'no-class';
+        } else if (bucket.done >= bucket.scheduled) {
+          status = 'on-track';
+        } else if (bucket.done === 0 && bucket.scheduled > 0) {
+          status = 'behind';
+        } else if (bucket.done < bucket.scheduled) {
+          status = 'tight';
+        }
+
+        row.cells.push({
+          weekStart: weekKey,
+          weekLabel: `Minggu ${w + 1}`,
+          status,
+          sessionsDone: bucket.done,
+          sessionsScheduled: bucket.scheduled,
+        });
+      }
+
+      rows.push(row);
+    });
+  });
+
+  return rows;
+}
+
+// ==================== PREDICTIVE FINISH DATE (FEATURE 5) ====================
+
+/**
+ * Calculate predicted finish date for each class+subject based on current pace
+ */
+export function getPredictiveFinishes(): PredictiveFinish[] {
+  const data = getData();
+  const results: PredictiveFinish[] = [];
+
+  data.subjects.forEach(sub => {
+    if (!sub.examDate) return; // Only subjects with exam date
+
+    data.classes.forEach(cls => {
+      const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
+      if (scheds.length === 0) return;
+
+      const mats = getMaterials(sub.id, cls.id);
+      if (!mats.length) return;
+
+      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+      const totalSessNeeded = getTotalSessionsNeeded(mats);
+      const remainingSess = totalSessNeeded - prog.materialsDone;
+
+      // Calculate current weekly pace from last 4 weeks of actual sessions
+      const fourWeeksAgo = new Date();
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+      const recentSessions = data.sessions.filter(s =>
+        s.classId === cls.id && s.subjectId === sub.id &&
+        new Date(s.date) >= fourWeeksAgo && s.materialId !== 'SKIPPED'
+      );
+      const sessionsPerWeek = recentSessions.length / 4;
+
+      let predictedFinishDate: string | null = null;
+      let pace: 'ahead' | 'on-track' | 'behind' = 'on-track';
+      let daysDifference: number | null = null; // examDate - predictedFinishDate in days
+
+      if (remainingSess <= 0) {
+        // Already completed
+        predictedFinishDate = new Date().toISOString().slice(0, 10);
+        if (sub.examDate) {
+          const diff = Math.ceil((new Date(sub.examDate).getTime() - new Date().getTime()) / 864e5);
+          daysDifference = diff;
+          if (diff > 0) pace = 'ahead';
+          else if (diff === 0) pace = 'on-track';
+          else pace = 'behind';
+        } else {
+          daysDifference = null;
+          pace = 'ahead';
+        }
+      } else if (sessionsPerWeek > 0) {
+        const weeksNeeded = Math.ceil(remainingSess / sessionsPerWeek);
+        const finish = new Date();
+        finish.setDate(finish.getDate() + (weeksNeeded * 7));
+        predictedFinishDate = finish.toISOString().slice(0, 10);
+
+        if (sub.examDate) {
+          const diff = Math.ceil((new Date(sub.examDate).getTime() - finish.getTime()) / 864e5);
+          daysDifference = diff;
+          if (diff < 0) pace = 'behind';
+          else if (diff === 0) pace = 'on-track';
+          else pace = 'ahead';
+        } else {
+          daysDifference = null;
+          pace = 'ahead';
+        }
+      } else {
+        // No recent activity — can't predict
+        return;
+      }
+
+      results.push({
+        classId: cls.id,
+        subjectId: sub.id,
+        predictedFinishDate,
+        examDate: sub.examDate,
+        daysDifference,
+        pace,
+      });
+    });
+  });
+
+  return results;
+}
+
+// ==================== EXAM PREP MODE (FEATURE 8) ====================
+
+export function getExamPrepItems(): ExamPrepItem[] {
+  const data = getData();
+  const items: ExamPrepItem[] = [];
+  const today = now();
+  const prepWindowDays = 14; // H-14
+
+  data.subjects.forEach(sub => {
+    if (!sub.examDate) return;
+
+    const daysToExam = Math.ceil((new Date(sub.examDate).getTime() - today.getTime()) / 864e5);
+    if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
+
+    data.classes.forEach(cls => {
+      const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
+      if (scheds.length === 0) return;
+
+      const mats = getMaterials(sub.id, cls.id);
+      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+      const totalSess = getTotalSessionsNeeded(mats);
+      const remainingSess = totalSess - prog.materialsDone;
+      const progressPct = Math.round((prog.materialsDone / totalSess) * 100);
+
+      const holidays = data.holidays ?? [];
+      const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
+
+      let status: 'critical' | 'warning' | 'ok' = 'ok';
+      let recommendedActions: string[] = [];
+
+      if (remainingSess <= 0) {
+        status = 'ok';
+        recommendedActions = ['✅ Semua materi sudah selesai!'];
+      } else if (sessLeft === 0) {
+        status = 'critical';
+        recommendedActions = ['⚠️ Tidak ada sesi tersisa sebelum ujian. Pertimbangkan tambah jadwal darurat.'];
+      } else if (remainingSess > sessLeft) {
+        status = 'critical';
+        const deficit = remainingSess - sessLeft;
+        recommendedActions = [
+          `🚨 Ketinggalan ${deficit} sesi!`,
+          `📅 Tambah ${deficit} sesi extra`,
+          `📚 Fokus ke materi inti (trim jika perlu)`,
+        ];
+      } else if (remainingSess > sessLeft * 0.8) {
+        status = 'warning';
+        recommendedActions = [
+          `⏰ Mepet target! ${remainingSess} sesi dalam ${daysToExam} hari`,
+          `📌 Prioritaskan materi yang belum selesai`,
+          `🔁 Review secara rutin`,
+        ];
+      } else {
+        status = 'ok';
+        recommendedActions = [
+          `✅ Masih-safe: ${remainingSess} sesi dengan ${daysToExam} hari`,
+          `📖 Lanjutkan ritme normal`,
+          `🧠 Mulai review 2 hari sebelum ujian`,
+        ];
+      }
+
+      items.push({
+        classId: cls.id, className: cls.name,
+        subjectId: sub.id, subjectName: sub.name,
+        examDate: sub.examDate,
+        daysLeft: daysToExam,
+        status,
+        progressPct,
+        sessionsNeeded: remainingSess,
+        sessionsDone: prog.materialsDone,
+        recommendedActions,
+      });
+    });
+  });
+
+  // Sort by urgency (critical first, then by daysLeft ascending)
+  return items.sort((a, b) => {
+    const priority = { critical: 3, warning: 2, ok: 1 };
+    const diff = priority[b.status] - priority[a.status];
+    if (diff !== 0) return diff;
+    return (a.daysLeft || 0) - (b.daysLeft || 0);
+  });
+}
+
+
+// ==================== AI AUTO-PACING ====================
+
+/**
+ * Calculate pace status for a single class+subject combo, with smart suggestions
+ */
+export function calculatePaceForCombination(classId: string, subjectId: string) {
+  const data = getData();
+  const cls = data.classes.find(c => c.id === classId);
+  const sub = data.subjects.find(s => s.id === subjectId);
+  if (!cls || !sub) return null;
+
+  const mats = getMaterials(subjectId, classId);
+  if (!mats.length) return null;
+
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
+  const totalSess = getTotalSessionsNeeded(mats);
+  const doneSess = prog.materialsDone;
+  const remainingSess = totalSess - doneSess;
+  if (remainingSess <= 0) return { type: 'no_issue' as const, description: 'Semua materi sudah selesai!' };
+
+  const scheds = data.schedules.filter(s => s.classId === classId && s.subjectId === subjectId);
+  if (!scheds.length) return { type: 'no_issue' as const, description: 'Belum ada jadwal untuk kelas ini.' };
+
+  const holidays = data.holidays ?? [];
+  const daysLeft = sub.examDate ? Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5) : 999;
+  const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(scheds, daysLeft, holidays, sub.level);
+
+  const { material: nextMat } = getMaterialForSession(mats, doneSess);
+
+  if (sessLeft === 0) {
+    return {
+      type: 'add_sessions' as const,
+      classId, class: cls.name, subjectId, subject: sub.name,
+      description: `Tidak ada sesi tersisa${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} hari libur)` : ''}. Perlu tambah jadwal.`,
+      actionable: true,
+      estimatedExtraSessions: remainingSess,
+    };
+  }
+
+  if (remainingSess > sessLeft + 2) {
+    const deficit = remainingSess - sessLeft;
+    const suggestedDates = suggestAvailableDates(scheds, daysLeft, holidays, deficit, sub.level);
+    const matsToTrim = suggestMaterialsToTrim(mats, doneSess, deficit);
+    return {
+      type: 'add_sessions' as const,
+      classId, class: cls.name, subjectId, subject: sub.name,
+      description: `Ketinggalan ${deficit} sesi. Butuh ${remainingSess} sesi, tapi hanya ${sessLeft} tersisa.`,
+      actionable: true,
+      estimatedExtraSessions: deficit,
+      suggestedDates,
+      materialsToTrim: matsToTrim,
+    };
+  }
+
+  if (remainingSess > sessLeft) {
+    return {
+      type: 'add_sessions' as const,
+      classId, class: cls.name, subjectId, subject: sub.name,
+      description: `Mepet target: butuh ${remainingSess} sesi, tersedia ${sessLeft}.`,
+      actionable: true,
+      estimatedExtraSessions: remainingSess - sessLeft,
+      suggestedDates: suggestAvailableDates(scheds, daysLeft, holidays, remainingSess - sessLeft, sub.level),
+    };
+  }
+
+  if (remainingSess === sessLeft && sessLeft <= 3 && scheds.length >= 2) {
+    return {
+      type: 'merge_sessions' as const,
+      classId, class: cls.name, subjectId, subject: sub.name,
+      description: `Sisa ${remainingSess} sesi dengan ${scheds.length} slot jadwal. Pertimbangkan gabungkan beberapa sesi.`,
+      actionable: true,
+    };
+  }
+
+  return {
+    type: 'no_issue' as const,
+    classId, class: cls.name, subjectId, subject: sub.name,
+    description: 'On track. Lanjutkan!',
+    actionable: false,
+  };
+}
+
+/**
+ * Generate suggestions for ALL class+subject combinations
+ */
+export function generatePaceSuggestions(): PaceSuggestion[] {
+  const data = getData();
+  const suggestions: PaceSuggestion[] = [];
+
+  data.subjects.forEach(sub => {
+    data.classes.forEach(cls => {
+      const result = calculatePaceForCombination(cls.id, sub.id);
+      if (result && result.type !== 'no_issue') {
+        suggestions.push(result);
+      }
+    });
+  });
+
+  return suggestions.sort((a, b) => {
+    const priority = { add_sessions: 3, merge_sessions: 2, trim_materials: 1 };
+    return (priority[b.type] || 0) - (priority[a.type] || 0);
+  });
+}
+
+/**
+ * Suggest available dates (weekdays) to add extra sessions
+ */
+function suggestAvailableDates(
+  existingScheds: Schedule[],
+  daysLeft: number,
+  holidays: (string | { date: string; level?: string })[],
+  neededSessions: number,
+  subjectLevel?: string
+): string[] {
+  const suggested: string[] = [];
+  const existingDays = existingScheds.flatMap(s => s.days);
+
+  for (let d = 1; d <= daysLeft && suggested.length < neededSessions; d++) {
+    const date = new Date();
+    date.setDate(date.getDate() + d);
+    const dateStr = date.toISOString().slice(0, 10);
+    const dayOfWeek = date.getDay();
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+    const isHoliday = holidays.some(h =>
+      typeof h === 'string' ? h === dateStr : h.date === dateStr && (!h.level || h.level === subjectLevel)
+    );
+    if (isHoliday) continue;
+
+    const alreadyScheduled = existingScheds.some(s => s.days.includes(dayOfWeek));
+    if (!alreadyScheduled) {
+      suggested.push(dateStr);
+    }
+  }
+  return suggested;
+}
+
+/**
+ * Suggest which materials could be trimmed/condensed
+ */
+function suggestMaterialsToTrim(
+  mats: Material[],
+  doneSessions: number,
+  deficit: number
+): string[] {
+  const remainingMats = mats.filter((_, idx) => {
+    let cumSessions = 0;
+    for (let i = 0; i < idx; i++) cumSessions += mats[i].sessions ?? 1;
+    return cumSessions >= doneSessions;
+  }).slice(0, Math.ceil(deficit / 2));
+
+  return remainingMats.map(m => m.name);
+}
+
+/**
+ * Apply a pace suggestion — creates catch-up tasks for suggested extra sessions
+ */
+export function applyPaceSuggestion(suggestion: PaceSuggestion) {
+  if (suggestion.type !== 'add_sessions' || !suggestion.suggestedDates?.length) return;
+
+  const data = getData();
+  const sched = data.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
+  if (!sched) return;
+
+  // Create a task for each suggested extra session date
+  suggestion.suggestedDates.forEach(dateStr => {
+    addTask(
+      suggestion.classId,
+      suggestion.subjectId,
+      `📚 Extra session: ${suggestion.subject} (catch-up)`,
+      dateStr
+    );
+  });
+
+  saveData(data);
+}
+
+/**
+ * Add an extra session (override) on a specific date for a schedule
+ */
+export function addExtraSession(scheduleId: string, dateStr: string, startTime?: string, durationOverride?: number) {
+  const data = getData();
+  const sched = data.schedules.find(s => s.id === scheduleId);
+  if (!sched) return;
+
+  if (!data.scheduleOverrides) data.scheduleOverrides = [];
+
+  // Check if extra session already exists on this date
+  const existingExtra = data.scheduleOverrides.find(
+    o => o.scheduleId === scheduleId && o.date === dateStr && o.isExtra
+  );
+  if (existingExtra) return; // already added
+
+  data.scheduleOverrides.push({
+    date: dateStr,
+    scheduleId: scheduleId,
+    startTime: startTime || sched.startTime,
+    durationOverride: durationOverride || sched.duration,
+    isExtra: true,
+  });
+
+  saveData(data);
+}
+
 

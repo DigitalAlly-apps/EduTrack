@@ -1,7 +1,104 @@
 import { useState, useMemo, memo, useCallback } from 'react';
-import { getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded } from '@/lib/data';
-import AICard from './AICard';
+import {
+  getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
+  generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
+  getHeatmapData, getPredictiveFinishes, getExamPrepItems,
+} from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
+import PaceSuggestionsCard from './PaceSuggestionsCard';
+import HeatmapCard from './HeatmapCard';
+import ExamPrepCard from './ExamPrepCard';
+import { PaceSuggestion, HeatmapRow, PredictiveFinish, ExamPrepItem } from '@/lib/types';
+
+// ─── AI PACE SUGGESTIONS CARD ───────────────────────────────────────────────────
+function PaceSuggestionsCard() {
+  const { toast } = useToast();
+  const [suggestions, setSuggestions] = useState<PaceSuggestion[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSuggestions = useCallback(() => {
+    setLoading(true);
+    setTimeout(() => {
+      const result = generatePaceSuggestions();
+      setSuggestions(result.slice(0, 3));
+      setLoading(false);
+    }, 600);
+  }, []);
+
+  const handleApply = (suggestion: PaceSuggestion) => {
+    if (suggestion.type === 'add_sessions' && suggestion.suggestedDates?.length) {
+      applyPaceSuggestion(suggestion);
+      toast({ title: `Ditambahkan ${suggestion.suggestedDates.length} sesi pengganti` });
+      fetchSuggestions();
+    } else {
+      toast({ title: 'Saran tidak bisa diterapkan otomatis' });
+    }
+  };
+
+  return (
+    <div className="relative bg-gradient-to-br from-primary/8 via-primary/3 to-transparent border border-primary/20 rounded-2xl overflow-hidden mb-4 animate-slide-up shadow-sm">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]" />
+      <div className="relative p-4 flex items-center justify-between border-b border-primary/10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-sm">🧠</div>
+          <div>
+            <div className="text-[13px] font-bold text-foreground">AI Auto-Pacing</div>
+            <div className="text-[10px] text-text3">Saran cerdas untuk target ujian</div>
+          </div>
+        </div>
+        <button onClick={fetchSuggestions} disabled={loading} className={`w-8 h-8 rounded-lg bg-surface border border-border2 text-text2 text-[12px] grid place-items-center flex-shrink-0 transition-all hover:bg-surface2 ${loading ? 'animate-spin' : ''}`} title="Perbarui saran">↻</button>
+      </div>
+      <div className="relative p-4">
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 text-text2 text-[12px] py-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0s' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.15s' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.3s' }} />
+            <span>Menganalisis target ujian...</span>
+          </div>
+        ) : suggestions && suggestions.length > 0 ? (
+          <div className="space-y-2.5">
+            {suggestions.map((s, i) => (
+              <div key={i} className="bg-surface/60 backdrop-blur-sm border border-border/60 rounded-xl p-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="text-base flex-shrink-0 mt-0.5">
+                    {s.type === 'add_sessions' ? '⚡' : s.type === 'merge_sessions' ? '🔗' : '✂️'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[12px] font-bold text-foreground truncate">{s.class} • {s.subject}</div>
+                      {s.actionable && (
+                        <button onClick={() => handleApply(s)} className="text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full flex-shrink-0">Terapkan</button>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-text2 leading-snug">{s.description}</div>
+                    {s.suggestedDates && s.suggestedDates.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {s.suggestedDates.slice(0, 3).map(d => (
+                          <span key={d} className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">{d}</span>
+                        ))}
+                        {s.suggestedDates.length > 3 && (
+                          <span className="text-[9px] text-text3">+{s.suggestedDates.length - 3} lain</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <div className="text-2xl mb-1.5">✅</div>
+            <div className="text-[12px] text-text2 font-medium">Semua target aman. Tidak ada saran urgent.</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function getUrgencyScore(st: ReturnType<typeof getSubjectStatus>): number {
   let score = 0;
@@ -24,6 +121,37 @@ function getEffectiveStatus(st: ReturnType<typeof getSubjectStatus>): 'green' | 
 
 export default function ProgressView() {
   const [tab, setTab] = useState<'progress' | 'history' | 'kalender'>('progress');
+
+  // Compute heatmap once (for Feature 4)
+  const heatmapRows = useMemo(() => {
+    try {
+      return getHeatmapData(8);
+    } catch (e) {
+      console.error('Heatmap data error:', e);
+      return [];
+    }
+  }, []);
+
+  // Compute predictive finishes (Feature 5)
+  const predictiveFinishes = useMemo(() => {
+    try {
+      return getPredictiveFinishes();
+    } catch (e) {
+      console.error('Predictive finishes error:', e);
+      return [];
+    }
+  }, []);
+
+  // Compute exam prep items (Feature 8)
+  const examPrepItems = useMemo(() => {
+    try {
+      return getExamPrepItems();
+    } catch (e) {
+      console.error('Exam prep items error:', e);
+      return [];
+    }
+  }, []);
+
   return (
     <div className="pt-1">
       <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-[14px] mb-[18px] p-1 shadow-sm gap-1">
@@ -31,7 +159,7 @@ export default function ProgressView() {
         <button onClick={() => setTab('kalender')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'kalender' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Kalender</button>
         <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat</button>
       </div>
-      {tab === 'progress' && <ProgressTab />}
+      {tab === 'progress' && <ProgressTab heatmapRows={heatmapRows} predictiveFinishes={predictiveFinishes} examPrepItems={examPrepItems} />}
       {tab === 'kalender' && <CalendarTab />}
       {tab === 'history' && <HistoryTab />}
     </div>
@@ -49,43 +177,71 @@ type CardData = {
   matsDone: number;
   totalSessDone: number;
   totalSessAll: number;
+  predictiveFinish?: PredictiveFinish | undefined;
 };
 
 type GroupData = { clsName: string; cards: CardData[]; issues: number };
 
 // ─── ProgressTab ──────────────────────────────────────────────────────────────
-function ProgressTab() {
+function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
+  heatmapRows: HeatmapRow[];
+  predictiveFinishes: PredictiveFinish[];
+  examPrepItems: ExamPrepItem[];
+}) {
   const [filter, setFilter] = useState<'semua' | 'bermasalah'>('semua');
 
-  // Heavy computation — memoized once per mount
-  const { allCards, hasSchedules, hasClasses } = useMemo(() => {
-    const data = getData();
-    if (!data.classes.length) return { allCards: [], hasSchedules: false, hasClasses: false };
+  // All heavy computation in ONE memo — satisfies Rules of Hooks
+  const computed = useMemo(() => {
+    try {
+      const data = getData();
+      if (!data.classes.length) {
+        return { allCards: [], groupedByClass: {}, classIds: [], hasSchedules: false, hasClasses: false };
+      }
 
-    const cards: CardData[] = [];
-    let hasSched = false;
+      const cards: CardData[] = [];
+      let hasSched = false;
 
-    data.classes.forEach(cls => {
-      data.subjects.forEach(sub => {
-        if (!data.schedules.some(s => s.classId === cls.id && s.subjectId === sub.id)) return;
-        hasSched = true;
-        const st = getSubjectStatus(sub, cls, data);
-        const mats = data.materials.filter(m => m.subjectId === sub.id).sort((a, b) => a.order - b.order);
-        const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
-        const totalSessDone = prog?.materialsDone ?? 0;
-        const totalSessAll = getTotalSessionsNeeded(mats);
-        cards.push({
-          clsId: cls.id, clsName: cls.name,
-          subId: sub.id, subName: sub.name,
-          st, urgency: getUrgencyScore(st),
-          effectiveColor: getEffectiveStatus(st),
-          mats, matsDone: totalSessDone, totalSessDone, totalSessAll,
+      data.classes.forEach(cls => {
+        data.subjects.forEach(sub => {
+          if (!data.schedules.some(s => s.classId === cls.id && s.subjectId === sub.id)) return;
+          hasSched = true;
+          const st = getSubjectStatus(sub, cls, data);
+          const mats = data.materials.filter(m => m.subjectId === sub.id).sort((a, b) => a.order - b.order);
+          const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
+          const totalSessDone = prog?.materialsDone ?? 0;
+          const totalSessAll = getTotalSessionsNeeded(mats);
+          const pred = predictiveFinishes.find(p => p.classId === cls.id && p.subjectId === sub.id);
+          cards.push({
+            clsId: cls.id, clsName: cls.name,
+            subId: sub.id, subName: sub.name,
+            st, urgency: getUrgencyScore(st),
+            effectiveColor: getEffectiveStatus(st),
+            mats, matsDone: totalSessDone, totalSessDone, totalSessAll,
+            predictiveFinish: pred,
+          });
         });
       });
-    });
 
-    return { allCards: cards, hasSchedules: hasSched, hasClasses: true };
-  }, []);
+      // Group by class
+      const grp: Record<string, GroupData> = {};
+      cards.forEach(card => {
+        if (!grp[card.clsId]) grp[card.clsId] = { clsName: card.clsName, cards: [], issues: 0 };
+        grp[card.clsId].cards.push(card);
+        if (card.effectiveColor !== 'green') grp[card.clsId].issues++;
+      });
+      const classIds = Object.keys(grp).sort((a, b) => {
+        const diff = grp[b].issues - grp[a].issues;
+        return diff !== 0 ? diff : grp[a].clsName.localeCompare(grp[b].clsName);
+      });
+
+      return { allCards: cards, groupedByClass: grp, classIds, hasSchedules: hasSched, hasClasses: true };
+    } catch (e) {
+      console.error('ProgressTab computation error:', e);
+      return { allCards: [], groupedByClass: {}, classIds: [], hasSchedules: false, hasClasses: false };
+    }
+  }, [predictiveFinishes]);
+
+  const { allCards, groupedByClass, classIds, hasSchedules, hasClasses } = computed;
 
   if (!hasClasses) return (
     <div className="text-center py-12 px-6 animate-slide-up">
@@ -103,32 +259,20 @@ function ProgressTab() {
     </div>
   );
 
-  const filtered = filter === 'bermasalah'
-    ? allCards.filter(c => c.effectiveColor !== 'green')
-    : allCards;
+  if (!hasSchedules) return (
+    <div className="text-center py-12 px-6 animate-slide-up">
+      <span className="text-5xl block mb-4">📈</span>
+      <div className="font-display text-2xl font-medium tracking-tight mb-2">Belum ada jadwal terhubung</div>
+      <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">Hubungkan kelas dengan mata pelajaran di menu Kelola.</div>
+    </div>
+  );
 
-  const bermasalahCount = allCards.filter(c => c.effectiveColor !== 'green').length;
-
-  // Group by class
-  const { groupedByClass, classIds } = useMemo(() => {
-    const grp: Record<string, GroupData> = {};
-    filtered.forEach(card => {
-      if (!grp[card.clsId]) grp[card.clsId] = { clsName: card.clsName, cards: [], issues: 0 };
-      grp[card.clsId].cards.push(card);
-      if (card.effectiveColor !== 'green') grp[card.clsId].issues++;
-    });
-    const ids = Object.keys(grp).sort((a, b) => {
-      const diff = grp[b].issues - grp[a].issues;
-      return diff !== 0 ? diff : grp[a].clsName.localeCompare(grp[b].clsName);
-    });
-    return { groupedByClass: grp, classIds: ids };
-  }, [filtered]);
-
-  return (
-    <>
-      <WeeklyReviewCard />
-      <AICard />
-      <div className="mt-4">
+    return (
+      <>
+        <WeeklyReviewCard />
+        <PaceSuggestionsCard />
+        {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
+        <div className="mt-4">
         {/* Filter bar */}
         <div className="mb-5 flex gap-2 w-full">
           <button
@@ -154,15 +298,22 @@ function ProgressTab() {
           </div>
         )}
 
-        <div className="space-y-6">
-          {classIds.map(clsId => (
-            <ClassGroup
-              key={clsId}
-              group={groupedByClass[clsId]}
-            />
-          ))}
-        </div>
-      </div>
+         <div className="space-y-6">
+           {classIds.map(clsId => (
+             <ClassGroup
+               key={clsId}
+               group={groupedByClass[clsId]}
+             />
+           ))}
+         </div>
+
+         {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
+         {examPrepItems.length > 0 && (
+           <div className="mt-6">
+             <ExamPrepCard items={examPrepItems} />
+           </div>
+         )}
+       </div>
     </>
   );
 }
@@ -203,7 +354,7 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
 // ─── SubjectCard — Handles its own expansion state ────────
 const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const [showMats, setShowMats] = useState(false);
-  const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll } = card;
+  const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, predictiveFinish } = card;
 
   return (
     <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors ${
@@ -241,6 +392,32 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                 <span className={st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold' : 'text-amber font-bold') : 'text-text3'}>
                    ⏳ {st.daysLeft} hari ujian
                 </span>
+              </>
+            )}
+            {predictiveFinish?.predictedFinishDate && (
+              <>
+                <span className="opacity-40">•</span>
+                <span className={`${
+                  predictiveFinish.pace === 'ahead' ? 'text-green' :
+                  predictiveFinish.pace === 'behind' ? 'text-red' :
+                  'text-foreground'
+                }`}>
+                  📅 Prediksi: {new Date(predictiveFinish.predictedFinishDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                </span>
+                {predictiveFinish.examDate && predictiveFinish.daysDifference !== null && (
+                  <span className={`
+                    ${predictiveFinish.daysDifference < 0 ? 'text-red font-bold' :
+                      predictiveFinish.daysDifference === 0 ? 'text-red font-bold' :
+                      predictiveFinish.daysDifference <= 3 ? 'text-amber font-bold' :
+                      'text-text3'}
+                  `}>
+                    {predictiveFinish.daysDifference < 0
+                      ? ` (terlambat ${Math.abs(predictiveFinish.daysDifference)} hari)`
+                      : predictiveFinish.daysDifference === 0
+                      ? ' (hari ujian)'
+                      : ` (${predictiveFinish.daysDifference} hari sebelum ujian)`}
+                  </span>
+                )}
               </>
             )}
           </div>

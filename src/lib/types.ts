@@ -102,3 +102,66 @@ export interface Insight {
 }
 export type ViewType = 'today' | 'progress' | 'setup' | 'info' | 'exam';
 export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave';
+
+export type PaceSuggestionType = 'add_sessions' | 'merge_sessions' | 'trim_materials' | 'no_issue';
+export interface PaceSuggestion {
+  classId: string;
+  class: string;
+  subjectId: string;
+  subject: string;
+  type: PaceSuggestionType;
+  description: string;
+  actionable: boolean;
+  estimatedExtraSessions?: number;
+  suggestedDates?: string[];
+  materialsToTrim?: string[];
+}
+export type RescheduleAction = {
+  scheduleId: string;
+  action: 'skip' | 'postpone' | 'deliver' | 'keep';
+  withScheduleId?: string;
+  days?: number;
+  reason?: string;
+  note?: string;
+};
+
+// Heatmap for Progress tab
+export interface HeatmapCell {
+  weekStart: string; // YYYY-MM-DD
+  weekLabel: string; // "Minggu 1", "Minggu 2"
+  status: 'on-track' | 'tight' | 'behind' | 'no-class' | 'no-data';
+  sessionsDone: number;
+  sessionsScheduled: number;
+}
+export interface HeatmapRow {
+  className: string;
+  subjectName: string;
+  classId: string;
+  subjectId: string;
+  cells: HeatmapCell[];
+}
+
+// Exam Prep Mode
+export interface ExamPrepItem {
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  examDate: string;
+  daysLeft: number;
+  status: 'critical' | 'warning' | 'ok';
+  progressPct: number;
+  sessionsNeeded: number;
+  sessionsDone: number;
+  recommendedActions: string[];
+}
+
+// Predictive Finish Date
+export interface PredictiveFinish {
+  classId: string;
+  subjectId: string;
+  predictedFinishDate: string; // YYYY-MM-DD
+  examDate: string | null;
+  daysDifference: number | null; // pred - exam (negative = late)
+  pace: 'ahead' | 'on-track' | 'behind';
+}

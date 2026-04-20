@@ -3,11 +3,12 @@ import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
-  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal
+  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import DailyBriefing from './DailyBriefing';
+import SmartReschedulerModal from './SmartReschedulerModal';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -20,6 +21,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const next = getNextSession(items);
   const insights = getInsights();
   const { toast } = useToast();
+
+  // Smart Rescheduler state
+  const [reschedulerOpen, setReschedulerOpen] = useState(false);
+  const [reschedulerDate, setReschedulerDate] = useState('');
+
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [undoProgress, setUndoProgress] = useState(0);
@@ -608,27 +614,37 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       <div className="flex items-center justify-between mt-4 mb-2 sticky top-0 z-30 bg-background/95 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
         <div className="flex items-center gap-2">
           <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
-          {!active && items.length > 0 && !items.every(x => x.done) && (
-            <div className="flex gap-2 flex-wrap">
-              <button 
-                onClick={() => {
-                  const input = prompt('Mulai jam berapa jadwal akan diliburkan? (contoh: 10:00 atau 10:30)');
-                  if(input) {
-                    if (/^\d{1,2}:\d{2}$/.test(input.trim())) {
-                      const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), input.trim());
-                      onRefresh();
-                      toast({ title: `🏠 ${count} kelas setelah ${input.trim()} diliburkan` });
-                    } else {
-                      toast({ variant: 'destructive', title: 'Format waktu salah (harus HH:MM)' });
-                    }
-                  }
-                }}
-                className="text-[9px] font-bold text-blue-500 px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap"
-              >
-                🏠 Pulang Awal
-              </button>
-            </div>
-          )}
+           {!active && items.length > 0 && !items.every(x => x.done) && (
+             <div className="flex gap-2 flex-wrap">
+               <button 
+                 onClick={() => {
+                   const input = prompt('Mulai jam berapa jadwal akan diliburkan? (contoh: 10:00 atau 10:30)');
+                   if(input) {
+                     if (/^\d{1,2}:\d{2}$/.test(input.trim())) {
+                       const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), input.trim());
+                       onRefresh();
+                       toast({ title: `🏠 ${count} kelas setelah ${input.trim()} diliburkan` });
+                     } else {
+                       toast({ variant: 'destructive', title: 'Format waktu salah (harus HH:MM)' });
+                     }
+                   }
+                 }}
+                 className="text-[9px] font-bold text-blue-500 px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap"
+               >
+                 🏠 Pulang Awal
+               </button>
+               <button
+                 onClick={() => {
+                   const today = new Date().toISOString().slice(0, 10);
+                   setReschedulerDate(today);
+                   setReschedulerOpen(true);
+                 }}
+                 className="text-[9px] font-bold text-amber-600 px-2 py-0.5 rounded-full border border-amber-600/30 bg-amber-600/10 transition-colors hover:bg-amber-600/20 whitespace-nowrap"
+               >
+                 🏥 Izin/Cuti
+               </button>
+             </div>
+           )}
         </div>
         <div className="flex items-center gap-2">
           {active && (
@@ -801,6 +817,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         );
       })}
+      
+      {/* Smart Rescheduler Modal */}
+      <SmartReschedulerModal
+        open={reschedulerOpen}
+        onOpenChange={setReschedulerOpen}
+        dateStr={reschedulerDate}
+        onSuccess={onRefresh}
+      />
     </div>
   );
 }
