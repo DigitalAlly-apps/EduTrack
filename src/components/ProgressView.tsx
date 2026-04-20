@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
   getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
@@ -188,6 +188,11 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
   examPrepItems: ExamPrepItem[];
 }) {
   const [filter, setFilter] = useState<'semua' | 'bermasalah'>('semua');
+  const [isMounting, setIsMounting] = useState(true);
+  
+  useEffect(() => {
+    setIsMounting(false);
+  }, []);
 
   // All heavy computation in ONE memo — satisfies Rules of Hooks
   const computed = useMemo(() => {
@@ -248,6 +253,20 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
     ? classIds.filter(id => groupedByClass[id].issues > 0)
     : classIds;
 
+  if (isMounting) return (
+    <div className="space-y-4 py-4 animate-pulse">
+      <div className="flex gap-2">
+         <div className="h-12 flex-1 bg-surface2 rounded-2xl" />
+         <div className="h-12 flex-1 bg-surface2 rounded-2xl" />
+      </div>
+      <div className="space-y-6">
+        {[1,2,3].map(i => (
+          <div key={i} className="h-32 bg-surface2 rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+
   if (!hasClasses) return (
     <div className="text-center py-12 px-6 animate-slide-up">
       <span className="text-5xl block mb-4">📈</span>
@@ -266,10 +285,7 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
 
     return (
       <>
-        <WeeklyReviewCard />
-        <PaceSuggestionsCard />
-        {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
-        <div className="mt-4">
+        <div className="mt-2">
         {/* Filter bar */}
         <div className="mb-5 flex gap-2 w-full">
           <button
@@ -304,6 +320,12 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
            ))}
          </div>
 
+         <div className="mt-8 space-y-4">
+           <WeeklyReviewCard />
+           <PaceSuggestionsCard />
+           {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
+         </div>
+
          {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
          {examPrepItems.length > 0 && (
            <div className="mt-6">
@@ -327,11 +349,11 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
       >
         <div className="flex items-center gap-2">
           <span className="font-display text-xl font-bold tracking-tight text-foreground">{group.clsName}</span>
-          <span className="text-[11px] font-bold text-text3 bg-surface border border-border px-2 py-0.5 rounded-full">{group.cards.length} Mapel</span>
+          <span className="text-[12px] font-bold text-text3 bg-surface border border-border px-2 py-0.5 rounded-full">{group.cards.length} Mapel</span>
         </div>
         <div className="flex items-center gap-3">
           {group.issues > 0 && (
-            <span className="text-[10px] font-bold bg-red text-white px-2 py-0.5 rounded-md uppercase tracking-wider">{group.issues} Bermasalah</span>
+            <span className="text-[11px] font-bold bg-red text-white px-2 py-0.5 rounded-md uppercase tracking-wider">{group.issues} Bermasalah</span>
           )}
           <span className={`text-text3 group-hover:text-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
         </div>
@@ -372,14 +394,14 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
         <div className="flex-1 min-w-0 pl-3">
           <div className="flex items-center justify-between gap-3 mb-1.5">
             <span className="text-[15px] font-bold text-foreground tracking-tight truncate">{subName}</span>
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0 border ${
+            <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0 border ${
               effectiveColor === 'red' ? 'bg-red/10 text-red border-red/20' :
               effectiveColor === 'amber' ? 'bg-amber/10 text-amber border-amber/20' :
               'bg-green-dim/60 text-green border-green/20'
             }`}>{st.label}</span>
           </div>
           
-          <div className="flex items-center gap-2 text-[11px] text-text2 flex-wrap font-medium">
+          <div className="flex items-center gap-2 text-[12px] text-text2 flex-wrap font-medium">
             <span>Bab: <strong className="text-foreground">{st.done}</strong>/{st.total}</span>
             <span className="opacity-40">•</span>
             <span>Materi (Sesi): <strong className="text-foreground">{totalSessDone}</strong>/{totalSessAll}</span>

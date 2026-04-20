@@ -34,14 +34,14 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
       <div className="flex items-center justify-between">
         <div className="min-w-0 pr-2">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[9px] text-text3 font-extrabold tracking-[0.12em] uppercase opacity-60">
+            <span className="text-[11px] text-text3 font-extrabold tracking-[0.12em] uppercase opacity-60">
               {dateStr}
             </span>
           </div>
           <div className={`font-display font-black tracking-tight text-foreground leading-tight truncate max-w-[170px] ${displayName.length > 15 ? 'text-[14px]' : displayName.length > 10 ? 'text-[17px]' : 'text-xl'}`}>
             {displayName}
           </div>
-          <div className="text-[10px] font-bold text-primary/80 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="text-[11px] font-bold text-primary/80 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
             {activeClassCount > 0 ? (
               <>
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />

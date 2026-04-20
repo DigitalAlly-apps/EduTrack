@@ -57,7 +57,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
   
   const tasks = getTasks();
-  const [briefingOpen, setBriefingOpen] = useState(true);
+  const [briefingOpen, setBriefingOpen] = useState(() => !getActiveSession(getTodaySchedules()));
   const [endedBanner, setEndedBanner] = useState<string | null>(null); // scheduleId of ended class
   const endedNotifiedRef = useRef<Set<string>>(new Set());
 
@@ -355,7 +355,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   </div>
                   
                   <div className="flex gap-1 overflow-x-auto scrollbar-none ml-auto">
-                    {hasExams && countdowns.slice(0, 2).map((cd, i) => (
+                    {hasExams && countdowns.slice(0, 1).map((cd, i) => (
                       <div key={i} className={`whitespace-nowrap px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-tight flex-shrink-0 ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
                         {cd.subject}: {cd.daysLeft}h
                       </div>
@@ -437,14 +437,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   >
                     ⏭
                   </button>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-text3">Geser Waktu:</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => handlePostpone(active.id, 15)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+15m</button>
-                    <button onClick={() => handlePostpone(active.id, 30)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+30m</button>
-                    <button onClick={() => handlePostpone(active.id, 60)} className="px-2.5 py-1 bg-surface2 border border-border rounded-lg text-[11px] font-bold text-text2 hover:bg-surface3 hover:text-foreground transition-all">+1j</button>
-                  </div>
                 </div>
               </div>
             </div>

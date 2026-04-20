@@ -16,7 +16,7 @@ const navItems: { id: ViewType; icon: React.ElementType; label: string }[] = [
 
 export default function BottomNav({ currentView, onViewChange }: BottomNavProps) {
   return (
-    <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 p-4 pb-8 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-none">
+    <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 p-4 pb-8 pointer-events-none">
       <nav className="mx-auto max-w-[360px] pointer-events-auto h-[68px] bg-nav/80 backdrop-blur-xl border border-border2 rounded-[24px] flex items-center px-2 justify-between shadow-2xl transition-colors">
         {navItems.map(item => {
           const Icon = item.icon;
@@ -25,7 +25,7 @@ export default function BottomNav({ currentView, onViewChange }: BottomNavProps)
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={`flex-1 flex flex-col items-center gap-[4px] py-1 px-[6px] rounded-[18px] text-[11px] font-bold tracking-[0.3px] transition-all duration-300 min-h-[52px] justify-center relative ${
+              className={`flex-1 flex flex-col items-center gap-[4px] py-1 px-[6px] rounded-[18px] text-[12px] font-bold tracking-[0.3px] transition-all duration-300 min-h-[52px] justify-center relative ${
                 isActive ? 'text-primary' : 'text-text3 hover:text-text2 hover:bg-surface2/50'
               }`}
             >

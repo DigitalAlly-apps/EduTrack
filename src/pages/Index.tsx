@@ -73,7 +73,7 @@ function AppInner() {
         theme={theme}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-[10px] pb-[120px] scrollbar-thin relative z-0">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-[10px] pb-[140px] scrollbar-thin relative z-0">
         {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
         {view === 'progress' && <ProgressView key={refreshKey} />}
         {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
