@@ -6,7 +6,6 @@ import {
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
-import PaceSuggestionsCard from './PaceSuggestionsCard';
 import HeatmapCard from './HeatmapCard';
 import ExamPrepCard from './ExamPrepCard';
 import { PaceSuggestion, HeatmapRow, PredictiveFinish, ExamPrepItem } from '@/lib/types';
@@ -243,19 +242,17 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
 
   const { allCards, groupedByClass, classIds, hasSchedules, hasClasses } = computed;
 
+  const bermasalahCount = allCards.filter(c => c.effectiveColor !== 'green').length;
+
+  const filteredClassIds = filter === 'bermasalah'
+    ? classIds.filter(id => groupedByClass[id].issues > 0)
+    : classIds;
+
   if (!hasClasses) return (
     <div className="text-center py-12 px-6 animate-slide-up">
       <span className="text-5xl block mb-4">📈</span>
       <div className="font-display text-2xl font-medium tracking-tight mb-2">Belum ada data progres</div>
       <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">Tambahkan kelas, mata pelajaran, dan jadwal terlebih dahulu.</div>
-    </div>
-  );
-
-  if (!hasSchedules) return (
-    <div className="text-center py-12 px-6 animate-slide-up">
-      <span className="text-5xl block mb-4">📈</span>
-      <div className="font-display text-2xl font-medium tracking-tight mb-2">Belum ada jadwal terhubung</div>
-      <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">Hubungkan kelas dengan mata pelajaran di menu Kelola.</div>
     </div>
   );
 
@@ -299,7 +296,7 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
         )}
 
          <div className="space-y-6">
-           {classIds.map(clsId => (
+           {filteredClassIds.map(clsId => (
              <ClassGroup
                key={clsId}
                group={groupedByClass[clsId]}
