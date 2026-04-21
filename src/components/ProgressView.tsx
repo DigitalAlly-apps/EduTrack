@@ -305,11 +305,24 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
         </div>
 
         {classIds.length === 0 && (
-          <div className="text-center py-10 border border-dashed border-border2 rounded-3xl">
+          <div className="text-center py-10 border border-dashed border-border2 rounded-3xl mb-6">
             <span className="text-3xl block mb-2">✅</span>
             <div className="text-sm font-medium text-text2">Semua mapel sesuai target!</div>
           </div>
         )}
+
+         <div className="mb-8 space-y-4">
+           <WeeklyReviewCard />
+           <PaceSuggestionsCard />
+           {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
+         </div>
+
+         {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
+         {examPrepItems.length > 0 && (
+           <div className="mb-8">
+             <ExamPrepCard items={examPrepItems} />
+           </div>
+         )}
 
          <div className="space-y-6">
            {filteredClassIds.map(clsId => (
@@ -319,19 +332,6 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
              />
            ))}
          </div>
-
-         <div className="mt-8 space-y-4">
-           <WeeklyReviewCard />
-           <PaceSuggestionsCard />
-           {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
-         </div>
-
-         {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
-         {examPrepItems.length > 0 && (
-           <div className="mt-6">
-             <ExamPrepCard items={examPrepItems} />
-           </div>
-         )}
        </div>
     </>
   );
