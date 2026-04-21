@@ -1,6 +1,6 @@
 import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
-  getData, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
+  getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
   getHeatmapData, getPredictiveFinishes, getExamPrepItems, undoLastSession,
 } from '@/lib/data';
@@ -210,7 +210,7 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
           if (!data.schedules.some(s => s.classId === cls.id && s.subjectId === sub.id)) return;
           hasSched = true;
           const st = getSubjectStatus(sub, cls, data);
-          const mats = data.materials.filter(m => m.subjectId === sub.id).sort((a, b) => a.order - b.order);
+          const mats = getMaterials(sub.id, cls.id);
           const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
           const totalSessDone = prog?.materialsDone ?? 0;
           const totalSessAll = getTotalSessionsNeeded(mats);

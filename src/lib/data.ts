@@ -1191,6 +1191,13 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
       );
       const sessionsPerWeek = recentSessions.length / 4;
 
+      // ── Estimate scheduled sessions remaining until exam ──────────────────
+      const daysToExam = sub.examDate
+        ? Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5)
+        : 999;
+      const holidays = data.holidays ?? [];
+      const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
+
       let predictedFinishDate: string | null = null;
       let pace: 'ahead' | 'on-track' | 'behind' = 'on-track';
       let daysDifference: number | null = null; // examDate - predictedFinishDate in days
@@ -1208,7 +1215,48 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
           daysDifference = null;
           pace = 'ahead';
         }
+      } else if (sessLeft > 0) {
+        // PRIMARY: Use scheduled sessions to predict finish date.
+        // If sessLeft >= remainingSess, teacher will finish before (or on) exam day.
+        // Estimate finish date based on schedule frequency.
+        const schedFreqPerWeek = sessLeft / Math.max(daysToExam / 7, 1);
+        const weeksNeeded = schedFreqPerWeek > 0
+          ? Math.ceil(remainingSess / schedFreqPerWeek)
+          : daysToExam / 7; // fallback: spread evenly
+
+        // If historical pace is available and it's SLOWER than schedule, use pace (more realistic)
+        let finalWeeksNeeded = weeksNeeded;
+        if (sessionsPerWeek > 0) {
+          const historicalWeeks = Math.ceil(remainingSess / sessionsPerWeek);
+          // Only use historical if it's worse than scheduled (don't penalise new subjects)
+          if (historicalWeeks > weeksNeeded && sessLeft < remainingSess) {
+            finalWeeksNeeded = historicalWeeks;
+          }
+        }
+
+        const finish = new Date();
+        finish.setDate(finish.getDate() + Math.round(finalWeeksNeeded * 7));
+        predictedFinishDate = finish.toISOString().slice(0, 10);
+
+        if (sub.examDate) {
+          const diff = Math.ceil((new Date(sub.examDate).getTime() - finish.getTime()) / 864e5);
+          daysDifference = diff;
+          // If we have enough sessions (sessLeft >= remainingSess), never mark as behind
+          if (sessLeft >= remainingSess) {
+            pace = diff >= 0 ? 'ahead' : 'on-track'; // always achievable
+          } else if (diff < 0) {
+            pace = 'behind';
+          } else if (diff === 0) {
+            pace = 'on-track';
+          } else {
+            pace = 'ahead';
+          }
+        } else {
+          daysDifference = null;
+          pace = 'ahead';
+        }
       } else if (sessionsPerWeek > 0) {
+        // Fallback: no remaining scheduled sessions, use historical pace
         const weeksNeeded = Math.ceil(remainingSess / sessionsPerWeek);
         const finish = new Date();
         finish.setDate(finish.getDate() + (weeksNeeded * 7));
@@ -1225,7 +1273,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
           pace = 'ahead';
         }
       } else {
-        // No recent activity — can't predict
+        // No recent activity and no scheduled sessions — can't predict
         return;
       }
 
