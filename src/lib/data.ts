@@ -1216,23 +1216,18 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
           pace = 'ahead';
         }
       } else if (sessLeft > 0) {
-        // PRIMARY: Use scheduled sessions to predict finish date.
-        // If sessLeft >= remainingSess, teacher will finish before (or on) exam day.
-        // Estimate finish date based on schedule frequency.
+        // PRIMARY: Gunakan frekuensi jadwal terjadwal untuk prediksi.
+        // schedFreqPerWeek = rata-rata sesi per minggu berdasarkan jadwal yang tersisa.
         const schedFreqPerWeek = sessLeft / Math.max(daysToExam / 7, 1);
         const weeksNeeded = schedFreqPerWeek > 0
           ? Math.ceil(remainingSess / schedFreqPerWeek)
-          : daysToExam / 7; // fallback: spread evenly
+          : daysToExam / 7;
 
-        // If historical pace is available and it's SLOWER than schedule, use pace (more realistic)
-        let finalWeeksNeeded = weeksNeeded;
-        if (sessionsPerWeek > 0) {
-          const historicalWeeks = Math.ceil(remainingSess / sessionsPerWeek);
-          // Only use historical if it's worse than scheduled (don't penalise new subjects)
-          if (historicalWeeks > weeksNeeded && sessLeft < remainingSess) {
-            finalWeeksNeeded = historicalWeeks;
-          }
-        }
+        // PERBAIKAN: Jangan gunakan historical pace sebagai override.
+        // Historical pace bisa sangat rendah untuk mapel baru (sedikit sesi tercatat),
+        // dan menyebabkan prediksi jauh ke depan padahal jadwal sudah cukup.
+        // Cukup gunakan jadwal terjadwal — lebih akurat dan tidak misleading.
+        const finalWeeksNeeded = weeksNeeded;
 
         const finish = new Date();
         finish.setDate(finish.getDate() + Math.round(finalWeeksNeeded * 7));
@@ -1241,13 +1236,14 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
         if (sub.examDate) {
           const diff = Math.ceil((new Date(sub.examDate).getTime() - finish.getTime()) / 864e5);
           daysDifference = diff;
-          // If we have enough sessions (sessLeft >= remainingSess), never mark as behind
           if (sessLeft >= remainingSess) {
-            pace = diff >= 0 ? 'ahead' : 'on-track'; // always achievable
-          } else if (diff < 0) {
+            // Cukup sesi — tidak pernah "behind"
+            pace = diff >= 0 ? 'ahead' : 'on-track';
+          } else if (diff < -7) {
+            // Hanya "behind" jika terlambat lebih dari 1 minggu
             pace = 'behind';
-          } else if (diff === 0) {
-            pace = 'on-track';
+          } else if (diff < 0) {
+            pace = 'on-track'; // mepet tapi masih bisa dikejar
           } else {
             pace = 'ahead';
           }
