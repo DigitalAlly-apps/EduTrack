@@ -367,8 +367,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           const isOvertime = currentMin() >= timeToMin(active.endTime);
 
           return (
-            <div className={`bg-surface/60 backdrop-blur-xl border rounded-3xl overflow-hidden relative shadow-lg mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/30'}`}>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+            <div className={`glass-panel rounded-[34px] overflow-hidden relative mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/40'}`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,hsl(var(--primary-glow)),transparent_42%),radial-gradient(circle_at_90%_22%,hsl(var(--teal-glow)),transparent_36%)] pointer-events-none" />
+              <div className="absolute right-5 top-5 text-[80px] leading-none opacity-[0.045] font-display font-black pointer-events-none">{active.className.slice(0, 2).toUpperCase()}</div>
               
               {/* Time Up Notification Banner */}
               {isOvertime && (
@@ -380,7 +381,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="p-5 relative">
                 {/* Status + Exam Badges at Top */}
                 <div className="flex items-center justify-between gap-3 mb-5">
-                  <div className={`inline-flex items-center gap-2 border text-[10px] font-bold tracking-wider uppercase px-2.5 py-1.5 rounded-md flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
+                  <div className={`inline-flex items-center gap-2 border text-[10px] font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
                     <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
                   </div>
@@ -402,7 +403,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   />
                 </div>
 
-                <div className="font-display text-3xl font-extrabold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
+                <div className="font-display text-[34px] font-bold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
                 <div className="text-[15px] font-semibold text-text2 mb-6 flex flex-wrap items-center gap-2.5 w-full">
                   <span className="opacity-90">{active.subjectName}</span>
                   <span className="opacity-20">•</span>
@@ -414,7 +415,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
 
                 <div className="flex items-center gap-4 mb-6">
-                   <div className={`flex-1 p-4 rounded-2xl border flex items-center gap-4 ${isOvertime ? 'bg-red/10 border-red/20' : 'bg-surface2/60 border-border/40'}`}>
+                   <div className={`flex-1 p-4 rounded-[24px] border flex items-center gap-4 ${isOvertime ? 'bg-red/10 border-red/20' : 'bg-surface2/70 border-border/40'}`}>
                       <div className="w-10 h-10 rounded-xl bg-surface/50 flex items-center justify-center text-xl">
                         {isOvertime ? '⏰' : '⏳'}
                       </div>
@@ -427,14 +428,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         </div>
                       </div>
                    </div>
-                   <div className="bg-surface2/40 border border-border/40 rounded-2xl p-3 px-4 min-w-[100px] text-center">
+                    <div className="bg-surface2/70 border border-border/40 rounded-[24px] p-3 px-4 min-w-[100px] text-center">
                       <div className="text-[9px] font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
                       <div className="text-sm font-bold opacity-90">{fmt(active.endTime)}</div>
                    </div>
                 </div>
 
-                <div className="bg-surface2/40 backdrop-blur-sm border border-border/40 rounded-2xl p-4 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-xl flex-shrink-0">📖</div>
+                <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">📖</div>
                   <div>
                     <div className="text-[10px] font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
                     <div className="text-[15px] font-bold leading-tight text-foreground/90">{active.nextMat ? active.nextMat.name : 'Semua materi selesai 🎉'}</div>
@@ -654,9 +655,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-2 sticky top-0 z-30 bg-background/95 backdrop-blur-xl py-3 px-3 shadow-sm border border-border/40 rounded-xl">
+      <div className="flex items-center justify-between mt-4 mb-3 sticky top-0 z-30 glass-panel py-3 px-3 rounded-[24px]">
         <div className="flex items-center gap-2">
-          <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-text3">Jadwal Hari Ini</div>
+          <div className="text-[11px] font-black tracking-[0.12em] uppercase text-text3">Jadwal Hari Ini</div>
            {!active && items.length > 0 && !items.every(x => x.done) && (
              <div className="flex gap-2 flex-wrap">
                <button 

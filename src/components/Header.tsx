@@ -24,33 +24,33 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
       ? parts[0] + ' ' + parts[parts.length - 1]
       : parts[0]
     : parts[0] || 'Guru';
-  const isLongName = displayName.length > 12;
   const dateStr = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
   const activeClassCount = data.classes.length;
   const streak = getTeacherStreak();
 
   return (
-    <div className="flex-shrink-0 px-5 pt-4 pb-3 bg-background/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-40 transition-all shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="min-w-0 pr-2">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[11px] text-text3 font-extrabold tracking-[0.12em] uppercase opacity-60">
+    <div className="flex-shrink-0 px-4 pt-4 pb-3 sticky top-0 z-40 transition-all">
+      <div className="glass-panel rounded-[28px] px-4 py-3 flex items-center justify-between overflow-hidden relative">
+        <div className="absolute -left-8 -top-10 h-24 w-24 rounded-full bg-primary/15 blur-2xl pointer-events-none" />
+        <div className="min-w-0 pr-2 relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_16px_hsl(var(--primary))]" />
+            <span className="text-[10px] text-text3 font-black tracking-[0.16em] uppercase">
               {dateStr}
             </span>
           </div>
-          <div className={`font-display font-black tracking-tight text-foreground leading-tight truncate max-w-[170px] ${displayName.length > 15 ? 'text-[14px]' : displayName.length > 10 ? 'text-[17px]' : 'text-xl'}`}>
+          <div className={`font-display font-bold text-foreground leading-none truncate max-w-[190px] ${displayName.length > 15 ? 'text-[18px]' : displayName.length > 10 ? 'text-[21px]' : 'text-2xl'}`}>
             {displayName}
           </div>
-          <div className="text-[11px] font-bold text-primary/80 mt-0.5 flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="text-[10px] font-black text-primary mt-2 flex items-center gap-1.5 uppercase tracking-[0.14em]">
             {activeClassCount > 0 ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" />
                 {activeClassCount} Kelas Aktif
                 {streak > 0 && (
                   <>
                     <span className="opacity-30">•</span>
-                    <span className="flex items-center gap-0.5 text-amber-500">
-                      <span className="text-xs -mt-[1px]">🔥</span> {streak} Hari
+                    <span className="flex items-center gap-0.5 text-amber">
+                      {streak} Hari Streak
                     </span>
                   </>
                 )}
@@ -59,11 +59,11 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 relative z-10">
           <Dialog>
             <DialogTrigger asChild>
-              <button className="px-3 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-90 text-text2 hover:text-foreground">
-                <span className="text-lg">ℹ️</span>
+              <button className="px-3 h-11 rounded-2xl bg-surface2 hover:bg-surface3 border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-95 text-text2 hover:text-foreground shadow-sm">
+                <span className="text-sm font-black">i</span>
                 <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Info</span>
               </button>
             </DialogTrigger>
@@ -85,10 +85,10 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
 
           <button
             onClick={onToggleTheme}
-            className="w-11 h-11 rounded-2xl bg-surface/50 hover:bg-surface border border-border2 flex items-center justify-center transition-all active:scale-90 shadow-sm text-text2 hover:text-foreground"
+            className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground border border-primary-border flex items-center justify-center transition-all active:scale-95 shadow-primary hover:brightness-105"
             title="Ganti Tema"
           >
-            <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
+            <span className="text-base">{theme === 'dark' ? '☾' : '☀'}</span>
           </button>
         </div>
       </div>

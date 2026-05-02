@@ -74,16 +74,16 @@ function AppInner() {
 
   // ── Main App Shell ─────────────────────────────────────────────────────────
   return (
-    <div className="max-w-[430px] mx-auto h-screen flex flex-col overflow-hidden relative">
-      <div className="absolute inset-0 -z-20 bg-background" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+    <div className="app-frame max-w-[430px] mx-auto h-dvh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70">
+      <div className="absolute inset-x-6 top-0 h-24 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute -right-10 top-32 h-40 w-40 rounded-full bg-teal/10 blur-3xl pointer-events-none" />
 
       <Header
         onToggleTheme={toggleTheme}
         theme={theme}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-[10px] pb-[140px] scrollbar-thin relative z-0">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[136px] scrollbar-thin relative z-0">
         {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
         {view === 'progress' && <ProgressView key={refreshKey} />}
         {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
