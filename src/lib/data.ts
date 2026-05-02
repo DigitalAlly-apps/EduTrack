@@ -1,6 +1,7 @@
 import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, HeatmapRow, HeatmapCell, ExamPrepItem, PredictiveFinish } from './types';
 
 const DB_KEY = 'pengajar_v4';
+const CORR_KEY = 'edutrack_corrections';
 
 const DEFAULT_DATA: AppData = {
   teacherName: '', classes: [], subjects: [], materials: [], schedules: [],
@@ -32,33 +33,33 @@ export function updateData(fn: (d: AppData) => void): AppData {
 
 export function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
-/**
- * Ambil materi untuk kombinasi mapel + rombel, dengan hierarki fallback:
- * 1. Materi override khusus rombel ini (classId match)
- * 2. Materi shared untuk level/tingkatan rombel ini (level match)
- * 3. Materi lama tanpa level/classId (backward-compat)
- */
-export function getMaterials(subjectId: string, classId: string): import('./types').Material[] {
-  const data = getData();
+function getMaterialsFromData(data: AppData, subjectId: string, classId: string): import('./types').Material[] {
   const cls = data.classes.find(c => c.id === classId);
 
-  // Prioritas 1: override khusus rombel
   const byClass = data.materials.filter(m => m.subjectId === subjectId && m.classId === classId);
   if (byClass.length > 0) return byClass.sort((a, b) => a.order - b.order);
 
-  // Prioritas 2: shared per tingkatan (level)
   if (cls?.level) {
     const byLevel = data.materials.filter(m => m.subjectId === subjectId && m.level === cls.level && !m.classId);
     if (byLevel.length > 0) return byLevel.sort((a, b) => a.order - b.order);
   }
 
-  // Prioritas 3: fallback data lama (tidak ada level/classId)
   const legacy = data.materials.filter(m => m.subjectId === subjectId && !m.level && !m.classId);
   if (legacy.length > 0) return legacy.sort((a, b) => a.order - b.order);
 
-  // Prioritas 4: last resort — semua materi mapel ini, apapun classId/levelnya
-  // Berguna saat materi diinput sebelum jadwal dibuat
-  return data.materials.filter(m => m.subjectId === subjectId).sort((a, b) => a.order - b.order);
+  return [];
+}
+
+/**
+ * Ambil materi untuk kombinasi mapel + rombel, dengan hierarki fallback:
+ * 1. Materi override khusus rombel ini (classId match)
+ * 2. Materi shared untuk level/tingkatan rombel ini (level match)
+ * 3. Materi lama tanpa level/classId (backward-compat)
+ * Materi class-specific milik kelas lain tidak pernah dipakai sebagai fallback.
+ */
+export function getMaterials(subjectId: string, classId: string): import('./types').Material[] {
+  const data = getData();
+  return getMaterialsFromData(data, subjectId, classId);
 }
 
 // Time utils
@@ -66,6 +67,14 @@ export const DAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', '
 export const DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export function now() { return new Date(); }
+export function dateKey(date = now()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+export function dateFromKey(value: string) { return new Date(`${value}T12:00:00`); }
+export function daysUntilDateKey(value: string) { return Math.ceil((dateFromKey(value).getTime() - now().getTime()) / 864e5); }
 export function todayNum() { return now().getDay(); }
 export function timeToMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 export function currentMin() { const n = now(); return n.getHours() * 60 + n.getMinutes(); }
@@ -109,7 +118,7 @@ function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: nu
     const date = new Date(base);
     date.setDate(base.getDate() + d);
     const dayOfWeek = date.getDay();
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = dateKey(date);
     
     let isHoliday = false;
     for (const h of holidays) {
@@ -165,7 +174,7 @@ export function isDateHolidayForSubject(dateStr: string, subjectLevel?: string):
 }
 export function isTodayHolidayGlobal(): boolean {
   const data = getData();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const holidays = data.holidays || [];
   return holidays.some(h => (typeof h === 'string' ? h === todayStr : (h.date === todayStr && !h.level)));
 }
@@ -173,9 +182,45 @@ export function isTodayHolidayGlobal(): boolean {
 export function getTodaySchedules(): TodayScheduleItem[] {
   const data = getData();
   const today = todayNum();
-  const todayStr = now().toISOString().slice(0, 10);
-  
-  return (data.schedules
+  const todayStr = dateKey();
+
+  const buildItem = (s: Schedule, override?: NonNullable<AppData['scheduleOverrides']>[number]): TodayScheduleItem | null => {
+    const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
+    const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
+    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
+    const mats = getMaterialsFromData(data, s.subjectId, s.classId);
+    const { material } = getMaterialForSession(mats, prog.materialsDone);
+
+    const session = data.sessions.find(se => se.scheduleId === s.id && se.date === todayStr);
+    const done = !!session;
+    if (override?.skipped) return null;
+
+    const effectiveStartTime = override ? override.startTime : s.startTime;
+    const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
+
+    const endMin = timeToMin(effectiveStartTime) + effectiveDuration;
+    const curMin = currentMin();
+    const active = curMin >= timeToMin(effectiveStartTime) && curMin < endMin && !done;
+
+    return {
+      ...s,
+      duration: effectiveDuration,
+      startTime: effectiveStartTime,
+      className: cls.name,
+      subjectName: sub.name,
+      nextMat: material,
+      done,
+      active,
+      endTime: minToTime(endMin),
+      totalMats: getTotalSessionsNeeded(mats),
+      materialsDone: prog.materialsDone,
+      sessionId: session?.id,
+      note: session?.note,
+      skipped: session?.materialId === 'SKIPPED'
+    };
+  };
+
+  const regularItems = data.schedules
     .filter(s => {
       if (!s.days.includes(today)) return false;
       const sub = data.subjects.find(x => x.id === s.subjectId);
@@ -183,43 +228,20 @@ export function getTodaySchedules(): TodayScheduleItem[] {
       return true;
     })
     .map(s => {
-      const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
-      const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-      const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
-      const mats = getMaterials(s.subjectId, s.classId);
-      const { material, sessionIndex, totalSessionsInMat } = getMaterialForSession(mats, prog.materialsDone);
-      
-      const session = data.sessions.find(se => se.scheduleId === s.id && se.date === todayStr);
-      const done = !!session;
-      
       const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === todayStr);
-      if (override?.skipped) return null;
-
-      const effectiveStartTime = override ? override.startTime : s.startTime;
-      const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
-      
-      const endMin = timeToMin(effectiveStartTime) + effectiveDuration;
-      const curMin = currentMin();
-      const active = curMin >= timeToMin(effectiveStartTime) && curMin < endMin && !done;
-      
-      return { 
-        ...s, 
-        duration: effectiveDuration,
-        startTime: effectiveStartTime, 
-        className: cls.name, 
-        subjectName: sub.name, 
-        nextMat: material, 
-        done, 
-        active, 
-        endTime: minToTime(endMin), 
-        totalMats: getTotalSessionsNeeded(mats), 
-        materialsDone: prog.materialsDone, 
-        sessionId: session?.id, 
-        note: session?.note,
-        skipped: session?.materialId === 'SKIPPED'
-      };
+      return buildItem(s, override);
     })
-    .filter(Boolean) as TodayScheduleItem[])
+    .filter(Boolean) as TodayScheduleItem[];
+
+  const extraItems = (data.scheduleOverrides || [])
+    .filter(o => o.date === todayStr && o.isExtra && !o.skipped)
+    .map(o => {
+      const sched = data.schedules.find(s => s.id === o.scheduleId);
+      return sched ? buildItem(sched, o) : null;
+    })
+    .filter(Boolean) as TodayScheduleItem[];
+
+  return [...regularItems, ...extraItems]
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
@@ -246,7 +268,7 @@ export function getInsights(): Insight[] {
       if (remainingSess <= 0) return;
       
       if (sub.examDate) {
-        const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
+        const daysLeft = daysUntilDateKey(sub.examDate);
         const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
         
         if (sessLeft > 0 && remainingSess > sessLeft + 1) {
@@ -308,7 +330,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   const nextSched = getNextScheduleForClass(cls.id, sub.id);
   const holidays = data.holidays ?? [];
   if (sub.examDate) {
-    const daysLeft = Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5);
+    const daysLeft = daysUntilDateKey(sub.examDate);
     const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
     const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
     if (remainingSessions <= 0) {
@@ -340,7 +362,7 @@ export function markDone(scheduleId: string, note?: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return;
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === todayStr)) return;
   
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
@@ -362,7 +384,7 @@ export function skipSession(scheduleId: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return;
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === todayStr)) return;
   data.sessions.push({ id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: 'SKIPPED', completedAt: now().toISOString() });
   saveData(data);
@@ -385,7 +407,7 @@ export function undoLastSession(classId: string, subjectId: string): boolean {
 
 export function postponeSchedule(scheduleId: string, diffMinutes: number) {
   const data = getData();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return;
   
@@ -406,7 +428,7 @@ export function postponeSchedule(scheduleId: string, diffMinutes: number) {
 
 export function applyShortDayOverride(dateStr: string) {
   const data = getData();
-  const dayOfWeek = new Date(dateStr).getDay();
+  const dayOfWeek = dateFromKey(dateStr).getDay();
   
   const scheds = data.schedules
     .filter(s => s.days.includes(dayOfWeek) && !isDateHolidayForSubject(dateStr, data.subjects.find(x => x.id === s.subjectId)?.level))
@@ -437,7 +459,7 @@ export function applyShortDayOverride(dateStr: string) {
 
 export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
   const data = getData();
-  const dayOfWeek = new Date(dateStr).getDay();
+  const dayOfWeek = dateFromKey(dateStr).getDay();
   const limitMin = timeToMin(skipAfterTime);
   
   const scheds = data.schedules.filter(s => s.days.includes(dayOfWeek));
@@ -466,8 +488,8 @@ export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
   return count;
 }
 
-function getFutureDate(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
-function getYesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+function getFutureDate(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return dateKey(d); }
+function getYesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return dateKey(d); }
 
 export function loadDemo() {
   const currentName = getData().teacherName || '';
@@ -511,15 +533,21 @@ export function loadDemo() {
 export function exportJSON() {
   try {
     const data = getData();
-    console.log('[Backup] Starting export, data keys:', Object.keys(data));
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    let corrections: unknown[] = [];
+    try {
+      const parsedCorrections = JSON.parse(localStorage.getItem(CORR_KEY) || '[]');
+      if (Array.isArray(parsedCorrections)) corrections = parsedCorrections;
+    } catch {
+      corrections = [];
+    }
+    const backup = { ...data, corrections };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `edutrack_backup_${now().toISOString().slice(0, 10)}.json`;
+    a.href = url; a.download = `edutrack_backup_${dateKey()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     markBackupDone();
-    console.log('[Backup] Export completed');
   } catch (err) {
     console.error('[Backup] Export failed:', err);
   }
@@ -537,7 +565,7 @@ export function exportCSV() {
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `edutrack_sessions_${now().toISOString().slice(0, 10)}.csv`; a.click();
+  a.href = url; a.download = `edutrack_sessions_${dateKey()}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -565,6 +593,14 @@ export function importJSON(file: File): Promise<void> {
           scheduleOverrides: Array.isArray(raw.scheduleOverrides) ? raw.scheduleOverrides : [],
         };
         saveData(merged);
+        const corrections = Array.isArray(raw.corrections)
+          ? raw.corrections
+          : Array.isArray(raw.examCorrections)
+            ? raw.examCorrections
+            : null;
+        if (corrections) {
+          localStorage.setItem(CORR_KEY, JSON.stringify(corrections));
+        }
         resolve();
       } catch (err) {
         reject(new Error('File tidak valid atau rusak'));
@@ -635,8 +671,7 @@ export function getExamCountdowns() {
   const res: { subject: string; daysLeft: number }[] = [];
   data.subjects.forEach(sub => {
     if (sub.examDate) {
-      const ms = new Date(sub.examDate).getTime() - now().getTime();
-      const days = Math.ceil(ms / 864e5);
+      const days = daysUntilDateKey(sub.examDate);
       if (days >= 0 && days <= 60) res.push({ subject: sub.name, daysLeft: days });
     }
   });
@@ -645,17 +680,17 @@ export function getExamCountdowns() {
 export function shouldShowBackupReminder() {
   const data = getData();
   if (data.classes.length === 0) return false;
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   if (data.reminderDismissed === todayStr) return false;
   if (!data.lastBackup) return true;
   const daysSince = Math.ceil((now().getTime() - new Date(data.lastBackup).getTime()) / 864e5);
   return daysSince >= 7;
 }
 export function dismissBackupReminder() {
-  updateData(d => { d.reminderDismissed = now().toISOString().slice(0, 10); });
+  updateData(d => { d.reminderDismissed = dateKey(); });
 }
 export function markBackupDone() {
-  updateData(d => { d.lastBackup = now().toISOString().slice(0, 10); d.reminderDismissed = null; });
+  updateData(d => { d.lastBackup = dateKey(); d.reminderDismissed = null; });
 }
 
 // ── Holiday helpers ─────────────────────────────────────────────────────────
@@ -686,7 +721,7 @@ export function getHolidayImpactSummary(): { subjectName: string; className: str
         const dateStr = typeof h === 'string' ? h : h.date;
         const level = typeof h === 'string' ? undefined : h.level;
         if (level && level !== sub.level) return;
-        const dayOfWeek = new Date(dateStr).getDay();
+        const dayOfWeek = dateFromKey(dateStr).getDay();
         if (sched.some(s => s.days.includes(dayOfWeek))) impact++;
       });
       if (impact > 0) results.push({ subjectName: sub.name, className: cls.name, impactCount: impact });
@@ -717,7 +752,7 @@ export function updateSessionNote(sessionId: string, note: string) {
 
 export function applyTeacherLeave(dateStr: string, reason: string, resolutions: { scheduleId: string; action: 'deliver' | 'skip'; note?: string }[]) {
   updateData(d => {
-    const dayOfWeek = new Date(dateStr).getDay();
+    const dayOfWeek = dateFromKey(dateStr).getDay();
     resolutions.forEach(res => {
       const sched = d.schedules.find(s => s.id === res.scheduleId);
       if (!sched || !sched.days.includes(dayOfWeek)) return;
@@ -726,8 +761,9 @@ export function applyTeacherLeave(dateStr: string, reason: string, resolutions: 
       if (session) return; // Don't override existing session
 
       const prog = d.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
-      const mats = getMaterials(sched.subjectId, sched.classId);
-      const mat = mats[prog ? prog.materialsDone : 0] || null;
+      const mats = getMaterialsFromData(d, sched.subjectId, sched.classId);
+      const { material: mat } = getMaterialForSession(mats, prog ? prog.materialsDone : 0);
+      const totalSessions = getTotalSessionsNeeded(mats);
 
       session = {
         id: genId(),
@@ -743,14 +779,14 @@ export function applyTeacherLeave(dateStr: string, reason: string, resolutions: 
 
       if (res.action === 'deliver') {
         if (prog && mat) {
-          prog.materialsDone = Math.min(prog.materialsDone + 1, mats.length);
+          prog.materialsDone = Math.min(prog.materialsDone + 1, totalSessions);
           prog.lastSession = dateStr;
         } else if (!prog) {
           d.progress.push({
             id: genId(),
             classId: sched.classId,
             subjectId: sched.subjectId,
-            materialsDone: mat ? 1 : 0,
+            materialsDone: mat ? Math.min(1, totalSessions) : 0,
             lastSession: dateStr
           });
         }
@@ -767,14 +803,14 @@ const SESSION_KEEP_DAYS = 90;
 export function pruneOldSessions() {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - SESSION_KEEP_DAYS);
-  const cutStr = cutoff.toISOString().slice(0, 10);
+  const cutStr = dateKey(cutoff);
   updateData(d => {
     const before = d.sessions.length;
     d.sessions = d.sessions.filter(s => s.date >= cutStr);
     // Juga hapus task done yang sudah > 30 hari lewat deadline
     const taskCutoff = new Date();
     taskCutoff.setDate(taskCutoff.getDate() - 30);
-    const taskCutStr = taskCutoff.toISOString().slice(0, 10);
+    const taskCutStr = dateKey(taskCutoff);
     d.tasks = (d.tasks ?? []).filter(t => !(t.status === 'done' && t.deadline < taskCutStr));
   });
 }
@@ -807,7 +843,7 @@ export function getTeacherStreak(): number {
   for (let i = 0; i < 365; i++) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = dateKey(d);
     const dayOfWeek = d.getDay();
     
     // Check if this day is a holiday
@@ -838,7 +874,7 @@ export function getTeacherStreak(): number {
 
 export function generateDailyJournal(): string {
   const data = getData();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const dateFormatted = now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   
   const todaySessions = data.sessions.filter(s => s.date === todayStr);
@@ -892,14 +928,14 @@ export function getWeeklyStats(): WeeklyStats {
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - daysFromMonday);
-  const weekStartStr = weekStart.toISOString().slice(0, 10);
-  const weekEndStr = today.toISOString().slice(0, 10);
+  const weekStartStr = dateKey(weekStart);
+  const weekEndStr = dateKey(today);
   const prevWeekStart = new Date(weekStart);
   prevWeekStart.setDate(weekStart.getDate() - 7);
   const prevWeekEnd = new Date(weekStart);
   prevWeekEnd.setDate(weekStart.getDate() - 1);
-  const prevWeekStartStr = prevWeekStart.toISOString().slice(0, 10);
-  const prevWeekEndStr = prevWeekEnd.toISOString().slice(0, 10);
+  const prevWeekStartStr = dateKey(prevWeekStart);
+  const prevWeekEndStr = dateKey(prevWeekEnd);
   const thisWeek = data.sessions.filter(s => s.date >= weekStartStr && s.date <= weekEndStr);
   const prevWeek = data.sessions.filter(s => s.date >= prevWeekStartStr && s.date <= prevWeekEndStr);
   const completed = thisWeek.filter(s => s.materialId !== 'SKIPPED').length;
@@ -916,12 +952,12 @@ export function getMonthCalendar(yearMonth: string): { date: string; status: Day
   const data = getData();
   const [year, month] = yearMonth.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const result: { date: string; status: DayStatus; sessionCount: number; schedCount: number }[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${yearMonth}-${String(d).padStart(2, '0')}`;
     if (dateStr > todayStr) { result.push({ date: dateStr, status: 'future', sessionCount: 0, schedCount: 0 }); continue; }
-    const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
+    const dayOfWeek = dateFromKey(dateStr).getDay();
     const isHoliday = (data.holidays ?? []).some(h => typeof h === 'string' ? h === dateStr : (h.date === dateStr && !h.level));
     const scheds = data.schedules.filter(s => {
       if (!s.days.includes(dayOfWeek)) return false;
@@ -947,7 +983,7 @@ export function getMonthCalendar(yearMonth: string): { date: string; status: Day
  */
 export function suggestDayReschedule(dateStr: string): RescheduleAction[] {
   const data = getData();
-  const dayOfWeek = new Date(dateStr).getDay();
+  const dayOfWeek = dateFromKey(dateStr).getDay();
   const suggestions: RescheduleAction[] = [];
 
   const daySchedules = data.schedules.filter(s => s.days.includes(dayOfWeek));
@@ -959,7 +995,7 @@ export function suggestDayReschedule(dateStr: string): RescheduleAction[] {
 
     // Check exam proximity — don't skip if exam within 7 days
     if (sub.examDate) {
-      const daysToExam = Math.ceil((new Date(sub.examDate).getTime() - new Date(dateStr).getTime()) / 864e5);
+      const daysToExam = Math.ceil((dateFromKey(sub.examDate).getTime() - dateFromKey(dateStr).getTime()) / 864e5);
       if (daysToExam <= 7) {
         suggestions.push({ 
           scheduleId: sched.id, 
@@ -998,13 +1034,13 @@ export function suggestDayReschedule(dateStr: string): RescheduleAction[] {
  */
 export function applySmartReschedule(dateStr: string, actions: RescheduleAction[]) {
   const data = getData();
+  if (!data.scheduleOverrides) data.scheduleOverrides = [];
 
   actions.forEach(action => {
     const sched = data.schedules.find(s => s.id === action.scheduleId);
     if (!sched) return;
 
     if (action.action === 'skip') {
-      if (!data.scheduleOverrides) data.scheduleOverrides = [];
       const existing = data.scheduleOverrides.find(o => o.scheduleId === action.scheduleId && o.date === dateStr);
       if (existing) {
         existing.skipped = true;
@@ -1021,26 +1057,85 @@ export function applySmartReschedule(dateStr: string, actions: RescheduleAction[
       const cls = data.classes.find(c => c.id === sched.classId);
       const sub = data.subjects.find(su => su.id === sched.subjectId);
       if (cls && sub) {
-        const catchUpDate = new Date();
+        const catchUpDate = dateFromKey(dateStr);
         catchUpDate.setDate(catchUpDate.getDate() + 7);
-        addTask(sched.classId, sched.subjectId, `Kejar sesi ${cls.name} – ${sub.name} yang dilewati`, catchUpDate.toISOString().slice(0, 10));
+        data.tasks.push({
+          id: genId(),
+          classId: sched.classId,
+          subjectId: sched.subjectId,
+          title: `Kejar sesi ${cls.name} – ${sub.name} yang dilewati`,
+          deadline: dateKey(catchUpDate),
+          status: 'pending'
+        });
       }
     }
 
     if (action.action === 'postpone' && action.days) {
-      postponeSchedule(action.scheduleId, action.days * 24 * 60); // convert days to minutes
+      const existing = data.scheduleOverrides.find(o => o.scheduleId === action.scheduleId && o.date === dateStr);
+      if (existing) existing.skipped = true;
+      else data.scheduleOverrides.push({ date: dateStr, scheduleId: action.scheduleId, startTime: sched.startTime, skipped: true });
+
+      const target = dateFromKey(dateStr);
+      target.setDate(target.getDate() + action.days);
+      const targetStr = dateKey(target);
+      if (sched.days.includes(target.getDay())) {
+        const cls = data.classes.find(c => c.id === sched.classId);
+        const sub = data.subjects.find(su => su.id === sched.subjectId);
+        data.tasks.push({
+          id: genId(),
+          classId: sched.classId,
+          subjectId: sched.subjectId,
+          title: `Lanjutkan sesi tertunda${cls && sub ? `: ${cls.name} – ${sub.name}` : ''}`,
+          deadline: targetStr,
+          status: 'pending'
+        });
+        return;
+      }
+      const existingExtra = data.scheduleOverrides.find(o => o.scheduleId === action.scheduleId && o.date === targetStr && o.isExtra);
+      if (existingExtra) {
+        existingExtra.startTime = sched.startTime;
+        existingExtra.durationOverride = sched.duration;
+        existingExtra.skipped = false;
+      } else {
+        data.scheduleOverrides.push({
+          date: targetStr,
+          scheduleId: action.scheduleId,
+          startTime: sched.startTime,
+          durationOverride: sched.duration,
+          isExtra: true,
+        });
+      }
     }
 
-    if (action.action === 'deliver' && action.note) {
-      // Mark as done with a note (teacher delivered remotely)
-      markDone(action.scheduleId, `[Izin] ${action.note}`);
+    if (action.action === 'deliver') {
+      if (data.sessions.some(s => s.scheduleId === action.scheduleId && s.date === dateStr)) return;
+      const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
+      const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
+      const { material } = getMaterialForSession(mats, prog ? prog.materialsDone : 0);
+      data.sessions.push({
+        id: genId(),
+        scheduleId: action.scheduleId,
+        classId: sched.classId,
+        subjectId: sched.subjectId,
+        date: dateStr,
+        materialId: material?.id || null,
+        completedAt: now().toISOString(),
+        note: action.note ? `[Izin] ${action.note}` : '[Izin] Selesai tanpa sesi tatap muka'
+      });
+      const totalSessions = getTotalSessionsNeeded(mats);
+      if (prog) {
+        prog.materialsDone = Math.min(prog.materialsDone + 1, totalSessions);
+        prog.lastSession = dateStr;
+      } else {
+        data.progress.push({ id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: material ? 1 : 0, lastSession: dateStr });
+      }
     }
 
     // 'keep' → do nothing
   });
 
-   saveData(data);
- }
+  saveData(data);
+}
 
 // ==================== HEATMAP (FEATURE 4) ====================
 
@@ -1072,7 +1167,7 @@ export function getHeatmapData(weeks: number = 8): HeatmapRow[] {
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() + (w * 7));
     weekStart.setHours(0, 0, 0, 0);
-    const weekKey = weekStart.toISOString().slice(0, 10);
+    const weekKey = dateKey(weekStart);
     weekBuckets[weekKey] = {};
   }
 
@@ -1098,12 +1193,12 @@ export function getHeatmapData(weeks: number = 8): HeatmapRow[] {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
 
-        const weekKey = weekStart.toISOString().slice(0, 10);
+        const weekKey = dateKey(weekStart);
         const bucket = weekBuckets[weekKey]![`${cls.id}-${sub.id}`] = { done: 0, scheduled: 0 };
 
         // Count scheduled sessions in this week
         for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-          const dateStr = d.toISOString().slice(0, 10);
+          const dateStr = dateKey(d);
           const dayOfWeek = d.getDay();
 
           scheds.forEach(s => {
@@ -1118,7 +1213,7 @@ export function getHeatmapData(weeks: number = 8): HeatmapRow[] {
         // Count completed sessions in this week
         data.sessions.forEach(sess => {
           if (sess.classId !== cls.id || sess.subjectId !== sub.id) return;
-          const sessDate = new Date(sess.date);
+          const sessDate = dateFromKey(sess.date);
           if (sessDate >= weekStart && sessDate <= weekEnd && sess.materialId !== 'SKIPPED') {
             bucket.done++;
           }
@@ -1129,7 +1224,7 @@ export function getHeatmapData(weeks: number = 8): HeatmapRow[] {
       for (let w = 0; w < weeks; w++) {
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() + (w * 7));
-        const weekKey = weekStart.toISOString().slice(0, 10);
+        const weekKey = dateKey(weekStart);
         const bucket = weekBuckets[weekKey]![`${cls.id}-${sub.id}`] || { done: 0, scheduled: 0 };
 
         let status: HeatmapCell['status'] = 'no-data';
@@ -1193,7 +1288,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       // ── Estimate scheduled sessions remaining until exam ──────────────────
       const daysToExam = sub.examDate
-        ? Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5)
+        ? daysUntilDateKey(sub.examDate)
         : 999;
       const holidays = data.holidays ?? [];
       const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
@@ -1204,9 +1299,9 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       if (remainingSess <= 0) {
         // Already completed
-        predictedFinishDate = new Date().toISOString().slice(0, 10);
+        predictedFinishDate = dateKey(new Date());
         if (sub.examDate) {
-          const diff = Math.ceil((new Date(sub.examDate).getTime() - new Date().getTime()) / 864e5);
+          const diff = daysUntilDateKey(sub.examDate);
           daysDifference = diff;
           if (diff > 0) pace = 'ahead';
           else if (diff === 0) pace = 'on-track';
@@ -1231,10 +1326,10 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
         const finish = new Date();
         finish.setDate(finish.getDate() + Math.round(finalWeeksNeeded * 7));
-        predictedFinishDate = finish.toISOString().slice(0, 10);
+        predictedFinishDate = dateKey(finish);
 
         if (sub.examDate) {
-          const diff = Math.ceil((new Date(sub.examDate).getTime() - finish.getTime()) / 864e5);
+          const diff = Math.ceil((dateFromKey(sub.examDate).getTime() - finish.getTime()) / 864e5);
           daysDifference = diff;
           if (sessLeft >= remainingSess) {
             // Cukup sesi — tidak pernah "behind"
@@ -1256,10 +1351,10 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
         const weeksNeeded = Math.ceil(remainingSess / sessionsPerWeek);
         const finish = new Date();
         finish.setDate(finish.getDate() + (weeksNeeded * 7));
-        predictedFinishDate = finish.toISOString().slice(0, 10);
+        predictedFinishDate = dateKey(finish);
 
         if (sub.examDate) {
-          const diff = Math.ceil((new Date(sub.examDate).getTime() - finish.getTime()) / 864e5);
+          const diff = Math.ceil((dateFromKey(sub.examDate).getTime() - finish.getTime()) / 864e5);
           daysDifference = diff;
           if (diff < 0) pace = 'behind';
           else if (diff === 0) pace = 'on-track';
@@ -1298,7 +1393,7 @@ export function getExamPrepItems(): ExamPrepItem[] {
   data.subjects.forEach(sub => {
     if (!sub.examDate) return;
 
-    const daysToExam = Math.ceil((new Date(sub.examDate).getTime() - today.getTime()) / 864e5);
+    const daysToExam = Math.ceil((dateFromKey(sub.examDate).getTime() - today.getTime()) / 864e5);
     if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
 
     data.classes.forEach(cls => {
@@ -1395,7 +1490,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
   if (!scheds.length) return { type: 'no_issue' as const, description: 'Belum ada jadwal untuk kelas ini.' };
 
   const holidays = data.holidays ?? [];
-  const daysLeft = sub.examDate ? Math.ceil((new Date(sub.examDate).getTime() - now().getTime()) / 864e5) : 999;
+  const daysLeft = sub.examDate ? daysUntilDateKey(sub.examDate) : 999;
   const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(scheds, daysLeft, holidays, sub.level);
 
   const { material: nextMat } = getMaterialForSession(mats, doneSess);
@@ -1491,7 +1586,7 @@ function suggestAvailableDates(
   for (let d = 1; d <= daysLeft && suggested.length < neededSessions; d++) {
     const date = new Date();
     date.setDate(date.getDate() + d);
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = dateKey(date);
     const dayOfWeek = date.getDay();
 
     if (dayOfWeek === 0 || dayOfWeek === 6) continue;
@@ -1532,21 +1627,21 @@ function suggestMaterialsToTrim(
 export function applyPaceSuggestion(suggestion: PaceSuggestion) {
   if (suggestion.type !== 'add_sessions' || !suggestion.suggestedDates?.length) return;
 
-  const data = getData();
-  const sched = data.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
-  if (!sched) return;
+  updateData(d => {
+    const sched = d.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
+    if (!sched) return;
 
-  // Create a task for each suggested extra session date
-  suggestion.suggestedDates.forEach(dateStr => {
-    addTask(
-      suggestion.classId,
-      suggestion.subjectId,
-      `📚 Extra session: ${suggestion.subject} (catch-up)`,
-      dateStr
-    );
+    suggestion.suggestedDates!.forEach(dateStr => {
+      d.tasks.push({
+        id: genId(),
+        classId: suggestion.classId,
+        subjectId: suggestion.subjectId,
+        title: `📚 Extra session: ${suggestion.subject} (catch-up)`,
+        deadline: dateStr,
+        status: 'pending'
+      });
+    });
   });
-
-  saveData(data);
 }
 
 /**
@@ -1575,5 +1670,3 @@ export function addExtraSession(scheduleId: string, dateStr: string, startTime?:
 
   saveData(data);
 }
-
-

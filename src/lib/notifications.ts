@@ -1,8 +1,8 @@
-import { getData, todayNum, currentMin, timeToMin, now } from './data';
+import { getData, todayNum, currentMin, timeToMin, dateKey } from './data';
 import { getAllExamSubjects, getCorrections } from './examData';
 
 let checkInt: ReturnType<typeof setInterval>;
-let notifiedIds: Set<string> = new Set();
+const notifiedIds: Set<string> = new Set();
 
 export async function requestNotifPermission() {
   if (!('Notification' in window)) return false;
@@ -31,11 +31,11 @@ async function showNotif(title: string, body: string, tag: string) {
   }
   if (swReg) {
     swReg.showNotification(title, {
-      body, icon: '/icon-192.png', badge: '/icon-192.png',
+      body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
       vibrate: [200, 100, 200], tag, requireInteraction: true,
-    }).catch(e => console.error(e));
+    } as NotificationOptions).catch(e => console.error(e));
   } else {
-    new Notification(title, { body, icon: '/icon-192.png' });
+    new Notification(title, { body, icon: '/icons/icon-192.png' });
   }
 }
 
@@ -44,7 +44,7 @@ async function checkAndNotify() {
   const data = getData();
   const today = todayNum();
   const curMin = currentMin();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
 
   // 1. Notif kelas 5 menit sebelum mulai
   const scheds = data.schedules.filter(s => s.days.includes(today));

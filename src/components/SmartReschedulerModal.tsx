@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useState, useMemo } from 'react';
-import { getData, suggestDayReschedule, applySmartReschedule } from '@/lib/data';
+import { getData, suggestDayReschedule, applySmartReschedule, dateFromKey } from '@/lib/data';
 import { toast } from '@/hooks/use-toast';
 
 interface SmartReschedulerModalProps {
@@ -35,8 +35,8 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
 
   if (!open) return null;
 
-  const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('id-ID', { weekday: 'long' });
-  const dateFormatted = new Date(dateStr + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
+  const dayName = dateFromKey(dateStr).toLocaleDateString('id-ID', { weekday: 'long' });
+  const dateFormatted = dateFromKey(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
 
   return createPortal(
     <div className="fixed inset-0 z-[600] bg-[rgba(0,0,0,0.7)] flex flex-col justify-end animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>

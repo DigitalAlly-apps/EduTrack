@@ -14,8 +14,14 @@ import { initNotifications } from '@/lib/notifications';
 
 type AppView = ViewType;
 
+const isAppView = (value: string | null): value is AppView =>
+  value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
+
 function AppInner() {
-  const [view, setView] = useState<AppView>('today');
+  const [view, setView] = useState<AppView>(() => {
+    const viewParam = new URLSearchParams(window.location.search).get('view');
+    return isAppView(viewParam) ? viewParam : 'today';
+  });
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);

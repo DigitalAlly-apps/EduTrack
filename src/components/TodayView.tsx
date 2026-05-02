@@ -4,7 +4,7 @@ import {
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
-  undoLastSession,
+  undoLastSession, dateKey,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -137,7 +137,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     onRefresh();
     // Smart Reschedule: offer to add makeup task
     const nextWeek = new Date(); nextWeek.setDate(nextWeek.getDate() + 7);
-    const deadline = nextWeek.toISOString().slice(0, 10);
+    const deadline = dateKey(nextWeek);
     toast({
       title: `⏭ Sesi ${className} dilewati`,
       description: 'Tandai untuk dikejar minggu depan?',
@@ -667,7 +667,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                </button>
                <button
                  onClick={() => {
-                   const today = new Date().toISOString().slice(0, 10);
+                    const today = dateKey();
                    setReschedulerDate(today);
                    setReschedulerOpen(true);
                  }}
@@ -690,7 +690,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {items.map((item, i) => {
         const state = item.active ? 'active' : item.done ? 'done' : '';
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = dateKey();
         const prevReminder = !item.done ? getPrevReminder(item.classId, item.subjectId, todayStr) : '';
         return (
           <div
@@ -877,7 +877,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             />
             <button
               onClick={() => {
-                const count = applyEarlyDismissal(new Date().toISOString().slice(0, 10), earlyDismissTime);
+                const count = applyEarlyDismissal(dateKey(), earlyDismissTime);
                 onRefresh();
                 setEarlyDismissSheet(false);
                 toast({ title: `🏠 ${count} kelas setelah ${earlyDismissTime} diliburkan` });
@@ -906,7 +906,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               onKeyDown={e => {
                 if (e.key === 'Enter' && newTaskTitle.trim()) {
                   const d = new Date(); d.setDate(d.getDate() + 7);
-                  addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), d.toISOString().slice(0, 10));
+                  addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), dateKey(d));
                   onRefresh();
                   setNewTaskSheet(null);
                   toast({ title: 'Tugas ditambahkan' });
@@ -920,7 +920,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               onClick={() => {
                 if (!newTaskTitle.trim()) return;
                 const d = new Date(); d.setDate(d.getDate() + 7);
-                addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), d.toISOString().slice(0, 10));
+                addTask(newTaskSheet.classId, newTaskSheet.subjectId, newTaskTitle.trim(), dateKey(d));
                 onRefresh();
                 setNewTaskSheet(null);
                 toast({ title: 'Tugas ditambahkan' });

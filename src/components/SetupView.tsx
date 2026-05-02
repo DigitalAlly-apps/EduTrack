@@ -4,9 +4,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData,
+  getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData, dateKey, dateFromKey,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
-  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear,
+  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -374,17 +374,18 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
 function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
+  const [level, setLevel] = useState('');
   const { toast } = useToast();
   const data = getData();
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama kelas' });
-    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue' }));
-    setName(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
+    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue', level: level.trim() || undefined }));
+    setName(''); setLevel(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
   };
-  const saveItem = (id: string, newName: string) => {
+  const saveItem = (id: string, newName: string, extras?: { level?: string }) => {
     if(!newName.trim()) return;
-    updateData(d => { const c = d.classes.find(x => x.id === id); if (c) { c.name = newName.trim(); } });
+    updateData(d => { const c = d.classes.find(x => x.id === id); if (c) { c.name = newName.trim(); c.level = extras?.level?.trim() || undefined; } });
     toast({ title: 'Kelas diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
@@ -404,12 +405,16 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
         <FormField label="Tambah Kelas Baru">
           <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
             className="form-input-style mb-3" placeholder="cth: 4A, 10B, XI IPA 2..." />
+          <input value={level} onChange={e => setLevel(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
+            className="form-input-style mb-3" placeholder="Level/jenjang opsional, cth: 10, SD/MI, SMP/MTs" />
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
         </FormField>
       </div>
       <div className="mt-6 mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Kelas</div>
       {data.classes.map(c => (
-        <EditableItem key={c.id} item={{ id: c.id, name: c.name, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} />
+        <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: c.level ? `Level: ${c.level}` : 'Level belum diisi', extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
+          <input value={v.level || ''} onChange={e => setV({ ...v, level: e.target.value })} className="form-input-style mb-2 h-10" placeholder="Level/jenjang opsional" />
+        )} />
       ))}
       {!data.classes.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada kelas</div>}
     </div>
@@ -839,7 +844,7 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
   const impacts = getHolidayImpactSummary();
   const [level, setLevel] = useState('');
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = dateKey();
 
   const handleAdd = () => {
     if (!date) return toast({ title: 'Pilih tanggal libur' });
@@ -870,7 +875,7 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
   };
 
   const formatDate = (d: string) => {
-    return new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return dateFromKey(d).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   return (
@@ -1024,13 +1029,13 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
   const [date, setDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().slice(0, 10);
+    return dateKey(tomorrow);
   });
   const [leaveType, setLeaveType] = useState<'izin' | 'sakit'>('izin');
   const [keterangan, setKeterangan] = useState('');
   const [resolutions, setResolutions] = useState<Record<string, { action: 'deliver' | 'skip'; note: string }>>({});
 
-  const dayOfWeek = date ? new Date(date).getDay() : -1;
+  const dayOfWeek = date ? dateFromKey(date).getDay() : -1;
   const schedules = useMemo(() => {
     if (dayOfWeek === -1) return [];
     return data.schedules.filter(s => s.days.includes(dayOfWeek)).map(s => {

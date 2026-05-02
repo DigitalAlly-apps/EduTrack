@@ -65,7 +65,7 @@ export interface AppData {
   lastBackup: string | null;
   reminderDismissed: string | null;
   holidays: (string | { date: string; level?: string })[];
-  scheduleOverrides?: { date: string; scheduleId: string; startTime: string; durationOverride?: number; skipped?: boolean }[];
+  scheduleOverrides?: { date: string; scheduleId: string; startTime: string; durationOverride?: number; skipped?: boolean; isExtra?: boolean }[];
   academicYear?: string; // e.g., "2024/2025" or "2025 Semester Ganjil"
 }
 export interface TodayScheduleItem extends Schedule {

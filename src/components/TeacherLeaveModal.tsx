@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  getData, genId, applyTeacherLeave, DAYS_SHORT
+  getData, genId, applyTeacherLeave, DAYS_SHORT, dateKey, dateFromKey
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,7 +17,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
   const [date, setDate] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().slice(0, 10);
+    return dateKey(tomorrow);
   });
   
   const [reason, setReason] = useState('Sakit');
@@ -25,7 +25,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
   // Track resolutions per schedule id
   const [resolutions, setResolutions] = useState<Record<string, { action: 'deliver' | 'skip'; note: string }>>({});
 
-  const dayOfWeek = date ? new Date(date).getDay() : -1;
+  const dayOfWeek = date ? dateFromKey(date).getDay() : -1;
   const schedules = useMemo(() => {
     if (dayOfWeek === -1) return [];
     return data.schedules.filter(s => s.days.includes(dayOfWeek)).map(s => {

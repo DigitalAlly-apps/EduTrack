@@ -1,4 +1,4 @@
-import { getData, now, todayNum, DAYS_ID } from './data';
+import { getData, dateKey } from './data';
 import { getCorrections, getAllExamSubjects } from './examData';
 
 export interface BriefingItem {
@@ -13,7 +13,7 @@ export function getDailyBriefing(): BriefingItem[] {
   const data = getData();
   const corrections = getCorrections();
   const allExams = getAllExamSubjects();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const items: BriefingItem[] = [];
 
   // 1. Ujian hari ini

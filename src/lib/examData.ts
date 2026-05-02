@@ -1,4 +1,4 @@
-import { getData, genId, now, DAYS_ID, timeToMin, currentMin, fmt } from './data';
+import { getData, genId, now, DAYS_ID, timeToMin, currentMin, fmt, dateKey, dateFromKey } from './data';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type CorrectionStatus = 'belum' | 'sedang' | 'selesai';
@@ -46,7 +46,7 @@ export function upsertCorrection(subjectId: string, classId: string, examDate: s
 export function getTodayExamItems(): ExamWatchItem[] {
   const data = getData();
   const corrections = getCorrections();
-  const todayStr = now().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const curMin = currentMin();
 
   const items: ExamWatchItem[] = [];
@@ -113,12 +113,12 @@ export interface ExamSubjectItem {
 export function getAllExamSubjects(): ExamSubjectItem[] {
   const data = getData();
   const corrections = getCorrections();
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = dateFromKey(dateKey());
 
   return data.subjects
     .filter(s => s.examDate)
     .map(s => {
-      const examDt = new Date(s.examDate!); examDt.setHours(0,0,0,0);
+      const examDt = dateFromKey(s.examDate!);
       const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
 
       // Kelas yang relevan = yang punya schedule mapel ini
@@ -138,7 +138,7 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateFromKey(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 export function fmtDayLabel(daysLeft: number) {
   if (daysLeft === 0) return 'HARI INI';

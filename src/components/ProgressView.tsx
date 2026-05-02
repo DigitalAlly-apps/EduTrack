@@ -1,6 +1,6 @@
 import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
-  getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded,
+  getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
   getHeatmapData, getPredictiveFinishes, getExamPrepItems, undoLastSession,
 } from '@/lib/data';
@@ -552,7 +552,7 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
 
 // ─── HistoryTab ───────────────────────────────────────────────────────────────
 function HistoryTab() {
-  const [month, setMonth] = useState(now().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(dateKey().slice(0, 7));
   const historyItems = getSessionHistory(month);
   const data = getData();
 
@@ -579,7 +579,7 @@ function HistoryTab() {
       ) : (
         <div className="flex flex-col gap-5">
           {dates.map(date => {
-            const dateStr = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+            const dateStr = dateFromKey(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
             return (
               <div key={date}>
                 <div className="text-[11px] font-bold tracking-wider text-primary mb-2 flex items-center gap-2">
@@ -620,7 +620,7 @@ function HistoryTab() {
 
 // ─── CalendarTab ───────────────────────────────────────────────────────────────
 function CalendarTab() {
-  const [month, setMonth] = useState(now().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(dateKey().slice(0, 7));
   const days = useMemo(() => getMonthCalendar(month), [month]);
 
   const DAYS_HEAD = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -678,7 +678,7 @@ function CalendarTab() {
           {days.map(day => {
             const d = parseInt(day.date.slice(8));
             const cfg = statusConfig[day.status];
-            const isToday = day.date === now().toISOString().slice(0, 10);
+            const isToday = day.date === dateKey();
             return (
               <div key={day.date}
                 className={`border border-transparent m-0.5 rounded-lg flex flex-col items-center justify-center py-1.5 min-h-[36px] relative ${cfg.bg} ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}`}
