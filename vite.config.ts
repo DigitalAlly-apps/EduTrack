@@ -34,6 +34,13 @@ self.addEventListener('activate', event => {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  build: {
+    target: "es2017",
+    cssTarget: "chrome61",
+  },
+  esbuild: {
+    target: "es2017",
+  },
   server: {
     host: "::",
     port: 8080,

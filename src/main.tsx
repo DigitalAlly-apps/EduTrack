@@ -1,3 +1,10 @@
+// Polyfill structuredClone for Samsung Internet and older browsers
+if (typeof globalThis.structuredClone === "undefined") {
+  globalThis.structuredClone = function structuredClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value));
+  };
+}
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
