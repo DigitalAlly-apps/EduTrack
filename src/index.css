@@ -14,11 +14,11 @@
     --popover: 235 24% 10%;
     --popover-foreground: 44 45% 94%;
     
-    --primary: 27 92% 64%;
-    --primary-foreground: 235 34% 8%;
-    --primary-dim: 27 92% 64% / 0.12;
-    --primary-glow: 27 92% 64% / 0.22;
-    --primary-border: 27 92% 64% / 0.32;
+    --primary: 188 58% 48%;
+    --primary-foreground: 230 28% 8%;
+    --primary-dim: 188 58% 48% / 0.12;
+    --primary-glow: 188 58% 48% / 0.14;
+    --primary-border: 188 58% 48% / 0.26;
     
     --secondary: 234 22% 13%;
     --secondary-foreground: 44 45% 94%;
@@ -33,7 +33,7 @@
     --border2: 236 18% 24%;
     --border3: 236 18% 31%;
     --input: 235 18% 18%;
-    --ring: 27 92% 64%;
+    --ring: 188 58% 48%;
     --radius: 1rem;
     
     --surface: 235 24% 12% / 0.72;
@@ -43,14 +43,14 @@
     --text2: 40 16% 72%;
     --text3: 38 10% 52%;
     
-    --teal: 190 82% 58%;
-    --teal-dim: 190 82% 58% / 0.13;
-    --teal-glow: 190 82% 58% / 0.2;
-    --teal-border: 190 82% 58% / 0.32;
+    --teal: 172 50% 52%;
+    --teal-dim: 172 50% 52% / 0.13;
+    --teal-glow: 172 50% 52% / 0.18;
+    --teal-border: 172 50% 52% / 0.28;
     
     --green: 145 62% 53%;
     --green-dim: 145 62% 53% / 0.13;
-    --amber: 42 94% 63%;
+    --amber: 38 68% 58%;
     --red: 356 82% 66%;
     
     --nav-bg: 235 24% 9% / 0.78;
@@ -77,11 +77,11 @@
     --popover: 35 80% 98%;
     --popover-foreground: 236 35% 13%;
     
-    --primary: 24 91% 55%;
-    --primary-foreground: 35 80% 98%;
-    --primary-dim: 24 91% 55% / 0.09;
-    --primary-glow: 24 91% 55% / 0.16;
-    --primary-border: 24 91% 55% / 0.24;
+    --primary: 190 64% 36%;
+    --primary-foreground: 0 0% 100%;
+    --primary-dim: 190 64% 36% / 0.08;
+    --primary-glow: 190 64% 36% / 0.10;
+    --primary-border: 190 64% 36% / 0.20;
     
     --secondary: 35 55% 91%;
     --secondary-foreground: 236 35% 13%;
@@ -96,7 +96,7 @@
     --border2: 31 38% 78%;
     --border3: 31 34% 70%;
     --input: 31 40% 84%;
-    --ring: 24 91% 55%;
+    --ring: 190 64% 36%;
     
     --surface: 35 80% 99% / 0.84;
     --surface2: 34 67% 96% / 0.92;
@@ -105,14 +105,14 @@
     --text2: 236 14% 38%;
     --text3: 236 10% 54%;
     
-    --teal: 185 70% 45%;
-    --teal-dim: 185 70% 45% / 0.1;
-    --teal-glow: 185 70% 45% / 0.15;
-    --teal-border: 185 70% 45% / 0.2;
+    --teal: 176 48% 38%;
+    --teal-dim: 176 48% 38% / 0.1;
+    --teal-glow: 176 48% 38% / 0.12;
+    --teal-border: 176 48% 38% / 0.18;
     
     --green: 150 60% 40%;
     --green-dim: 150 60% 40% / 0.08;
-    --amber: 40 80% 50%;
+    --amber: 36 70% 45%;
     --red: 0 80% 60%;
     
     --nav-bg: 35 80% 98% / 0.82;

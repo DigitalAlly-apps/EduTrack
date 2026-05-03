@@ -125,22 +125,6 @@ export type RescheduleAction = {
   note?: string;
 };
 
-// Heatmap for Progress tab
-export interface HeatmapCell {
-  weekStart: string; // YYYY-MM-DD
-  weekLabel: string; // "Minggu 1", "Minggu 2"
-  status: 'on-track' | 'tight' | 'behind' | 'no-class' | 'no-data';
-  sessionsDone: number;
-  sessionsScheduled: number;
-}
-export interface HeatmapRow {
-  className: string;
-  subjectName: string;
-  classId: string;
-  subjectId: string;
-  cells: HeatmapCell[];
-}
-
 // Exam Prep Mode
 export interface ExamPrepItem {
   classId: string;

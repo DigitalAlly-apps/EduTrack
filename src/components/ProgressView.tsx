@@ -2,13 +2,12 @@ import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  getHeatmapData, getPredictiveFinishes, getExamPrepItems, undoLastSession,
+  getPredictiveFinishes, getExamPrepItems, undoLastSession,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
-import HeatmapCard from './HeatmapCard';
 import ExamPrepCard from './ExamPrepCard';
-import { PaceSuggestion, HeatmapRow, PredictiveFinish, ExamPrepItem } from '@/lib/types';
+import { PaceSuggestion, PredictiveFinish, ExamPrepItem } from '@/lib/types';
 
 // ─── AI PACE SUGGESTIONS CARD ───────────────────────────────────────────────────
 function PaceSuggestionsCard() {
@@ -121,16 +120,6 @@ function getEffectiveStatus(st: ReturnType<typeof getSubjectStatus>): 'green' | 
 export default function ProgressView() {
   const [tab, setTab] = useState<'progress' | 'history' | 'kalender'>('progress');
 
-  // Compute heatmap once (for Feature 4)
-  const heatmapRows = useMemo(() => {
-    try {
-      return getHeatmapData(8);
-    } catch (e) {
-      console.error('Heatmap data error:', e);
-      return [];
-    }
-  }, []);
-
   // Compute predictive finishes (Feature 5)
   const predictiveFinishes = useMemo(() => {
     try {
@@ -158,7 +147,7 @@ export default function ProgressView() {
         <button onClick={() => setTab('kalender')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'kalender' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Kalender</button>
         <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat</button>
       </div>
-      {tab === 'progress' && <ProgressTab heatmapRows={heatmapRows} predictiveFinishes={predictiveFinishes} examPrepItems={examPrepItems} />}
+      {tab === 'progress' && <ProgressTab predictiveFinishes={predictiveFinishes} examPrepItems={examPrepItems} />}
       {tab === 'kalender' && <CalendarTab />}
       {tab === 'history' && <HistoryTab />}
     </div>
@@ -181,9 +170,34 @@ type CardData = {
 
 type GroupData = { clsName: string; cards: CardData[]; issues: number };
 
+function getActiveMaterialProgress(mats: any[], sessionsDone: number) {
+  let cumulative = 0;
+  for (let i = 0; i < mats.length; i++) {
+    const material = mats[i];
+    const sessions = material.sessions ?? 1;
+    if (sessionsDone < cumulative + sessions) {
+      return {
+        material,
+        materialNumber: i + 1,
+        sessionIndex: sessionsDone - cumulative + 1,
+        totalSessionsInMat: sessions,
+        isComplete: false,
+      };
+    }
+    cumulative += sessions;
+  }
+
+  return {
+    material: null,
+    materialNumber: mats.length,
+    sessionIndex: 0,
+    totalSessionsInMat: 0,
+    isComplete: mats.length > 0,
+  };
+}
+
 // ─── ProgressTab ──────────────────────────────────────────────────────────────
-function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
-  heatmapRows: HeatmapRow[];
+function ProgressTab({ predictiveFinishes, examPrepItems }: {
   predictiveFinishes: PredictiveFinish[];
   examPrepItems: ExamPrepItem[];
 }) {
@@ -314,8 +328,7 @@ function ProgressTab({ heatmapRows, predictiveFinishes, examPrepItems }: {
          <div className="mb-8 space-y-4">
            <WeeklyReviewCard />
            <PaceSuggestionsCard />
-           {heatmapRows.length > 0 && <HeatmapCard rows={heatmapRows} />}
-         </div>
+          </div>
 
          {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
          {examPrepItems.length > 0 && (
@@ -376,6 +389,10 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const [undoConfirm, setUndoConfirm] = useState(false);
   const { toast } = useToast();
   const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, predictiveFinish } = card;
+  const activeMaterial = getActiveMaterialProgress(mats, totalSessDone);
+  const totalProgressText = totalSessAll > 0
+    ? `Selesai ${Math.min(totalSessDone, totalSessAll)} dari ${totalSessAll} pertemuan total`
+    : 'Belum ada pertemuan terdaftar';
 
   return (
     <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors ${
@@ -402,11 +419,33 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
               'bg-green-dim/60 text-green border-green/20'
             }`}>{st.label}</span>
           </div>
+
+          <div className="mb-2 rounded-xl bg-surface/60 border border-border/50 px-3 py-2">
+            {activeMaterial.isComplete ? (
+              <>
+                <div className="text-[13px] font-bold text-foreground leading-snug">Semua bab selesai</div>
+                <div className="text-[11px] text-text2 mt-0.5">{totalProgressText}</div>
+              </>
+            ) : activeMaterial.material ? (
+              <>
+                <div className="text-[13px] font-bold text-foreground leading-snug truncate" title={activeMaterial.material.name}>
+                  {activeMaterial.material.name}
+                </div>
+                <div className="text-[11px] text-text2 mt-0.5">
+                  Pertemuan {activeMaterial.sessionIndex}/{activeMaterial.totalSessionsInMat} di bab ini
+                </div>
+                <div className="text-[11px] text-text3 mt-0.5">{totalProgressText}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-[13px] font-bold text-foreground leading-snug">Materi belum diatur</div>
+                <div className="text-[11px] text-text2 mt-0.5">Tambahkan bab di menu Kelola.</div>
+              </>
+            )}
+          </div>
           
           <div className="flex items-center gap-2 text-[12px] text-text2 flex-wrap font-medium">
-            <span>Bab: <strong className="text-foreground">{st.done}</strong>/{st.total}</span>
-            <span className="opacity-40">•</span>
-            <span>Materi (Sesi): <strong className="text-foreground">{totalSessDone}</strong>/{totalSessAll}</span>
+            <span>{totalProgressText}</span>
             {st.daysLeft !== undefined && (
               <>
                 <span className="opacity-40">•</span>
@@ -478,6 +517,7 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                 const sessions = mat.sessions ?? 1;
                 const isFinished = totalSessDone >= currentTotal + sessions;
                 const isCurrent = totalSessDone >= currentTotal && totalSessDone < currentTotal + sessions;
+                const sessionIndex = totalSessDone - currentTotal + 1;
                 currentTotal += sessions;
                 
                 return (
@@ -493,7 +533,14 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                       isCurrent ? 'font-bold text-foreground' : 'font-medium text-text2'
                     }`}>
                       {mat.name}
-                      {sessions > 1 && <span className="ml-2 text-[10px] opacity-60">({isCurrent ? `${totalSessDone - (currentTotal - sessions) + 1}/` : ''}{sessions}x)</span>}
+                      {isCurrent && (
+                        <span className="block mt-0.5 text-[10px] font-bold text-primary opacity-90">
+                          Pertemuan {sessionIndex}/{sessions} sekarang
+                        </span>
+                      )}
+                      {!isCurrent && sessions > 1 && (
+                        <span className="ml-2 text-[10px] opacity-60">{sessions} pertemuan</span>
+                      )}
                     </span>
                   </div>
                 );

@@ -1,21 +1,32 @@
-import { useState, useCallback, useEffect } from 'react';
+import { Suspense, lazy, useState, useCallback, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
-import TodayView from '@/components/TodayView';
-import ProgressView from '@/components/ProgressView';
-import SetupView from '@/components/SetupView';
-import InfoView from '@/components/InfoView';
-import ExamView from '@/components/ExamView';
-import Onboarding from '@/components/Onboarding';
-import QuickAddModal from '@/components/QuickAddModal';
 import { ViewType } from '@/lib/types';
 import { getData, loadDemo, pruneOldSessions } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
+import InfoView from '@/components/InfoView';
+
+const TodayView = lazy(() => import('@/components/TodayView'));
+const ProgressView = lazy(() => import('@/components/ProgressView'));
+const SetupView = lazy(() => import('@/components/SetupView'));
+const ExamView = lazy(() => import('@/components/ExamView'));
+const Onboarding = lazy(() => import('@/components/Onboarding'));
+const QuickAddModal = lazy(() => import('@/components/QuickAddModal'));
 
 type AppView = ViewType;
 
 const isAppView = (value: string | null): value is AppView =>
   value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
+
+function ViewFallback() {
+  return (
+    <div className="space-y-3 pt-2 animate-pulse">
+      <div className="h-24 rounded-3xl bg-surface2/70 border border-border" />
+      <div className="h-32 rounded-3xl bg-surface2/50 border border-border" />
+      <div className="h-20 rounded-2xl bg-surface2/40 border border-border" />
+    </div>
+  );
+}
 
 function AppInner() {
   const [view, setView] = useState<AppView>(() => {
@@ -84,23 +95,27 @@ function AppInner() {
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[136px] scrollbar-thin relative z-0">
-        {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
-        {view === 'progress' && <ProgressView key={refreshKey} />}
-        {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
-        {view === 'setup'    && <SetupView onRefresh={refresh} />}
-        {view === 'info'     && <InfoView />}
+        <Suspense fallback={<ViewFallback />}>
+          {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
+          {view === 'progress' && <ProgressView key={refreshKey} />}
+          {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
+          {view === 'setup'    && <SetupView onRefresh={refresh} />}
+          {view === 'info'     && <InfoView />}
+        </Suspense>
       </div>
 
       <BottomNav currentView={view as ViewType} onViewChange={handleViewChange} />
 
-      {showOnboarding && (
-        <Onboarding
-          onComplete={() => { setShowOnboarding(false); refresh(); }}
-          onLoadDemo={() => { loadDemo(); }}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showOnboarding && (
+          <Onboarding
+            onComplete={() => { setShowOnboarding(false); refresh(); }}
+            onLoadDemo={() => { loadDemo(); }}
+          />
+        )}
 
-      <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onRefresh={refresh} />
+        <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onRefresh={refresh} />
+      </Suspense>
     </div>
   );
 }

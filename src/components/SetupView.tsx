@@ -10,6 +10,7 @@ import {
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { requestNotifPermission } from '@/lib/notifications';
 
 interface SetupViewProps {
   onRefresh: () => void;
@@ -991,8 +992,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
         </p>
         <button 
           onClick={async () => {
-            const mod = await import('@/lib/notifications');
-            const res = await mod.requestNotifPermission();
+            const res = await requestNotifPermission();
             alert(res ? 'Notifikasi aktif!' : 'Gagal mengaktifkan notifikasi / izin ditolak.');
           }}
           className="w-full py-[12px] bg-teal text-teal-950 text-sm font-bold rounded-lg shadow-teal transition-all active:scale-[0.98]"
