@@ -4,7 +4,7 @@ import {
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
-  undoLastSession, dateKey,
+  undoLastSession, dateKey, getTeachingPosition, getDailyPriorities,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,11 +16,17 @@ interface TodayViewProps {
   onRefresh: () => void;
 }
 
+function getMaterialPageLabel(material?: { pageStart?: string; pageEnd?: string } | null) {
+  if (!material?.pageStart) return '';
+  return material.pageEnd ? `Hal. ${material.pageStart}-${material.pageEnd}` : `Hal. ${material.pageStart}`;
+}
+
 export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const items = getTodaySchedules();
   const active = getActiveSession(items);
   const next = getNextSession(items);
   const insights = getInsights();
+  const dailyPriorities = getDailyPriorities();
   const { toast } = useToast();
 
   // Smart Rescheduler state
@@ -311,6 +317,38 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </button>
         {briefingOpen && <div className="px-1 pb-1"><DailyBriefing /></div>}
       </div>
+
+      {dailyPriorities.length > 0 && (
+        <div className="bg-surface/70 border border-border/70 rounded-3xl p-4 mb-4 animate-slide-up shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-primary">Prioritas Hari Ini</div>
+              <div className="text-[10px] text-text3 mt-0.5">Fokus tindakan sebelum buka detail jadwal</div>
+            </div>
+            {dailyPriorities.some(p => p.urgent) && (
+              <span className="text-[9px] font-black bg-red/10 text-red border border-red/20 px-2 py-1 rounded-full uppercase tracking-wide">Urgent</span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {dailyPriorities.map((priority, index) => (
+              <div key={`${priority.type}-${index}`} className={`flex items-start gap-3 rounded-2xl border px-3 py-2.5 ${
+                priority.urgent ? 'bg-red/8 border-red/18' : 'bg-surface2/50 border-border/50'
+              }`}>
+                <div className={`w-6 h-6 rounded-xl flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
+                  priority.urgent ? 'bg-red/12 text-red border border-red/20' : 'bg-primary/10 text-primary border border-primary/20'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-bold text-foreground leading-snug">{priority.title}</div>
+                  <div className="text-[12px] text-text2 leading-snug mt-0.5">{priority.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Backup Reminder Banner */}
       {showBackupBtn && (
         <div className="bg-amber/10 border border-amber/30 rounded-lg p-3 mb-[10px] flex items-center justify-between animate-slide-up">
@@ -361,6 +399,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         
         // State 1: Active Session (Highest Priority)
         if (active) {
+          const teachingPosition = getTeachingPosition(active.classId, active.subjectId);
+          const activeMaterial = teachingPosition.material;
+          const activePageLabel = getMaterialPageLabel(activeMaterial);
           const totalDuration = active.duration || 45;
           const elapsed = currentMin() - timeToMin(active.startTime);
           const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
@@ -408,8 +449,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <span className="opacity-90">{active.subjectName}</span>
                   <span className="opacity-20">•</span>
                   <span className="font-bold text-primary">
-                    {active.totalMats > 0 
-                      ? `Pertemuan ${Math.min(active.materialsDone + 1, active.totalMats)} dari ${active.totalMats}`
+                    {teachingPosition.totalSessionsAll > 0 && !teachingPosition.isComplete
+                      ? `Pertemuan ${teachingPosition.sessionIndex}/${teachingPosition.totalSessionsInMaterial} di bab ini`
+                      : teachingPosition.isComplete
+                        ? 'Semua materi selesai'
                       : 'Belum ada materi'}
                   </span>
                 </div>
@@ -438,7 +481,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">📖</div>
                   <div>
                     <div className="text-[10px] font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
-                    <div className="text-[15px] font-bold leading-tight text-foreground/90">{active.nextMat ? active.nextMat.name : 'Semua materi selesai 🎉'}</div>
+                    <div className="text-[15px] font-bold leading-tight text-foreground/90">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
+                    {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1">{activePageLabel}</div>}
+                    {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug">Catatan: {activeMaterial.note}</div>}
                   </div>
                 </div>
               </div>
@@ -498,6 +543,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         // State 2: No active session, show Upcoming (Wait)
         const upcoming = items.find(x => !x.done);
         if (upcoming) {
+          const teachingPosition = getTeachingPosition(upcoming.classId, upcoming.subjectId);
+          const upcomingMaterial = teachingPosition.material;
+          const upcomingPageLabel = getMaterialPageLabel(upcomingMaterial);
           const diff = timeToMin(upcoming.startTime) - currentMin();
           return (
             <div className="bg-surface/50 backdrop-blur-xl border border-teal-border/40 rounded-3xl p-5 overflow-hidden relative mb-4 animate-slide-up shadow-xl group">
@@ -524,8 +572,22 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="text-[16px] font-bold text-text2/80 mb-5 flex items-center gap-2">
                   <span>{upcoming.subjectName}</span>
                   <span className="opacity-30">•</span>
-                  <span className="text-[14px] text-teal">Sesi {Math.min(upcoming.materialsDone + 1, upcoming.totalMats)}/{upcoming.totalMats}</span>
+                  <span className="text-[14px] text-teal">
+                    {teachingPosition.totalSessionsAll > 0 && !teachingPosition.isComplete
+                      ? `Pertemuan ${teachingPosition.sessionIndex}/${teachingPosition.totalSessionsInMaterial}`
+                      : teachingPosition.isComplete
+                        ? 'Selesai'
+                        : 'Belum ada materi'}
+                  </span>
                 </div>
+                {upcomingMaterial && (
+                  <div className="bg-surface/50 border border-teal/20 rounded-2xl px-4 py-3 mb-4">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-teal/80 mb-1">Materi Berikutnya</div>
+                    <div className="text-[14px] font-bold text-foreground leading-snug">{upcomingMaterial.name}</div>
+                    {upcomingPageLabel && <div className="text-[12px] font-semibold text-text2 mt-1">{upcomingPageLabel}</div>}
+                    {upcomingMaterial.note && <div className="text-[12px] text-text3 mt-1 leading-snug">Catatan: {upcomingMaterial.note}</div>}
+                  </div>
+                )}
                 
                 <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-3xl p-5 flex items-center gap-5 shadow-inner">
                   <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
@@ -693,6 +755,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         const state = item.active ? 'active' : item.done ? 'done' : '';
         const todayStr = dateKey();
         const prevReminder = !item.done ? getPrevReminder(item.classId, item.subjectId, todayStr) : '';
+        const teachingPosition = !item.done ? getTeachingPosition(item.classId, item.subjectId) : null;
+        const itemMaterial = teachingPosition?.material;
+        const itemPageLabel = getMaterialPageLabel(itemMaterial);
         return (
           <div
             key={item.id}
@@ -754,10 +819,15 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         ? `Sesi ${Math.min(item.materialsDone + (item.done ? 0 : 1), item.totalMats)}/${item.totalMats}`
                         : 'Belum ada materi'}
                     </span>
-                    {!item.done && item.nextMat && (
-                      <span className="text-text3/70 truncate max-w-full">📖 {item.nextMat.name}</span>
+                    {!item.done && itemMaterial && (
+                      <span className="text-text3/70 truncate max-w-full">📖 {itemMaterial.name}</span>
                     )}
                   </div>
+                  {!item.done && (itemPageLabel || itemMaterial?.note) && (
+                    <div className="text-[11px] text-text3 mt-1 leading-snug line-clamp-2">
+                      {[itemPageLabel, itemMaterial?.note ? `Catatan: ${itemMaterial.note}` : ''].filter(Boolean).join(' • ')}
+                    </div>
+                  )}
                 </div>
 
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex-shrink-0">

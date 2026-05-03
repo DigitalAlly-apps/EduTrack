@@ -9,6 +9,67 @@ const DEFAULT_DATA: AppData = {
   academicYear: '',
 };
 
+export type MaterialDetails = {
+  pageStart?: string;
+  pageEnd?: string;
+  note?: string;
+};
+
+export type MaterialDraft = MaterialDetails & {
+  name: string;
+  sessions?: number;
+};
+
+function cleanOptionalText(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function parseSessionCount(value: string | undefined, fallback: number) {
+  const match = value?.match(/\d+/);
+  return match ? Math.max(1, Number(match[0])) : fallback;
+}
+
+function parsePageRange(value: string | undefined): MaterialDetails {
+  const cleaned = value
+    ?.replace(/^(halaman|hal|hlm|page|pg)\.?\s*/i, '')
+    .trim();
+  if (!cleaned) return {};
+
+  const range = cleaned.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if (range) {
+    return {
+      pageStart: cleanOptionalText(range[1]),
+      pageEnd: cleanOptionalText(range[2]),
+    };
+  }
+
+  return { pageStart: cleaned };
+}
+
+export function parseMaterialDraftLine(line: string, defaultSessions = 1): MaterialDraft | null {
+  const parts = line.split('|').map(part => part.trim());
+  const name = parts[0]?.trim();
+  if (!name) return null;
+
+  if (parts.length === 1) return { name, sessions: defaultSessions };
+
+  const pageDetails = parsePageRange(parts[2]);
+  return {
+    name,
+    sessions: parseSessionCount(parts[1], defaultSessions),
+    ...pageDetails,
+    note: cleanOptionalText(parts[3]),
+  };
+}
+
+export function parseMaterialDraftLines(text: string, defaultSessions = 1): MaterialDraft[] {
+  return text
+    .split('\n')
+    .map(line => parseMaterialDraftLine(line, defaultSessions))
+    .filter((draft): draft is MaterialDraft => draft !== null);
+}
+
 export function getData(): AppData {
   try {
     const raw = localStorage.getItem(DB_KEY) || localStorage.getItem('pengajar_v3') || localStorage.getItem('pengajar_v2');
@@ -160,6 +221,28 @@ function getMaterialForSession(mats: import('./types').Material[], sessionsDone:
   return { material: null, sessionIndex: 0, totalSessionsInMat: 0 };
 }
 
+export function getTeachingPosition(classId: string, subjectId: string, data: AppData = getData()) {
+  const mats = getMaterialsFromData(data, subjectId, classId);
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
+  const totalSessionsAll = getTotalSessionsNeeded(mats);
+  const totalSessionsDone = Math.min(prog.materialsDone, totalSessionsAll);
+  const current = getMaterialForSession(mats, totalSessionsDone);
+
+  const materialNumber = current.material
+    ? mats.findIndex(m => m.id === current.material?.id) + 1
+    : mats.length;
+
+  return {
+    material: current.material,
+    materialNumber,
+    sessionIndex: current.sessionIndex,
+    totalSessionsInMaterial: current.totalSessionsInMat,
+    totalSessionsDone,
+    totalSessionsAll,
+    isComplete: mats.length > 0 && totalSessionsDone >= totalSessionsAll,
+  };
+}
+
 export function isDateHolidayForSubject(dateStr: string, subjectLevel?: string): boolean {
   const data = getData();
   const holidays = data.holidays || [];
@@ -243,6 +326,116 @@ export function getTodaySchedules(): TodayScheduleItem[] {
 
   return [...regularItems, ...extraItems]
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
+export type DailyPriority = {
+  type: 'now' | 'next' | 'risk' | 'task' | 'reminder' | 'empty';
+  title: string;
+  detail: string;
+  urgent: boolean;
+};
+
+function getMaterialPageLabel(material?: Material | null) {
+  if (!material?.pageStart) return '';
+  return material.pageEnd ? `Hal. ${material.pageStart}-${material.pageEnd}` : `Hal. ${material.pageStart}`;
+}
+
+function getReminderFromNote(note?: string) {
+  if (!note) return '';
+  const prefixes = ['\n---REMINDER_DEPAN---\n', '\n---BELUM_KUMPUL---\n'];
+  for (const prefix of prefixes) {
+    const idx = note.indexOf(prefix);
+    if (idx !== -1) return note.slice(idx + prefix.length).trim();
+  }
+  return '';
+}
+
+export function getDailyPriorities(data: AppData = getData()): DailyPriority[] {
+  const priorities: DailyPriority[] = [];
+  const todayStr = dateKey();
+  const items = getTodaySchedules();
+  const unfinished = items.filter(item => !item.done);
+  const current = unfinished.find(item => item.active) || unfinished.find(item => timeToMin(item.startTime) >= currentMin()) || unfinished[0];
+
+  if (current) {
+    const pos = getTeachingPosition(current.classId, current.subjectId, data);
+    const materialName = pos.material?.name || 'materi belum diatur';
+    const pageLabel = getMaterialPageLabel(pos.material);
+    const meetingLabel = pos.totalSessionsAll > 0 && !pos.isComplete
+      ? `Pertemuan ${pos.sessionIndex}/${pos.totalSessionsInMaterial}`
+      : pos.isComplete
+        ? 'semua materi selesai'
+        : 'belum ada materi';
+    priorities.push({
+      type: current.active ? 'now' : 'next',
+      title: current.active ? `${current.className} sedang berlangsung` : `Berikutnya: ${current.className}`,
+      detail: `${current.subjectName}: ${materialName}${meetingLabel ? `, ${meetingLabel}` : ''}${pageLabel ? `, ${pageLabel}` : ''}.`,
+      urgent: current.active,
+    });
+  }
+
+  const riskItems = data.classes.flatMap(cls => data.subjects.map(sub => {
+    if (!data.schedules.some(s => s.classId === cls.id && s.subjectId === sub.id)) return null;
+    const st = getSubjectStatus(sub, cls, data);
+    if (st.status === 'on-track') return null;
+    const severity = st.status === 'behind' ? 2 : 1;
+    return { cls, sub, st, severity };
+  })).filter(Boolean) as { cls: ClassItem; sub: Subject; st: SubjectStatus; severity: number }[];
+
+  const worstRisk = riskItems.sort((a, b) => b.severity - a.severity || (b.st.sessionsNeeded ?? 0) - (a.st.sessionsNeeded ?? 0))[0];
+  if (worstRisk) {
+    priorities.push({
+      type: 'risk',
+      title: `${worstRisk.cls.name} ${worstRisk.sub.name} ${worstRisk.st.label.toLowerCase()}`,
+      detail: worstRisk.st.rec,
+      urgent: worstRisk.st.status === 'behind',
+    });
+  }
+
+  const pendingTasks = (data.tasks || [])
+    .filter(task => task.status === 'pending')
+    .sort((a, b) => a.deadline.localeCompare(b.deadline));
+  const urgentTask = pendingTasks.find(task => task.deadline <= todayStr) || pendingTasks[0];
+  if (urgentTask) {
+    const cls = data.classes.find(c => c.id === urgentTask.classId)?.name || 'Kelas';
+    const sub = data.subjects.find(s => s.id === urgentTask.subjectId)?.name || 'Mapel';
+    priorities.push({
+      type: 'task',
+      title: urgentTask.deadline <= todayStr ? 'Tugas perlu dicek hari ini' : 'Tugas terdekat',
+      detail: `${cls} ${sub}: ${urgentTask.title} (batas ${urgentTask.deadline}).`,
+      urgent: urgentTask.deadline <= todayStr,
+    });
+  }
+
+  if (priorities.length < 3) {
+    const todayClassKeys = new Set(items.map(item => `${item.classId}-${item.subjectId}`));
+    const reminderSession = data.sessions
+      .filter(session => session.date < todayStr && session.materialId !== 'SKIPPED' && todayClassKeys.has(`${session.classId}-${session.subjectId}`))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.completedAt.localeCompare(a.completedAt))
+      .find(session => getReminderFromNote(session.note));
+    const reminder = getReminderFromNote(reminderSession?.note);
+    if (reminderSession && reminder) {
+      const cls = data.classes.find(c => c.id === reminderSession.classId)?.name || 'Kelas';
+      const sub = data.subjects.find(s => s.id === reminderSession.subjectId)?.name || 'Mapel';
+      priorities.push({
+        type: 'reminder',
+        title: `Reminder ${cls} ${sub}`,
+        detail: reminder,
+        urgent: false,
+      });
+    }
+  }
+
+  if (priorities.length === 0) {
+    priorities.push({
+      type: 'empty',
+      title: 'Hari ini terkendali',
+      detail: items.length > 0 ? 'Belum ada prioritas khusus selain mengikuti jadwal.' : 'Tidak ada jadwal hari ini. Bisa siapkan materi atau cek tugas tertunda.',
+      urgent: false,
+    });
+  }
+
+  return priorities.slice(0, 3);
 }
 
 export function getActiveSession(items: TodayScheduleItem[]) { return items.find(x => x.active && !x.done) || null; }
@@ -628,8 +821,19 @@ export function bulkUpdateExamDateByLevel(level: string, examDate: string) {
     });
   });
 }
-export function updateMaterial(id: string, name: string, sessions?: number) {
-  updateData(d => { const m = d.materials.find(x => x.id === id); if (m) { m.name = name.trim(); if (sessions !== undefined) m.sessions = sessions; } });
+export function updateMaterial(id: string, name: string, sessions?: number, details?: MaterialDetails) {
+  updateData(d => {
+    const m = d.materials.find(x => x.id === id);
+    if (m) {
+      m.name = name.trim();
+      if (sessions !== undefined) m.sessions = sessions;
+      if (details) {
+        m.pageStart = cleanOptionalText(details.pageStart);
+        m.pageEnd = cleanOptionalText(details.pageEnd);
+        m.note = cleanOptionalText(details.note);
+      }
+    }
+  });
 }
 export function updateSchedule(id: string, days: number[], startTime: string, duration: number) {
   updateData(d => { const s = d.schedules.find(x => x.id === id); if (s) { s.days = [...days]; s.startTime = startTime; s.duration = duration; }});
@@ -646,7 +850,7 @@ export function reorderMaterials(subjectId: string, orderedIds: string[], level?
     });
   });
 }
-export function bulkAddMaterials(subjectId: string, names: string[], sessions = 1, level?: string, classId?: string) {
+export function bulkAddMaterials(subjectId: string, names: (string | MaterialDraft)[], sessions = 1, level?: string, classId?: string) {
   updateData(d => {
     // Hitung maxOrder hanya untuk scope yang sama (level atau classId)
     const scopedMats = d.materials.filter(m =>
@@ -655,8 +859,23 @@ export function bulkAddMaterials(subjectId: string, names: string[], sessions = 
       (level ? m.level === level : m.level === undefined)
     );
     let maxOrder = Math.max(0, ...scopedMats.map(m => m.order));
-    names.forEach(name => {
-      if (name.trim()) d.materials.push({ id: genId(), subjectId, level, classId, name: name.trim(), order: ++maxOrder, sessions });
+    names.forEach(item => {
+      const draft: MaterialDraft = typeof item === 'string' ? { name: item, sessions } : item;
+      const name = draft.name.trim();
+      if (name) {
+        d.materials.push({
+          id: genId(),
+          subjectId,
+          level,
+          classId,
+          name,
+          order: ++maxOrder,
+          sessions: draft.sessions ?? sessions,
+          pageStart: cleanOptionalText(draft.pageStart),
+          pageEnd: cleanOptionalText(draft.pageEnd),
+          note: cleanOptionalText(draft.note),
+        });
+      }
     });
   });
 }

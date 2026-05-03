@@ -2,13 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applySmartReschedule,
   applyTeacherLeave,
+  bulkAddMaterials,
   dateKey,
   exportJSON,
   getData,
   getMaterials,
+  getDailyPriorities,
+  getTeachingPosition,
+  importJSON,
   markDone,
+  parseMaterialDraftLine,
+  parseMaterialDraftLines,
   saveData,
   skipSession,
+  updateMaterial,
 } from '@/lib/data';
 import { AppData } from '@/lib/types';
 
@@ -62,6 +69,89 @@ describe('materials scoping', () => {
     expect(getMaterials('s1', 'c2')).toEqual([]);
     expect(getMaterials('s1', 'c3').map(m => m.name)).toEqual(['Shared 11']);
   });
+
+  it('keeps old material data valid when optional page fields are missing', () => {
+    saveData(baseData());
+
+    const material = getMaterials('s1', 'c1')[0];
+    expect(material.name).toBe('Khusus 10A');
+    expect(material.pageStart).toBeUndefined();
+    expect(material.pageEnd).toBeUndefined();
+    expect(material.note).toBeUndefined();
+  });
+
+  it('stores optional page and note fields when updating material', () => {
+    saveData(baseData());
+
+    updateMaterial('m1', 'Bab 1 — Aljabar', 3, { pageStart: ' 12 ', pageEnd: '20', note: ' fokus latihan ' });
+
+    const material = getMaterials('s1', 'c1')[0];
+    expect(material).toMatchObject({
+      name: 'Bab 1 — Aljabar',
+      sessions: 3,
+      pageStart: '12',
+      pageEnd: '20',
+      note: 'fokus latihan',
+    });
+  });
+
+  it('supports legacy and detailed bulk material input', () => {
+    const data = baseData();
+    data.materials = [];
+    saveData(data);
+
+    bulkAddMaterials('s1', ['Bab Lama'], 2, undefined, 'c1');
+    bulkAddMaterials('s1', [{ name: 'Bab Detail', sessions: 3, pageStart: '1', pageEnd: '12', note: 'ulang konsep dasar' }], 1, undefined, 'c1');
+
+    expect(getMaterials('s1', 'c1')).toMatchObject([
+      { name: 'Bab Lama', sessions: 2 },
+      { name: 'Bab Detail', sessions: 3, pageStart: '1', pageEnd: '12', note: 'ulang konsep dasar' },
+    ]);
+  });
+
+  it('parses detailed bulk material lines with sessions, pages, and notes', () => {
+    expect(parseMaterialDraftLine('Bab 1 - Bilangan Bulat | 2x | hal 1-12 | banyak latihan soal', 1)).toEqual({
+      name: 'Bab 1 - Bilangan Bulat',
+      sessions: 2,
+      pageStart: '1',
+      pageEnd: '12',
+      note: 'banyak latihan soal',
+    });
+
+    expect(parseMaterialDraftLines('Bab 2 - Pecahan\nBab 3 - Persen | 3 pertemuan | halaman 13 | ulang konsep', 2)).toEqual([
+      { name: 'Bab 2 - Pecahan', sessions: 2 },
+      { name: 'Bab 3 - Persen', sessions: 3, pageStart: '13', note: 'ulang konsep' },
+    ]);
+  });
+
+  it('returns the active teaching position for multi-session materials', () => {
+    const data = baseData();
+    data.materials = [
+      { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 1, pageStart: '1', pageEnd: '8', note: 'pemanasan' },
+      { id: 'm2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 2, pageStart: '9', pageEnd: '20', note: 'latihan banyak' },
+    ];
+    data.progress[0].materialsDone = 1;
+    saveData(data);
+
+    expect(getTeachingPosition('c1', 's1')).toMatchObject({
+      material: { id: 'm2', name: 'Bab 2', pageStart: '9', pageEnd: '20', note: 'latihan banyak' },
+      materialNumber: 2,
+      sessionIndex: 1,
+      totalSessionsInMaterial: 2,
+      totalSessionsDone: 1,
+      totalSessionsAll: 3,
+      isComplete: false,
+    });
+
+    data.progress[0].materialsDone = 3;
+    saveData(data);
+    expect(getTeachingPosition('c1', 's1')).toMatchObject({
+      material: null,
+      totalSessionsDone: 3,
+      totalSessionsAll: 3,
+      isComplete: true,
+    });
+  });
 });
 
 describe('session actions', () => {
@@ -79,6 +169,29 @@ describe('session actions', () => {
     expect(afterSkip.sessions).toHaveLength(2);
     expect(afterSkip.sessions.find(s => s.scheduleId === 'sc2')?.materialId).toBe('SKIPPED');
     expect(afterSkip.progress[0].materialsDone).toBe(1);
+  });
+});
+
+describe('daily priorities', () => {
+  it('summarizes the next teaching action with material pages', () => {
+    const data = baseData(new Date().getDay());
+    data.schedules[0].startTime = '23:59';
+    data.materials[0] = { ...data.materials[0], name: 'Bab 1', pageStart: '1', pageEnd: '8', note: 'pemanasan' };
+    saveData(data);
+
+    expect(getDailyPriorities()[0]).toMatchObject({
+      type: 'next',
+      title: 'Berikutnya: 10A',
+      detail: expect.stringContaining('Bab 1, Pertemuan 1/2, Hal. 1-8'),
+    });
+  });
+
+  it('includes urgent task priority when task is due today', () => {
+    const data = baseData(new Date().getDay());
+    data.tasks.push({ id: 't1', classId: 'c1', subjectId: 's1', title: 'Cek PR', deadline: dateKey(), status: 'pending' });
+    saveData(data);
+
+    expect(getDailyPriorities().some(p => p.type === 'task' && p.urgent && p.detail.includes('Cek PR'))).toBe(true);
   });
 });
 
@@ -133,10 +246,21 @@ describe('backup and import', () => {
     expect(JSON.parse(backupText).corrections).toHaveLength(1);
 
     localStorage.clear();
-    const { importJSON } = await import('@/lib/data');
     await importJSON(new File([backupText], 'backup.json', { type: 'application/json' }));
 
     expect(getData().classes).toHaveLength(3);
     expect(JSON.parse(localStorage.getItem('edutrack_corrections') || '[]')).toHaveLength(1);
+  });
+
+  it('imports old backups that do not have material page fields', async () => {
+    const oldBackup = JSON.stringify(baseData());
+
+    await importJSON(new File([oldBackup], 'old-backup.json', { type: 'application/json' }));
+
+    const material = getMaterials('s1', 'c1')[0];
+    expect(material.name).toBe('Khusus 10A');
+    expect(material.pageStart).toBeUndefined();
+    expect(material.pageEnd).toBeUndefined();
+    expect(material.note).toBeUndefined();
   });
 });

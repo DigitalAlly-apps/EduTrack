@@ -18,6 +18,9 @@ export interface Material {
   name: string;
   order: number;
   sessions?: number; // jumlah pertemuan yang dibutuhkan untuk bab ini (default 1)
+  pageStart?: string;
+  pageEnd?: string;
+  note?: string;
 }
 export interface Schedule {
   id: string;

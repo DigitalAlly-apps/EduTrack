@@ -2,7 +2,7 @@ import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  getPredictiveFinishes, getExamPrepItems, undoLastSession,
+  getPredictiveFinishes, getExamPrepItems, undoLastSession, getTeachingPosition,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
@@ -165,35 +165,15 @@ type CardData = {
   matsDone: number;
   totalSessDone: number;
   totalSessAll: number;
+  teachingPosition: ReturnType<typeof getTeachingPosition>;
   predictiveFinish?: PredictiveFinish | undefined;
 };
 
 type GroupData = { clsName: string; cards: CardData[]; issues: number };
 
-function getActiveMaterialProgress(mats: any[], sessionsDone: number) {
-  let cumulative = 0;
-  for (let i = 0; i < mats.length; i++) {
-    const material = mats[i];
-    const sessions = material.sessions ?? 1;
-    if (sessionsDone < cumulative + sessions) {
-      return {
-        material,
-        materialNumber: i + 1,
-        sessionIndex: sessionsDone - cumulative + 1,
-        totalSessionsInMat: sessions,
-        isComplete: false,
-      };
-    }
-    cumulative += sessions;
-  }
-
-  return {
-    material: null,
-    materialNumber: mats.length,
-    sessionIndex: 0,
-    totalSessionsInMat: 0,
-    isComplete: mats.length > 0,
-  };
+function getMaterialPageLabel(material?: { pageStart?: string; pageEnd?: string } | null) {
+  if (!material?.pageStart) return '';
+  return material.pageEnd ? `Hal. ${material.pageStart}-${material.pageEnd}` : `Hal. ${material.pageStart}`;
 }
 
 // ─── ProgressTab ──────────────────────────────────────────────────────────────
@@ -228,13 +208,14 @@ function ProgressTab({ predictiveFinishes, examPrepItems }: {
           const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
           const totalSessDone = prog?.materialsDone ?? 0;
           const totalSessAll = getTotalSessionsNeeded(mats);
+          const teachingPosition = getTeachingPosition(cls.id, sub.id, data);
           const pred = predictiveFinishes.find(p => p.classId === cls.id && p.subjectId === sub.id);
           cards.push({
             clsId: cls.id, clsName: cls.name,
             subId: sub.id, subName: sub.name,
             st, urgency: getUrgencyScore(st),
             effectiveColor: getEffectiveStatus(st),
-            mats, matsDone: totalSessDone, totalSessDone, totalSessAll,
+            mats, matsDone: totalSessDone, totalSessDone, totalSessAll, teachingPosition,
             predictiveFinish: pred,
           });
         });
@@ -388,8 +369,9 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const [showMats, setShowMats] = useState(false);
   const [undoConfirm, setUndoConfirm] = useState(false);
   const { toast } = useToast();
-  const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, predictiveFinish } = card;
-  const activeMaterial = getActiveMaterialProgress(mats, totalSessDone);
+  const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, teachingPosition, predictiveFinish } = card;
+  const activeMaterial = teachingPosition;
+  const activePageLabel = getMaterialPageLabel(activeMaterial.material);
   const totalProgressText = totalSessAll > 0
     ? `Selesai ${Math.min(totalSessDone, totalSessAll)} dari ${totalSessAll} pertemuan total`
     : 'Belum ada pertemuan terdaftar';
@@ -432,8 +414,10 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                   {activeMaterial.material.name}
                 </div>
                 <div className="text-[11px] text-text2 mt-0.5">
-                  Pertemuan {activeMaterial.sessionIndex}/{activeMaterial.totalSessionsInMat} di bab ini
+                  Pertemuan {activeMaterial.sessionIndex}/{activeMaterial.totalSessionsInMaterial} di bab ini
                 </div>
+                {activePageLabel && <div className="text-[11px] text-text2 mt-0.5">{activePageLabel}</div>}
+                {activeMaterial.material.note && <div className="text-[11px] text-text3 mt-0.5 truncate">Catatan: {activeMaterial.material.note}</div>}
                 <div className="text-[11px] text-text3 mt-0.5">{totalProgressText}</div>
               </>
             ) : (
@@ -518,6 +502,7 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                 const isFinished = totalSessDone >= currentTotal + sessions;
                 const isCurrent = totalSessDone >= currentTotal && totalSessDone < currentTotal + sessions;
                 const sessionIndex = totalSessDone - currentTotal + 1;
+                const pageLabel = getMaterialPageLabel(mat);
                 currentTotal += sessions;
                 
                 return (
@@ -533,6 +518,12 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                       isCurrent ? 'font-bold text-foreground' : 'font-medium text-text2'
                     }`}>
                       {mat.name}
+                      {pageLabel && (
+                        <span className="block mt-0.5 text-[10px] font-semibold opacity-70">{pageLabel}</span>
+                      )}
+                      {mat.note && (
+                        <span className="block mt-0.5 text-[10px] font-medium opacity-60">Catatan: {mat.note}</span>
+                      )}
                       {isCurrent && (
                         <span className="block mt-0.5 text-[10px] font-bold text-primary opacity-90">
                           Pertemuan {sessionIndex}/{sessions} sekarang

@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData, dateKey, dateFromKey,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
-  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave,
+  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -323,6 +323,9 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(item.name);
   const [sessVal, setSessVal] = useState<number>(item.sessions ?? 1);
+  const [pageStart, setPageStart] = useState(item.pageStart || '');
+  const [pageEnd, setPageEnd] = useState(item.pageEnd || '');
+  const [note, setNote] = useState(item.note || '');
   const [delSheet, setDelSheet] = useState(false);
 
   if (editing) {
@@ -340,8 +343,13 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
             ))}
           </div>
         </div>
+        <div className="flex gap-2 mb-2">
+          <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. mulai" />
+          <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. akhir" />
+        </div>
+        <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[70px] mb-2 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal" />
         <div className="flex gap-2">
-          <button onClick={() => { onSave(id, val, sessVal); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
+          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
           <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-md text-[13px] font-medium">Batal</button>
         </div>
       </div>
@@ -359,7 +367,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
             <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}</div>
-            <div className="text-[11px] text-text2 mt-[2px]">{item.meta}</div>
+            <div className="text-[11px] text-text2 mt-[2px] leading-snug">{item.meta}</div>
           </div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
@@ -527,6 +535,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [classId, setClassId] = useState('');
   const [name, setName] = useState('');
   const [sessions, setSessions] = useState(1);
+  const [pageStart, setPageStart] = useState('');
+  const [pageEnd, setPageEnd] = useState('');
+  const [note, setNote] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkSessions, setBulkSessions] = useState(1);
@@ -548,17 +559,17 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     if (!classId) return toast({ title: 'Pilih kelas dulu' });
     if (bulkMode) {
       if(!bulkText.trim()) return toast({ title: 'Masukkan materi' });
-      bulkAddMaterials(subId, bulkText.split('\n').filter(x => x.trim()), bulkSessions, undefined, classId);
+      bulkAddMaterials(subId, parseMaterialDraftLines(bulkText, bulkSessions), bulkSessions, undefined, classId);
       setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
     } else {
       if(!name.trim()) return toast({ title: 'Isi nama materi' });
-      bulkAddMaterials(subId, [name], sessions, undefined, classId);
-      setName(''); toast({ title: 'Materi ditambahkan' }); onRefresh();
+      bulkAddMaterials(subId, [{ name, sessions, pageStart, pageEnd, note }], sessions, undefined, classId);
+      setName(''); setPageStart(''); setPageEnd(''); setNote(''); toast({ title: 'Materi ditambahkan' }); onRefresh();
     }
   };
 
-  const saveItem = (id: string, newName: string, newSessions?: number) => {
-    if(newName.trim()) updateMaterial(id, newName, newSessions); toast({ title: 'Tersimpan' }); onRefresh();
+  const saveItem = (id: string, newName: string, newSessions?: number, details?: { pageStart?: string; pageEnd?: string; note?: string }) => {
+    if(newName.trim()) updateMaterial(id, newName, newSessions, details); toast({ title: 'Tersimpan' }); onRefresh();
   };
   const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
 
@@ -588,7 +599,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm space-y-3">
         <FormField label="Pilih Mata Pelajaran" className="mb-0">
-          <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+          <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary">
             <option value="">Pilih mata pelajaran...</option>
             {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -602,7 +613,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
         {subId && classesForSubject.length > 0 && (
           <FormField label="Pilih Kelas" className="mb-0">
-            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setBulkText(''); }} className="form-select-style border-primary">
+            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary">
               <option value="">Pilih kelas...</option>
               {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name} {classesWithSchedule.find(x => x.id === c.id) ? '' : '(belum ada jadwal)'}</option>)}
             </select>
@@ -623,7 +634,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
           {bulkMode ? (
             <>
-              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar\nBab 2 - Geometri\n(Tiap baris jadi 1 materi)"} className="form-input-style min-h-[120px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
+              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | banyak latihan soal\nBab 2 - Geometri | 3x | hal 13-28 | ulang konsep dasar\n\nFormat lama tetap bisa: satu baris = satu materi"} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
               <div className="flex items-center gap-2 mb-3">
                 <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
                 <div className="flex gap-1">
@@ -650,6 +661,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                   ))}
                 </div>
               </div>
+              <div className="flex gap-2 mb-2">
+                <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1" placeholder="Hal. mulai" />
+                <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1" placeholder="Hal. akhir" />
+              </div>
+              <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[72px] mb-3 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal, ulang konsep dasar" />
             </>
           )}
           <button onClick={add} className="btn-primary-style bg-primary text-primary-foreground min-h-[44px]">＋ {bulkMode ? 'Tambah Semua' : 'Tambah'}</button>
@@ -664,7 +680,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={mats.map(m=>m.id)} strategy={verticalListSortingStrategy}>
-              {mats.map((m, i) => <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta: `Urutan ke-${i+1}` }} onSave={saveItem} onDelete={del} />)}
+              {mats.map((m, i) => {
+                const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
+                const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${i+1}`;
+                return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta }} onSave={saveItem} onDelete={del} />;
+              })}
             </SortableContext>
           </DndContext>
           {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada materi</div>}
