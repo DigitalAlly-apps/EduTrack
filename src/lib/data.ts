@@ -1358,8 +1358,48 @@ export function applySmartReschedule(dateStr: string, actions: RescheduleAction[
 
 // ==================== PREDICTIVE FINISH DATE (FEATURE 5) ====================
 
+function getAvailableTeachingSessionDates(data: AppData, scheds: Schedule[], subjectLevel: string | undefined, maxDays: number): string[] {
+  const dates: string[] = [];
+  const today = now();
+  const overrides = data.scheduleOverrides || [];
+
+  for (let d = 0; d <= maxDays; d++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + d);
+    const dateStr = dateKey(date);
+    const dayOfWeek = date.getDay();
+    const holiday = data.holidays?.some(h =>
+      typeof h === 'string' ? h === dateStr : h.date === dateStr && (!h.level || h.level === subjectLevel)
+    ) ?? false;
+
+    scheds.forEach(sched => {
+      const override = overrides.find(o => o.scheduleId === sched.id && o.date === dateStr && !o.isExtra);
+      if (!sched.days.includes(dayOfWeek)) return;
+      if (holiday || override?.skipped) return;
+      const startTime = override?.startTime || sched.startTime;
+      if (d === 0 && timeToMin(startTime) <= currentMin()) return;
+      dates.push(dateStr);
+    });
+
+    overrides
+      .filter(o => o.date === dateStr && o.isExtra && !o.skipped && scheds.some(s => s.id === o.scheduleId))
+      .forEach(o => {
+        if (d === 0 && timeToMin(o.startTime) <= currentMin()) return;
+        dates.push(dateStr);
+      });
+  }
+
+  return dates.sort((a, b) => a.localeCompare(b));
+}
+
+function getPaceFromFinish(daysDifference: number, availableBeforeExam: number, remainingSess: number): 'ahead' | 'on-track' | 'behind' {
+  if (availableBeforeExam < remainingSess || daysDifference < 0) return 'behind';
+  if (daysDifference <= 3) return 'on-track';
+  return 'ahead';
+}
+
 /**
- * Calculate predicted finish date for each class+subject based on current pace
+ * Calculate predicted finish date by simulating actual future teaching dates.
  */
 export function getPredictiveFinishes(): PredictiveFinish[] {
   const data = getData();
@@ -1377,97 +1417,26 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
       const totalSessNeeded = getTotalSessionsNeeded(mats);
-      const remainingSess = totalSessNeeded - prog.materialsDone;
-
-      // Calculate current weekly pace from last 4 weeks of actual sessions
-      const fourWeeksAgo = new Date();
-      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-      const recentSessions = data.sessions.filter(s =>
-        s.classId === cls.id && s.subjectId === sub.id &&
-        new Date(s.date) >= fourWeeksAgo && s.materialId !== 'SKIPPED'
-      );
-      const sessionsPerWeek = recentSessions.length / 4;
-
-      // ── Estimate scheduled sessions remaining until exam ──────────────────
-      const daysToExam = sub.examDate
-        ? daysUntilDateKey(sub.examDate)
-        : 999;
-      const holidays = data.holidays ?? [];
-      const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
+      const remainingSess = Math.max(0, totalSessNeeded - prog.materialsDone);
+      const daysToExam = daysUntilDateKey(sub.examDate);
 
       let predictedFinishDate: string | null = null;
       let pace: 'ahead' | 'on-track' | 'behind' = 'on-track';
-      let daysDifference: number | null = null; // examDate - predictedFinishDate in days
+      let daysDifference: number | null = null;
 
       if (remainingSess <= 0) {
-        // Already completed
         predictedFinishDate = dateKey(new Date());
-        if (sub.examDate) {
-          const diff = daysUntilDateKey(sub.examDate);
-          daysDifference = diff;
-          if (diff > 0) pace = 'ahead';
-          else if (diff === 0) pace = 'on-track';
-          else pace = 'behind';
-        } else {
-          daysDifference = null;
-          pace = 'ahead';
-        }
-      } else if (sessLeft > 0) {
-        // PRIMARY: Gunakan frekuensi jadwal terjadwal untuk prediksi.
-        // schedFreqPerWeek = rata-rata sesi per minggu berdasarkan jadwal yang tersisa.
-        const schedFreqPerWeek = sessLeft / Math.max(daysToExam / 7, 1);
-        const weeksNeeded = schedFreqPerWeek > 0
-          ? Math.ceil(remainingSess / schedFreqPerWeek)
-          : daysToExam / 7;
-
-        // PERBAIKAN: Jangan gunakan historical pace sebagai override.
-        // Historical pace bisa sangat rendah untuk mapel baru (sedikit sesi tercatat),
-        // dan menyebabkan prediksi jauh ke depan padahal jadwal sudah cukup.
-        // Cukup gunakan jadwal terjadwal — lebih akurat dan tidak misleading.
-        const finalWeeksNeeded = weeksNeeded;
-
-        const finish = new Date();
-        finish.setDate(finish.getDate() + Math.round(finalWeeksNeeded * 7));
-        predictedFinishDate = dateKey(finish);
-
-        if (sub.examDate) {
-          const diff = Math.ceil((dateFromKey(sub.examDate).getTime() - finish.getTime()) / 864e5);
-          daysDifference = diff;
-          if (sessLeft >= remainingSess) {
-            // Cukup sesi — tidak pernah "behind"
-            pace = diff >= 0 ? 'ahead' : 'on-track';
-          } else if (diff < -7) {
-            // Hanya "behind" jika terlambat lebih dari 1 minggu
-            pace = 'behind';
-          } else if (diff < 0) {
-            pace = 'on-track'; // mepet tapi masih bisa dikejar
-          } else {
-            pace = 'ahead';
-          }
-        } else {
-          daysDifference = null;
-          pace = 'ahead';
-        }
-      } else if (sessionsPerWeek > 0) {
-        // Fallback: no remaining scheduled sessions, use historical pace
-        const weeksNeeded = Math.ceil(remainingSess / sessionsPerWeek);
-        const finish = new Date();
-        finish.setDate(finish.getDate() + (weeksNeeded * 7));
-        predictedFinishDate = dateKey(finish);
-
-        if (sub.examDate) {
-          const diff = Math.ceil((dateFromKey(sub.examDate).getTime() - finish.getTime()) / 864e5);
-          daysDifference = diff;
-          if (diff < 0) pace = 'behind';
-          else if (diff === 0) pace = 'on-track';
-          else pace = 'ahead';
-        } else {
-          daysDifference = null;
-          pace = 'ahead';
-        }
+        daysDifference = Math.ceil((dateFromKey(sub.examDate).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
+        pace = getPaceFromFinish(daysDifference, remainingSess, remainingSess);
       } else {
-        // No recent activity and no scheduled sessions — can't predict
-        return;
+        const scanDays = Math.max(daysToExam + 370, 370);
+        const availableDates = getAvailableTeachingSessionDates(data, scheds, sub.level, scanDays);
+        if (availableDates.length === 0) return;
+
+        predictedFinishDate = availableDates[Math.min(remainingSess, availableDates.length) - 1] || availableDates[availableDates.length - 1];
+        daysDifference = Math.ceil((dateFromKey(sub.examDate).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
+        const availableBeforeExam = availableDates.filter(date => date < sub.examDate!).length;
+        pace = getPaceFromFinish(daysDifference, availableBeforeExam, remainingSess);
       }
 
       results.push({

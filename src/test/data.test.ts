@@ -8,6 +8,7 @@ import {
   getData,
   getMaterials,
   getDailyPriorities,
+  getPredictiveFinishes,
   getTeachingPosition,
   importJSON,
   markDone,
@@ -192,6 +193,46 @@ describe('daily priorities', () => {
     saveData(data);
 
     expect(getDailyPriorities().some(p => p.type === 'task' && p.urgent && p.detail.includes('Cek PR'))).toBe(true);
+  });
+});
+
+describe('predictive finish', () => {
+  it('uses actual scheduled teaching dates instead of weekly averages', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-04T06:00:00'));
+    const data = baseData(1);
+    data.subjects[0].examDate = '2026-05-15';
+    data.schedules[0].days = [1, 3];
+    data.schedules[0].startTime = '08:00';
+    data.materials = [{ id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 4 }];
+    saveData(data);
+
+    expect(getPredictiveFinishes()[0]).toMatchObject({
+      classId: 'c1',
+      subjectId: 's1',
+      predictedFinishDate: '2026-05-13',
+      daysDifference: 2,
+      pace: 'on-track',
+    });
+    vi.useRealTimers();
+  });
+
+  it('marks prediction behind when real sessions before exam are insufficient', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-04T06:00:00'));
+    const data = baseData(1);
+    data.subjects[0].examDate = '2026-05-08';
+    data.schedules[0].days = [1];
+    data.schedules[0].startTime = '08:00';
+    data.materials = [{ id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 2 }];
+    saveData(data);
+
+    expect(getPredictiveFinishes()[0]).toMatchObject({
+      predictedFinishDate: '2026-05-11',
+      daysDifference: -3,
+      pace: 'behind',
+    });
+    vi.useRealTimers();
   });
 });
 

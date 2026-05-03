@@ -149,6 +149,6 @@ export interface PredictiveFinish {
   subjectId: string;
   predictedFinishDate: string; // YYYY-MM-DD
   examDate: string | null;
-  daysDifference: number | null; // pred - exam (negative = late)
+  daysDifference: number | null; // exam - predicted finish; negative = late
   pace: 'ahead' | 'on-track' | 'behind';
 }
