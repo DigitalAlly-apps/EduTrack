@@ -56,7 +56,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
               </div>
               <div className="font-display text-3xl font-bold tracking-tight leading-none mb-1">{active.className}</div>
               <div className="text-sm font-medium text-text2 mb-4">{active.subjectName} · {fmt(active.startTime)} – {fmt(active.endTime)}</div>
-              <div className="bg-amber/8 border border-amber/20 rounded-xl p-3 flex items-center justify-between">
+              <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 flex items-center justify-between">
                 <div className="text-xs text-text2">Sisa waktu</div>
                 <div className="font-mono font-bold text-amber text-lg">
                   {(() => { const rem = timeToMin(active.endTime) - currentMin(); return rem > 0 ? `${rem} menit` : 'Selesai'; })()}
@@ -122,7 +122,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
               {/* Card */}
               <div className="flex-1 mb-3">
                 <div className={`border rounded-2xl p-4 flex items-center gap-3 transition-all ${
-                  state === 'active' ? 'bg-amber/8 border-amber/30' :
+                  state === 'active' ? 'bg-amber/10 border-amber/30' :
                   state === 'done' ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
                 }`}>
                   <div className="flex-1 min-w-0">

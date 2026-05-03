@@ -3,6 +3,7 @@ import {
   getData, genId, applyTeacherLeave, DAYS_SHORT, dateKey, dateFromKey
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { CheckCircle2, ClipboardList, HeartPulse, SkipForward, X } from 'lucide-react';
 
 interface TeacherLeaveModalProps {
   open: boolean;
@@ -90,22 +91,22 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] bg-[rgba(0,0,0,0.75)] flex items-end transition-opacity" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-[26px] p-5 pb-10 max-h-[88dvh] overflow-y-auto animate-slide-up">
-        <div className="w-9 h-[3px] bg-[hsl(var(--border2))] rounded-full mx-auto mb-[18px]" />
+    <div className="app-overlay z-[500] transition-opacity" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="app-bottom-sheet">
+        <div className="app-sheet-handle" />
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">
-            🏥
+          <div className="w-11 h-11 rounded-2xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber flex-shrink-0">
+            <HeartPulse className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display text-[22px] font-medium tracking-tight leading-none mb-1">Pengajuan Izin</div>
-            <div className="text-[12px] text-text2">Atur sesi kelas jika Anda berhalangan hadir.</div>
+            <div className="app-sheet-title">Pengajuan Izin</div>
+            <div className="app-sheet-desc">Atur sesi kelas jika Anda berhalangan hadir.</div>
           </div>
         </div>
 
-        <div className="flex gap-3 mb-4">
-          <div className="flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div>
             <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
             <input 
               type="date" 
@@ -114,7 +115,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
               className="form-input-style" 
             />
           </div>
-          <div className="flex-1">
+          <div>
             <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Alasan</label>
             <select value={reason} onChange={e => setReason(e.target.value)} className="form-select-style">
               <option value="Sakit">Badan Sakit</option>
@@ -128,7 +129,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
           <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Penyesuaian Jadwal ({schedules.length} Kelas)</label>
           
           {schedules.length === 0 ? (
-            <div className="text-center py-6 bg-surface border border-border2 rounded-xl text-text3 text-sm">
+            <div className="text-center py-6 bg-surface border border-border2 rounded-2xl text-text3 text-sm">
               Tidak ada jadwal mengajar pada hari ini.
             </div>
           ) : (
@@ -138,7 +139,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
                 const isDeliver = res.action === 'deliver';
                 
                 return (
-                  <div key={s.id} className="bg-surface border border-border2 rounded-xl p-3 shadow-sm transition-all">
+                  <div key={s.id} className="bg-surface border border-border2 rounded-2xl p-4 shadow-sm transition-all">
                     <div className="flex justify-between items-start mb-2">
                       <div className="min-w-0 pr-2">
                         <div className="text-[14px] font-bold text-foreground leadig-tight">{s.className}</div>
@@ -147,14 +148,16 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
                           <div className="text-[10px] text-text3 mt-0.5 truncate">Materi Reguler: {s.nextMat.name}</div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface2 p-1 rounded-lg border border-border2/50">
-                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
+                      <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface2 p-1 rounded-2xl border border-border2/50">
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={isDeliver} onChange={() => handleActionChange(s.id, 'deliver')} className="hidden" />
-                          <span className={isDeliver ? 'opacity-100' : 'opacity-50'}>✓ Titip Tugas</span>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span className={isDeliver ? 'opacity-100' : 'opacity-50'}>Titip Tugas</span>
                         </label>
-                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={!isDeliver} onChange={() => handleActionChange(s.id, 'skip')} className="hidden" />
-                          <span className={!isDeliver ? 'opacity-100' : 'opacity-50'}>⏭ Skip Kelas</span>
+                          <SkipForward className="h-3.5 w-3.5" />
+                          <span className={!isDeliver ? 'opacity-100' : 'opacity-50'}>Skip Kelas</span>
                         </label>
                       </div>
                     </div>
@@ -166,7 +169,7 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
                           placeholder="Contoh: Kerjakan Modul Hal 45-48"
                           value={res.note}
                           onChange={e => handleNoteChange(s.id, e.target.value)}
-                          className="w-full bg-surface2 border border-border2 rounded-md px-2.5 py-1.5 text-[11px] text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
+                          className="w-full bg-surface2 border border-border2 rounded-xl px-3 py-2 text-[12px] text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
                         />
                       </div>
                     )}
@@ -179,10 +182,10 @@ export default function TeacherLeaveModal({ open, onClose, onRefresh }: TeacherL
 
         <div className="mt-6 flex gap-2">
           <button onClick={saveLeave} disabled={schedules.length === 0} className="flex-1 btn-primary-style disabled:opacity-50 disabled:cursor-not-allowed">
-            ✓ Terapkan Izin
+            <ClipboardList className="h-4 w-4" /> Terapkan Izin
           </button>
         </div>
-        <button onClick={onClose} className="w-full py-[13px] text-text2 text-[13px] mt-1 font-medium">Batal</button>
+        <button onClick={onClose} className="w-full py-[13px] text-text2 text-[13px] mt-1 font-medium flex items-center justify-center gap-1.5"><X className="h-4 w-4" /> Batal</button>
       </div>
     </div>
   );

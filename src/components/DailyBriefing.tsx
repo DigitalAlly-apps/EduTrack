@@ -42,9 +42,9 @@ export default function DailyBriefing() {
         {items.map((item, i) => (
           <div key={i} className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border ${
             item.type === 'ujian-hari-ini' ? 'bg-amber/10 border-amber/20' :
-            item.type === 'koreksi-overdue' ? 'bg-red/8 border-red/15' :
-            item.type === 'ujian-dekat' && item.urgent ? 'bg-red/8 border-red/15' :
-            item.type === 'semua-beres' ? 'bg-green/8 border-green/15' :
+            item.type === 'koreksi-overdue' ? 'bg-red/10 border-red/15' :
+            item.type === 'ujian-dekat' && item.urgent ? 'bg-red/10 border-red/15' :
+            item.type === 'semua-beres' ? 'bg-green/10 border-green/15' :
             'bg-surface2/60 border-border/50'
           }`}>
             <span className="text-base flex-shrink-0 mt-[1px]">{item.emoji}</span>

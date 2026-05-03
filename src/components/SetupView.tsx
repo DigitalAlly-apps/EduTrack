@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, type ElementType } from 'react';
 import { createPortal } from 'react-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -11,6 +11,7 @@ import {
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
+import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
 
 interface SetupViewProps {
   onRefresh: () => void;
@@ -24,15 +25,16 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
   const [, forceUpdate] = useState(0);
   const refresh = () => { forceUpdate(n => n + 1); onRefresh(); };
 
-  const tabs: { id: SetupTab; label: string; desc: string; icon: string; group: string }[] = [
-    { id: 'classes', label: 'Daftar Kelas', desc: 'Atur rombongan belajar', icon: '🏫', group: 'akademik' },
-    { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: '📚', group: 'akademik' },
-    { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: '🗓', group: 'akademik' },
-    { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: '📖', group: 'akademik' },
-    { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: '🏖', group: 'sistem' },
-    { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: '🏥', group: 'sistem' },
-    { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: '💾', group: 'sistem' },
+  const tabs: { id: SetupTab; label: string; desc: string; icon: ElementType; group: string }[] = [
+    { id: 'classes', label: 'Daftar Kelas', desc: 'Atur rombongan belajar', icon: GraduationCap, group: 'akademik' },
+    { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: BookOpen, group: 'akademik' },
+    { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: CalendarDays, group: 'akademik' },
+    { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: SlidersHorizontal, group: 'akademik' },
+    { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: Palmtree, group: 'sistem' },
+    { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: HeartPulse, group: 'sistem' },
+    { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: Database, group: 'sistem' },
   ];
+  const ActiveTabIcon = tab ? tabs.find(t => t.id === tab)?.icon : null;
 
   return (
     <div className="pt-2 animate-fade-in">
@@ -84,10 +86,10 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         </div>
       )}
       {/* Profile */}
-      <div className="bg-surface border border-border rounded-3xl p-5 mb-[14px] shadow-sm">
+      <div className="app-card p-5 mb-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center text-2xl flex-shrink-0 ring-4 ring-primary/5">
-            👤
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center flex-shrink-0 ring-4 ring-primary/5 text-primary">
+            <UserRound className="h-6 w-6" />
           </div>
            <div className="flex-1 min-w-0">
              <div className="text-base font-black tracking-tight truncate">
@@ -121,9 +123,11 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         // ─── SETTINGS MENU LIST ───
         <div className="space-y-4 animate-slide-up pb-10">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-text3 px-2 mb-2">Akademik & Jadwal</div>
-            <div className="bg-surface border border-border rounded-3xl overflow-hidden shadow-sm">
-              {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => (
+            <div className="app-section-title mb-2">Akademik & Jadwal</div>
+            <div className="app-card overflow-hidden">
+              {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => {
+                const Icon = t.icon;
+                return (
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
@@ -132,24 +136,26 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
-                      {t.icon}
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
+                      <Icon className="h-5 w-5" />
                     </div>
                     <div>
                       <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                      <div className="text-[11px] text-text3 mt-0.5">{t.desc}</div>
+                      <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
                     </div>
                   </div>
                   <span className="text-text3 text-lg opacity-50">›</span>
                 </button>
-              ))}
+              );})}
             </div>
           </div>
           
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-text3 px-2 mb-2">Sistem & Lainnya</div>
-            <div className="bg-surface border border-border rounded-3xl overflow-hidden shadow-sm">
-              {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => (
+            <div className="app-section-title mb-2">Sistem & Lainnya</div>
+            <div className="app-card overflow-hidden">
+              {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => {
+                const Icon = t.icon;
+                return (
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
@@ -158,17 +164,17 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
-                      {t.icon}
+                    <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner">
+                      <Icon className="h-5 w-5" />
                     </div>
                     <div>
                       <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                      <div className="text-[11px] text-text3 mt-0.5">{t.desc}</div>
+                      <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
                     </div>
                   </div>
                   <span className="text-text3 text-lg opacity-50">›</span>
                 </button>
-              ))}
+              );})}
             </div>
           </div>
         </div>
@@ -183,7 +189,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
               <span className="text-lg leading-none mt-[-2px]">‹</span> Kembali
             </button>
             <div className="text-[13px] font-bold text-text2 flex items-center gap-1.5">
-              <span>{tabs.find(t => t.id === tab)?.icon}</span>
+              {ActiveTabIcon && <ActiveTabIcon className="h-4 w-4" />}
               {tabs.find(t => t.id === tab)?.label}
             </div>
           </div>
@@ -225,8 +231,8 @@ function EditTeacherButton({ onRefresh }: { onRefresh: () => void }) {
     );
   }
   return (
-    <button onClick={startEdit} className="px-[13px] py-[7px] rounded-lg bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3">
-      ✏️ Edit
+    <button onClick={startEdit} className="px-3 py-2 rounded-xl bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center gap-1.5">
+      <Pencil className="h-3.5 w-3.5" /> Edit
     </button>
   );
 }
@@ -255,8 +261,8 @@ function EditAcademicYearButton({ onRefresh }: { onRefresh: () => void }) {
     );
   }
   return (
-    <button onClick={startEdit} className="px-[13px] py-[7px] rounded-lg bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3">
-      🗓️ Atur
+    <button onClick={startEdit} className="px-3 py-2 rounded-xl bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center gap-1.5">
+      <CalendarDays className="h-3.5 w-3.5" /> Atur
     </button>
   );
 }
@@ -264,14 +270,14 @@ function EditAcademicYearButton({ onRefresh }: { onRefresh: () => void }) {
 function DeleteConfirmSheet({ open, onOpenChange, onConfirm, title, desc }: any) {
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[600] bg-[rgba(0,0,0,0.7)] flex flex-col justify-end animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
-      <div className="bg-surface2 rounded-t-[24px] p-5 pb-safe pb-10 w-full max-w-[430px] mx-auto animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-border2 rounded-full mx-auto mb-5" />
-        <div className="text-[19px] font-medium tracking-tight mb-2">{title}</div>
-        <div className="text-sm text-text2 mb-6 leading-relaxed bg-[hsl(0_91%_71%/0.05)] border border-[hsl(0_91%_71%/0.1)] p-3 rounded-lg text-red/90">{desc}</div>
+    <div className="app-overlay z-[600] animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
+      <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+        <div className="app-sheet-handle" />
+        <div className="app-sheet-title mb-2">{title}</div>
+        <div className="text-sm text-text2 mb-6 leading-relaxed bg-red/10 border border-red/20 p-4 rounded-2xl text-red/90">{desc}</div>
         <div className="flex gap-3">
           <button onClick={() => onOpenChange(false)} className="flex-1 py-[14px] bg-surface border border-border2 rounded-xl text-sm font-medium transition-all hover:bg-surface2">Batal</button>
-          <button onClick={() => { onConfirm(); onOpenChange(false); }} className="flex-1 py-[14px] bg-[hsl(0_91%_71%/0.12)] border border-[hsl(0_91%_71%/0.25)] text-[#FCA5A5] rounded-xl text-sm font-bold transition-all active:scale-[0.98]">Ya, Hapus</button>
+          <button onClick={() => { onConfirm(); onOpenChange(false); }} className="flex-1 py-[14px] bg-red/10 border border-red/25 text-red rounded-xl text-sm font-bold transition-all active:scale-[0.98]">Ya, Hapus</button>
         </div>
       </div>
     </div>,
@@ -301,14 +307,14 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
 
   return (
     <>
-      <div className="bg-surface border border-border rounded-lg p-[14px] flex items-center justify-between mb-[6px] transition-colors relative group">
+      <div className="app-list-item flex items-center justify-between mb-2 relative group">
         <div className="flex-1 min-w-0 pr-3">
           <div className="text-sm font-medium leading-snug">{item.name}</div>
           {item.meta && <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>}
         </div>
         <div className="flex gap-[6px] items-center flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="w-[34px] h-[34px] rounded-[9px] bg-surface2 border border-border2 text-text2 text-[13px] grid place-items-center transition-all hover:border-primary-border hover:text-primary">✏️</button>
-          <button onClick={() => setDelSheet(true)} className="w-[34px] h-[34px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] border border-[hsl(0_91%_71%/0.12)] text-[#FCA5A5] text-xs grid place-items-center transition-all hover:bg-[hsl(0_91%_71%/0.15)]">✕</button>
+          <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9 hover:text-primary" aria-label="Edit item"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setDelSheet(true)} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus item"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(item.id)} title={`Hapus "${item.name}"?`} desc={item.deleteWarning || 'Tindakan ini tidak bisa dibatalkan.'} />
@@ -362,7 +368,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className={`bg-surface border ${isDragging ? 'border-primary border-[2px] shadow-lg' : 'border-border'} rounded-lg p-2 pl-3 flex items-center justify-between mb-[6px]`}>
+      <div ref={setNodeRef} style={style} className={`bg-surface border ${isDragging ? 'border-primary border-[2px] shadow-lg' : 'border-border'} rounded-2xl p-3 flex items-center justify-between mb-2`}>
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
@@ -371,8 +377,8 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
           </div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
-          <button onClick={() => setDelSheet(true)} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
+          <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9" aria-label="Edit materi"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setDelSheet(true)} className="w-9 h-9 rounded-2xl bg-red/10 text-red border border-red/20 grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus materi"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(id)} title={`Hapus "${item.name}"?`} desc="Data progres kelas untuk materi ini akan terpengaruh jika sudah dilewati." />
@@ -410,7 +416,7 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-6 shadow-sm">
+      <div className="app-card-soft p-4 mb-6">
         <FormField label="Tambah Kelas Baru">
           <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
             className="form-input-style mb-3" placeholder="cth: 4A, 10B, XI IPA 2..." />
@@ -419,13 +425,13 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
         </FormField>
       </div>
-      <div className="mt-6 mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Kelas</div>
+      <div className="app-section-title mt-6 mb-2">Daftar Kelas</div>
       {data.classes.map(c => (
         <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: c.level ? `Level: ${c.level}` : 'Level belum diisi', extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
           <input value={v.level || ''} onChange={e => setV({ ...v, level: e.target.value })} className="form-input-style mb-2 h-10" placeholder="Level/jenjang opsional" />
         )} />
       ))}
-      {!data.classes.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada kelas</div>}
+      {!data.classes.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada kelas</div>}
     </div>
   );
 }
@@ -471,7 +477,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
+      <div className="app-card-soft p-4 mb-4">
         <FormField label="Tambah Mata Pelajaran" className="mb-0">
           <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
           <div className="flex gap-2 mb-3">
@@ -493,7 +499,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
         </FormField>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl p-3 mb-5">
+      <div className="app-card-soft p-4 mb-5">
         <label className="block text-[11px] font-bold tracking-[0.7px] uppercase text-primary mb-2">Set Ujian per Jenjang</label>
         <div className="flex gap-2">
            <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style flex-1 text-xs">
@@ -506,7 +512,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
         <button onClick={applyBulkExamDate} className="w-full mt-2 py-2 rounded-lg bg-primary-dim text-primary border border-primary-border text-[12px] font-bold">Terapkan ke Semua</button>
       </div>
 
-      <div className="mt-2 mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Mapel</div>
+      <div className="app-section-title mt-2 mb-2">Daftar Mapel</div>
       {data.subjects.map(s => {
         const jenjangLabel = s.level ? `[${s.level}] ` : '';
         const ujianLabel = s.examDate ? `Ujian: ${s.examDate}` : 'Tidak ada ujian';
@@ -524,7 +530,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
           )} />
         );
       })}
-      {!data.subjects.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada mapel</div>}
+      {!data.subjects.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada mapel</div>}
     </div>
   );
 }
@@ -597,7 +603,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-surface2/60 border border-border rounded-xl p-4 mb-4 shadow-sm space-y-3">
+      <div className="app-card-soft p-4 mb-4 space-y-3">
         <FormField label="Pilih Mata Pelajaran" className="mb-0">
           <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary">
             <option value="">Pilih mata pelajaran...</option>
@@ -606,7 +612,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         </FormField>
 
         {hasNoSchedule && (
-          <p className="text-[11px] text-amber bg-amber/8 border border-amber/20 rounded-lg px-3 py-2">
+          <p className="text-[11px] text-amber bg-amber/10 border border-amber/20 rounded-lg px-3 py-2">
             ℹ️ Belum ada jadwal untuk mapel ini. Materi akan tersimpan tapi baru aktif setelah jadwal ditambahkan.
           </p>
         )}
@@ -627,7 +633,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       </div>
 
       {subId && classId && (
-        <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-4 shadow-sm">
+        <div className="app-card-soft p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] font-bold text-foreground">Tambah Materi ({classesForSubject.find(c => c.id === classId)?.name})</span>
             <button onClick={() => setBulkMode(!bulkMode)} className="text-[11px] font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
@@ -675,7 +681,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       {subId && classId && (
         <>
           <div className="mt-5 mb-2 flex justify-between items-center">
-            <span className="text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Materi ({mats.length})</span>
+            <span className="app-section-title px-0">Daftar Materi ({mats.length})</span>
             {mats.length > 1 && <span className="text-[10px] text-text2">Tahan &amp; geser untuk urutkan</span>}
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -687,11 +693,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
               })}
             </SortableContext>
           </DndContext>
-          {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada materi</div>}
+          {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada materi</div>}
         </>
       )}
-      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
-      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-lg mt-2 border border-border2">Pilih kelas di atas</div>}
+      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
+      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih kelas di atas</div>}
     </div>
   );
 }
@@ -738,18 +744,22 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-6 shadow-sm">
+      <div className="app-card-soft p-5 mb-6 space-y-4">
+        <div>
+          <div className="font-display text-xl font-bold tracking-tight">Tambah Jadwal Mingguan</div>
+          <div className="text-[12px] text-text2 mt-1">Pilih kelas, mapel, hari aktif, dan durasi mengajar.</div>
+        </div>
         <FormField label="Kelas & Mapel">
-          <div className="flex gap-2 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             <select value={classId} onChange={e => setClassId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih kelas...</option>{data.classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
             <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih mapel...</option>{data.subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
           </div>
         </FormField>
         <FormField label="Hari">
-          <div className="flex gap-1 flex-wrap mb-3">
+          <div className="grid grid-cols-7 gap-1.5 mb-3">
             {DAYS_SHORT.map((d, i) => (
               <button key={i} onClick={() => toggleDay(i, selectedDays, setSelectedDays)}
-                className={`px-[10px] py-[6px] rounded-md text-xs font-medium border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2'}`}>
+                className={`min-h-[38px] rounded-xl text-xs font-bold border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2 hover:border-border3'}`}>
                 {d}
               </button>
             ))}
@@ -759,17 +769,17 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
           <FormField label="Jam Mulai" className="flex-1 mb-0"><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" /></FormField>
           <FormField label="Durasi (mnt)" className="flex-1 mb-0"><input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" min={15} max={180} /></FormField>
         </div>
-        <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px]">＋ Tambah Jadwal</button>
+        <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px] flex items-center justify-center gap-2"><CalendarDays className="h-4 w-4" /> Tambah Jadwal</button>
       </div>
 
       <div className="mb-4">
-        <div className="mb-3 text-[11px] font-bold tracking-[0.7px] uppercase text-text3 flex items-center justify-between">
+        <div className="app-section-title mb-3 flex items-center justify-between">
           <span>Daftar Jadwal Mingguan</span>
           <span className="text-[10px] font-medium lowercase opacity-60">({data.schedules.length} total)</span>
         </div>
         
         {schedulesByDay.length === 0 && (
-          <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg mt-2">Belum ada jadwal</div>
+          <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada jadwal</div>
         )}
 
         <div className="space-y-6">
@@ -823,16 +833,16 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
 
   if (editing) {
     return (
-      <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px]">
+      <div className="bg-surface2 border border-primary-border rounded-2xl p-4 mb-2">
         <div className="text-sm font-bold mb-3">{item.name}</div>
-        <div className="flex gap-1 flex-wrap mb-3">{DAYS_SHORT.map((d, i) => <button key={i} onClick={() => toggleDay(i)} className={`px-[10px] py-[6px] rounded-md text-[11px] font-medium border ${days.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border2 text-text2'}`}>{d}</button>)}</div>
+        <div className="grid grid-cols-7 gap-1.5 mb-3">{DAYS_SHORT.map((d, i) => <button key={i} onClick={() => toggleDay(i)} className={`min-h-[34px] rounded-xl text-[11px] font-bold border ${days.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border2 text-text2'}`}>{d}</button>)}</div>
         <div className="flex gap-2 mb-3">
           <input type="time" value={st} onChange={e => setSt(e.target.value)} className="form-input-style flex-1 h-9 px-2 text-xs" />
           <input type="number" value={dr} onChange={e => setDr(parseInt(e.target.value))} className="form-input-style flex-1 h-9 px-2 text-xs" placeholder="Durasi mnt" />
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { onSave(item.id, '', { st, dr, days }); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
-          <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-md text-[13px] font-medium">Batal</button>
+          <button onClick={() => { onSave(item.id, '', { st, dr, days }); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-xl text-[13px] font-bold flex items-center justify-center gap-1.5"><Save className="h-4 w-4" /> Simpan</button>
+          <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-xl text-[13px] font-medium">Batal</button>
         </div>
       </div>
     );
@@ -840,14 +850,14 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
 
   return (
     <>
-      <div className="bg-surface border border-border rounded-lg p-[14px] flex items-center justify-between mb-[6px]">
+      <div className="app-list-item flex items-center justify-between mb-2">
         <div className="flex-1 min-w-0 pr-3">
           <div className="text-sm font-medium leading-snug">{item.name}</div>
           <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-surface2 text-text2 text-[12px] grid place-items-center">✏️</button>
-          <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-[32px] h-[32px] rounded-[9px] bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-[11px] grid place-items-center">✕</button>
+          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="app-icon-button w-9 h-9" aria-label="Edit jadwal"><Pencil className="h-4 w-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus jadwal"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(item.id)} title="Hapus Jadwal?" desc={`Data historis sesi mengajar tidak dipengaruhi, tapi jadwal ${item.name} tidak akan muncul lagi.`} />
@@ -901,9 +911,15 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="bg-surface2/60 p-[14px] rounded-xl border border-border mb-6 shadow-sm">
-        <div className="text-[12px] font-bold text-foreground mb-3">Tambah Hari Libur / Skip Dadakan</div>
-        <div className="flex gap-2 mb-2">
+      <div className="app-card-soft p-5 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-2xl bg-amber/10 border border-amber/20 text-amber grid place-items-center"><Palmtree className="h-5 w-5" /></div>
+          <div>
+            <div className="font-display text-xl font-bold tracking-tight">Tambah Hari Libur</div>
+            <div className="text-[12px] text-text2">Tanggal ini dikecualikan dari hitungan sesi.</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 h-10 border-border focus:border-primary" min={todayStr} />
           <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style flex-1 h-10 border-border">
             <option value="">Semua Jenjang</option>
@@ -912,13 +928,13 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
             <option value="SMA/MA">SMA / MA</option>
           </select>
         </div>
-        <button onClick={handleAdd} className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-bold shadow-sm">+ Tambah Libur</button>
+        <button onClick={handleAdd} className="btn-primary-style min-h-[44px] flex items-center justify-center gap-2"><Palmtree className="h-4 w-4" /> Tambah Libur</button>
         <p className="text-[11px] text-text3 mt-2 leading-relaxed">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
       </div>
 
       {impacts.length > 0 && (
-        <div className="bg-[hsl(var(--warn-dim,35_90%_60%/0.08))] border border-[hsl(35_90%_60%/0.25)] rounded-xl p-3 mb-4">
-          <div className="text-[11px] font-bold text-[hsl(35_90%_55%)] mb-2 uppercase tracking-wide">⚠ Dampak Hari Libur pada Jadwal</div>
+        <div className="bg-amber/10 border border-amber/25 rounded-2xl p-4 mb-4">
+          <div className="text-[11px] font-black text-amber mb-2 uppercase tracking-wide flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Dampak Hari Libur pada Jadwal</div>
           {impacts.map((imp, i) => (
             <div key={i} className="text-[12px] text-text2">
               <span className="font-semibold text-foreground">{imp.className} — {imp.subjectName}</span>: {imp.impactCount} sesi terpotong
@@ -927,9 +943,9 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
       )}
 
-      <div className="mb-2 text-[11px] font-bold tracking-[0.7px] uppercase text-text3">Daftar Libur ({holidays.length})</div>
+      <div className="app-section-title mb-2">Daftar Libur ({holidays.length})</div>
       {holidays.length === 0 && (
-        <div className="text-text3 text-[13px] text-center py-6 border border-dashed rounded-lg">Belum ada hari libur yang diinput</div>
+        <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl">Belum ada hari libur yang diinput</div>
       )}
       {holidays.map((h, i) => {
         const dStr = typeof h === 'string' ? h : h.date;
@@ -937,7 +953,7 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
         const isToday = dStr === todayStr;
         const isPast = dStr < todayStr;
         return (
-          <div key={i} className={`bg-surface border rounded-lg p-[12px] flex items-center justify-between mb-[6px] ${
+          <div key={i} className={`border rounded-2xl p-4 flex items-center justify-between mb-2 ${
             isToday ? 'border-primary-border bg-primary-dim' : isPast ? 'border-border opacity-60' : 'border-border'
           }`}>
             <div>
@@ -948,7 +964,7 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
                 {isPast && <span className="text-[10px] text-text3">(Sudah lewat)</span>}
               </div>
             </div>
-            <button onClick={() => handleRemove(h)} className="w-[30px] h-[30px] rounded-lg bg-[hsl(0_91%_71%/0.06)] text-[#FCA5A5] text-xs grid place-items-center flex-shrink-0">✕</button>
+            <button onClick={() => handleRemove(h)} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0"><Trash2 className="h-4 w-4" /></button>
           </div>
         );
       })}
@@ -979,8 +995,8 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div>
       <StorageInfo />
-      <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
-        <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📤 EXPORT DATA</div>
+      <div className="app-card p-4 mb-3">
+        <div className="text-[13px] font-black tracking-wide mb-3 flex items-center gap-2"><Download className="h-4 w-4 text-primary" /> Export Data</div>
         <div className="flex gap-[7px] flex-wrap">
           <button onClick={() => { 
             try {
@@ -990,23 +1006,23 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
               console.error('Backup error:', e);
               toast({ variant: 'destructive', title: 'Backup gagal' });
             }
-          }} className="data-btn-style bg-primary-dim text-primary border-primary-border">💾 Backup Full (JSON)</button>
-          <button onClick={() => { exportCSV(); toast({ title: 'Riwayat CSV diunduh' }); }} className="data-btn-style">📋 Riwayat Sesi (CSV)</button>
+          }} className="data-btn-style bg-primary-dim text-primary border-primary-border"><Save className="h-4 w-4" /> Backup JSON</button>
+          <button onClick={() => { exportCSV(); toast({ title: 'Riwayat CSV diunduh' }); }} className="data-btn-style"><ClipboardList className="h-4 w-4" /> Riwayat CSV</button>
         </div>
       </div>
-      <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
-        <div className="text-[13px] font-bold tracking-wide mb-[10px] flex items-center gap-[6px]">📥 IMPORT DATA</div>
+      <div className="app-card p-4 mb-3">
+        <div className="text-[13px] font-black tracking-wide mb-3 flex items-center gap-2"><Upload className="h-4 w-4 text-primary" /> Import Data</div>
         <div className="flex gap-[7px] flex-wrap">
           <label className="data-btn-style cursor-pointer bg-surface2">
-            📂 Upload JSON
+            <Upload className="h-4 w-4" /> Upload JSON
             <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
           </label>
-          <button onClick={() => { loadDemo(); toast({ title: 'Data demo dimuat' }); onRefresh(); }} className="data-btn-style text-text2">🧪 Muat Demo</button>
+          <button onClick={() => { loadDemo(); toast({ title: 'Data demo dimuat' }); onRefresh(); }} className="data-btn-style text-text2"><FlaskConical className="h-4 w-4" /> Muat Demo</button>
         </div>
       </div>
       
-      <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-3xl p-[18px] mb-[10px]">
-        <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-[14px]">Push Notifikasi</div>
+      <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-3xl p-[18px] mb-3">
+        <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-[14px] flex items-center gap-2"><Bell className="h-4 w-4" /> Push Notifikasi</div>
         <p className="text-[13px] text-text2 leading-[1.7] mb-3">
           Izinkan notifikasi agar EduTrack bisa mengingatkan Anda **5 menit sebelum sesi kelas dimulai**.
         </p>
@@ -1015,21 +1031,21 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
             const res = await requestNotifPermission();
             alert(res ? 'Notifikasi aktif!' : 'Gagal mengaktifkan notifikasi / izin ditolak.');
           }}
-          className="w-full py-[12px] bg-teal text-teal-950 text-sm font-bold rounded-lg shadow-teal transition-all active:scale-[0.98]"
+          className="w-full py-[12px] bg-teal text-teal-950 text-sm font-bold rounded-2xl shadow-teal transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          🔔 Aktifkan Notifikasi Web
+          <Bell className="h-4 w-4" /> Aktifkan Notifikasi Web
         </button>
       </div>
 
-      <div className="bg-[hsl(0_91%_71%/0.04)] border border-[hsl(0_91%_71%/0.12)] rounded-3xl p-4 mb-[10px]">
-        <div className="text-[12px] font-bold mb-[10px] text-[#FCA5A5] uppercase tracking-wide">⚠️ Zona Berbahaya</div>
+      <div className="bg-red/5 border border-red/20 rounded-3xl p-4 mb-[10px]">
+        <div className="text-[12px] font-black mb-[10px] text-red uppercase tracking-wide flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Zona Berbahaya</div>
         {!showReset ? (
-          <button onClick={() => setShowReset(true)} className="w-full py-3 rounded-lg bg-[hsl(0_91%_71%/0.07)] text-[#FCA5A5] font-semibold transition-all">🗑️ Reset Semua Data</button>
+          <button onClick={() => setShowReset(true)} className="w-full py-3 rounded-2xl bg-red/10 text-red font-bold transition-all flex items-center justify-center gap-2"><Trash2 className="h-4 w-4" /> Reset Semua Data</button>
         ) : (
           <div className="animate-in fade-in slide-in-from-top-1">
             <p className="text-text2 text-xs mb-3">Tindakan ini tidak bisa dibatalkan. Ketik <strong className="text-red">RESET</strong> konfirmasi.</p>
             <input value={resetVal} onChange={e => setResetVal(e.target.value)} placeholder="Ketik RESET" className="form-input-style h-10 mb-2 border-red/40 focus:border-red" />
-            <button onClick={handleReset} disabled={resetVal !== 'RESET'} className="w-full py-2.5 rounded-lg bg-red text-red-950 font-bold disabled:opacity-40">Hapus Permanen</button>
+            <button onClick={handleReset} disabled={resetVal !== 'RESET'} className="w-full py-2.5 rounded-2xl bg-red text-white font-bold disabled:opacity-40">Hapus Permanen</button>
             <button onClick={() => { setShowReset(false); setResetVal(''); }} className="w-full py-3 text-text2 text-xs font-semibold mt-1">Batal</button>
           </div>
         )}
@@ -1096,9 +1112,9 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="bg-surface border border-border rounded-3xl p-4">
+      <div className="app-card p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">🏥</div>
+          <div className="w-10 h-10 rounded-2xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber flex-shrink-0"><HeartPulse className="h-5 w-5" /></div>
           <div>
             <div className="font-display text-[18px] font-bold tracking-tight leading-tight">Pengajuan Izin</div>
             <div className="text-[11px] text-text2">Atur sesi kelas jika berhalangan hadir.</div>
@@ -1117,14 +1133,14 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
               onClick={() => setLeaveType('izin')}
               className={`py-3 rounded-2xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${leaveType === 'izin' ? 'bg-primary-dim border-primary-border text-primary shadow-sm' : 'bg-surface border-border2 text-text2 hover:border-border3'}`}
             >
-              <span className="text-xl">📋</span>
+              <ClipboardList className="h-5 w-5" />
               <span>Izin</span>
             </button>
             <button
               onClick={() => setLeaveType('sakit')}
               className={`py-3 rounded-2xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${leaveType === 'sakit' ? 'bg-red/10 border-red/30 text-red shadow-sm' : 'bg-surface border-border2 text-text2 hover:border-border3'}`}
             >
-              <span className="text-xl">🤒</span>
+              <Stethoscope className="h-5 w-5" />
               <span>Sakit</span>
             </button>
           </div>
@@ -1148,7 +1164,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
             Penyesuaian Jadwal ({schedules.length} Kelas)
           </label>
           {schedules.length === 0 ? (
-            <div className="text-center py-6 bg-surface2 border border-border2 rounded-xl text-text3 text-sm">
+            <div className="text-center py-6 bg-surface2 border border-border2 rounded-2xl text-text3 text-sm">
               Tidak ada jadwal mengajar pada hari ini.
             </div>
           ) : (
@@ -1157,21 +1173,21 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
                 const res = resolutions[s.id] || { action: 'deliver', note: '' };
                 const isDeliver = res.action === 'deliver';
                 return (
-                  <div key={s.id} className="bg-surface2 border border-border2 rounded-xl p-3 shadow-sm">
+                  <div key={s.id} className="bg-surface2 border border-border2 rounded-2xl p-4 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                       <div className="min-w-0 pr-2">
                         <div className="text-[14px] font-bold">{s.className}</div>
                         <div className="text-[12px] text-text2">{s.subjectName} · {s.startTime}</div>
                         {s.nextMat && <div className="text-[10px] text-text3 mt-0.5 truncate">Materi: {s.nextMat.name}</div>}
                       </div>
-                      <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface p-1 rounded-lg border border-border/50">
-                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
+                      <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface p-1 rounded-2xl border border-border/50">
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'deliver'}}))} className="hidden" />
-                          ✓ Titip Tugas
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Titip Tugas
                         </label>
-                        <label className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={!isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'skip'}}))} className="hidden" />
-                          ⏭ Skip Kelas
+                          <SkipForward className="h-3.5 w-3.5" /> Skip Kelas
                         </label>
                       </div>
                     </div>
@@ -1181,7 +1197,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
                         placeholder="Contoh: Kerjakan Modul Hal 45-48"
                         value={res.note}
                         onChange={e => setResolutions(p => ({...p, [s.id]: {...p[s.id], note: e.target.value}}))}
-                        className="w-full bg-surface border border-border2 rounded-md px-2.5 py-1.5 text-[11px] focus:border-primary focus:outline-none placeholder:text-text3 mt-1"
+                        className="w-full bg-surface border border-border2 rounded-xl px-3 py-2 text-[12px] focus:border-primary focus:outline-none placeholder:text-text3 mt-1"
                       />
                     )}
                   </div>
@@ -1192,7 +1208,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
 
         <button onClick={saveLeave} disabled={schedules.length === 0} className="btn-primary-style disabled:opacity-50 disabled:cursor-not-allowed">
-          ✓ Terapkan Izin
+          Terapkan Izin
         </button>
       </div>
     </div>
@@ -1208,9 +1224,9 @@ function StorageInfo() {
   const barColor = safeInfo.pct > 80 ? 'bg-red' : safeInfo.pct > 50 ? 'bg-amber' : 'bg-green';
   const kb = Math.round(safeInfo.used / 1024);
   return (
-    <div className="bg-surface border border-border rounded-3xl p-4 mb-[10px]">
-<div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-[6px]">💾 PENYIMPANAN LOKAL</span>
+    <div className="app-card p-4 mb-3">
+        <div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
+          <span className="flex items-center gap-2"><HardDrive className="h-4 w-4 text-primary" /> Penyimpanan Lokal</span>
           <span className={"text-[11px] font-bold " + color}>{safeInfo.pct}% terpakai</span>
         </div>
         <div className="h-2 bg-surface3 rounded-full overflow-hidden mb-2">
@@ -1220,17 +1236,17 @@ function StorageInfo() {
         <span>{kb} KB digunakan</span>
         <span>{Math.round(info.total / 1024)} KB total</span>
       </div>
-      <div className="text-[11px] text-text3 flex gap-4 flex-wrap mb-3">
-        <span>📋 {data.sessions.length} sesi</span>
-        <span>📚 {data.materials.length} materi</span>
-        <span>📅 {data.schedules.length} jadwal</span>
-        <span>✅ {(data.tasks ?? []).length} tugas</span>
+      <div className="text-[11px] text-text3 flex gap-2 flex-wrap mb-3">
+        <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.sessions.length} sesi</span>
+        <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.materials.length} materi</span>
+        <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.schedules.length} jadwal</span>
+        <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{(data.tasks ?? []).length} tugas</span>
       </div>
       <button
         onClick={() => { pruneOldSessions(); window.location.reload(); }}
         className="data-btn-style text-amber border-amber/30 bg-amber/5 text-xs"
       >
-        🧹 Bersihkan data lama (&gt;90 hari)
+        <RotateCcw className="h-4 w-4" /> Bersihkan data lama (&gt;90 hari)
       </button>
     </div>
   );

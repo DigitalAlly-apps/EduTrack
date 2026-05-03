@@ -1,5 +1,6 @@
-import { getGreeting, getData, now, getTeacherStreak } from '@/lib/data';
+import { getData, now, getTeacherStreak } from '@/lib/data';
 import InfoView from '@/components/InfoView';
+import { Info, Moon, Sun } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
 
   return (
     <div className="flex-shrink-0 px-4 pt-4 pb-3 sticky top-0 z-40 transition-all">
-      <div className="glass-panel rounded-[28px] px-4 py-3 flex items-center justify-between overflow-hidden relative">
+      <div className="glass-panel rounded-3xl px-4 py-3 flex items-center justify-between overflow-hidden relative">
         <div className="absolute -left-8 -top-10 h-24 w-24 rounded-full bg-primary/15 blur-2xl pointer-events-none" />
         <div className="min-w-0 pr-2 relative z-10">
           <div className="flex items-center gap-2 mb-1">
@@ -62,8 +63,8 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
         <div className="flex items-center gap-2 relative z-10">
           <Dialog>
             <DialogTrigger asChild>
-              <button className="px-3 h-11 rounded-2xl bg-surface2 hover:bg-surface3 border border-border2 flex items-center justify-center gap-1.5 transition-all active:scale-95 text-text2 hover:text-foreground shadow-sm">
-                <span className="text-sm font-black">i</span>
+              <button className="app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm" aria-label="Buka panduan EduTrack">
+                <Info className="h-4 w-4" />
                 <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Info</span>
               </button>
             </DialogTrigger>
@@ -88,7 +89,7 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
             className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground border border-primary-border flex items-center justify-center transition-all active:scale-95 shadow-primary hover:brightness-105"
             title="Ganti Tema"
           >
-            <span className="text-base">{theme === 'dark' ? '☾' : '☀'}</span>
+            {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
         </div>
       </div>

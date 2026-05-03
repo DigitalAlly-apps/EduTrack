@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { useState, useMemo } from 'react';
 import { getData, suggestDayReschedule, applySmartReschedule, dateFromKey } from '@/lib/data';
 import { toast } from '@/hooks/use-toast';
+import { BrainCircuit, Clock3 } from 'lucide-react';
 
 interface SmartReschedulerModalProps {
   open: boolean;
@@ -39,15 +40,18 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
   const dateFormatted = dateFromKey(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
 
   return createPortal(
-    <div className="fixed inset-0 z-[600] bg-[rgba(0,0,0,0.7)] flex flex-col justify-end animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
-      <div className="bg-surface2 rounded-t-[24px] p-5 pb-safe pb-10 w-full max-w-[430px] mx-auto animate-slide-up max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-border2 rounded-full mx-auto mb-4" />
+    <div className="app-overlay z-[600] animate-in fade-in transition-all" onClick={() => onOpenChange(false)}>
+      <div className="app-bottom-sheet flex flex-col max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="app-sheet-handle" />
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-start gap-3 mb-1">
+          <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary grid place-items-center flex-shrink-0">
+            <BrainCircuit className="h-5 w-5" />
+          </div>
           <div>
-            <div className="text-[19px] font-medium tracking-tight mb-0.5">🧠 Smart Rescheduler</div>
-            <div className="text-sm text-text2">{dayName}, {dateFormatted}</div>
+            <div className="app-sheet-title">Smart Rescheduler</div>
+            <div className="app-sheet-desc">{dayName}, {dateFormatted}</div>
           </div>
         </div>
 
@@ -70,11 +74,11 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
               const time = `${schedule.startTime} (${schedule.duration} mnt)`;
 
               return (
-                <div key={s.scheduleId} className="bg-surface border border-border/60 rounded-xl p-3">
+                <div key={s.scheduleId} className="bg-surface border border-border/60 rounded-2xl p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <div className="text-[13px] font-bold text-foreground">{className} • {subjectName}</div>
-                      <div className="text-[11px] text-text3 mt-0.5">🕐 {time}</div>
+                      <div className="text-[11px] text-text3 mt-0.5 flex items-center gap-1"><Clock3 className="h-3 w-3" /> {time}</div>
                     </div>
                     <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded text-nowrap">{s.reason}</span>
                   </div>
@@ -82,7 +86,7 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
                   <select
                     value={resolutions[s.scheduleId] || s.action}
                     onChange={e => setResolutions({ ...resolutions, [s.scheduleId]: e.target.value as any })}
-                    className="w-full bg-surface2 border border-border2 rounded-lg px-2 py-1.5 text-[12px] text-foreground"
+                    className="w-full bg-surface2 border border-border2 rounded-xl px-3 py-2 text-[12px] text-foreground"
                   >
                     <option value="skip">⏭ Skip / Dilewati hari ini</option>
                     <option value="postpone">📅 Tunda ke minggu depan</option>
@@ -95,7 +99,7 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
                       value={noteForDeliver[s.scheduleId] || ''}
                       onChange={e => setNoteForDeliver({ ...noteForDeliver, [s.scheduleId]: e.target.value })}
                       placeholder="Catatan (opsional)…"
-                      className="w-full mt-2 bg-surface border border-border2 rounded-md px-2 py-1.5 text-[12px] min-h-[50px] focus:border-primary focus:outline-none"
+                      className="w-full mt-2 bg-surface border border-border2 rounded-xl px-3 py-2 text-[12px] min-h-[64px] focus:border-primary focus:outline-none"
                       autoFocus
                     />
                   )}

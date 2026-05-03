@@ -10,6 +10,7 @@ import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import DailyBriefing from './DailyBriefing';
 import SmartReschedulerModal from './SmartReschedulerModal';
+import { Check, Clock3, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -332,10 +333,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="space-y-2">
             {dailyPriorities.map((priority, index) => (
               <div key={`${priority.type}-${index}`} className={`flex items-start gap-3 rounded-2xl border px-3 py-2.5 ${
-                priority.urgent ? 'bg-red/8 border-red/18' : 'bg-surface2/50 border-border/50'
+                priority.urgent ? 'bg-red/10 border-red/20' : 'bg-surface2/50 border-border/50'
               }`}>
                 <div className={`w-6 h-6 rounded-xl flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
-                  priority.urgent ? 'bg-red/12 text-red border border-red/20' : 'bg-primary/10 text-primary border border-primary/20'
+                  priority.urgent ? 'bg-red/10 text-red border border-red/20' : 'bg-primary/10 text-primary border border-primary/20'
                 }`}>
                   {index + 1}
                 </div>
@@ -439,7 +440,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {/* Progress Bar */}
                 <div className="h-1.5 w-full bg-surface2 rounded-full mb-6 overflow-hidden border border-border/30">
                   <div 
-                    className={`h-full transition-all duration-1000 ease-linear ${isOvertime ? 'bg-red' : 'bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)]'}`}
+                    className={`h-full transition-all duration-1000 ease-linear ${isOvertime ? 'bg-red' : 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]'}`}
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -492,30 +493,30 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                  {/* Main action buttons */}
                  <div className="flex gap-2 relative">
                    <button
-                     onClick={() => handleHeroDone(active.id)}
-                     className={`flex-1 py-4.5 rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
-                       pendingId === active.id
-                         ? 'bg-surface3 text-text2 border border-border'
-                         : isOvertime 
+                      onClick={() => handleHeroDone(active.id)}
+                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 relative overflow-hidden ${
+                        pendingId === active.id
+                          ? 'bg-surface3 text-text2 border border-border'
+                          : isOvertime 
                            ? 'bg-red text-white' 
                            : 'bg-primary text-primary-foreground'
                      }`}
                    >
-                     {pendingId === active.id ? (
-                       <>
-                         <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
-                         <span className="relative z-10 flex items-center gap-2 text-sm">✕ BATALKAN</span>
-                       </>
-                     ) : <>{isOvertime ? '🔥 SELESAI' : '✓ SELESAI'}</>}
-                   </button>
+                      {pendingId === active.id ? (
+                        <>
+                          <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
+                          <span className="relative z-10 flex items-center gap-2 text-sm"><X className="h-4 w-4" /> BATALKAN</span>
+                        </>
+                      ) : <><Check className="h-5 w-5" /> {isOvertime ? 'SELESAI' : 'SELESAI'}</>}
+                    </button>
                    {/* Skip — now opens confirmation sheet */}
                    <button
                      onClick={() => setSkipConfirm(active)}
-                     className="w-[58px] h-[58px] rounded-2xl bg-surface2 border border-border2 text-text2 text-2xl grid place-items-center flex-shrink-0 transition-all hover:bg-surface3 hover:border-border3 active:scale-95 shadow-sm"
-                     title="Lewati sesi ini"
-                   >
-                     ⏭
-                   </button>
+                      className="app-icon-button w-[58px] h-[58px] flex-shrink-0 shadow-sm"
+                      title="Lewati sesi ini"
+                    >
+                      <SkipForward className="h-5 w-5" />
+                    </button>
                  </div>
 
                  {/* Compact secondary actions row */}
@@ -523,17 +524,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                    {/* Live note button — #4 */}
                    <button
                      onClick={() => { setLiveNoteDraft(''); setLiveNoteOpen(true); }}
-                     className="flex-1 py-2 rounded-xl bg-surface border border-border text-[11px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
-                   >
-                     📝 Catat
-                   </button>
+                      className="flex-1 min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                    >
+                      <FilePenLine className="h-4 w-4" /> Catat
+                    </button>
                    {/* Geser waktu button — #6 */}
                    <button
                      onClick={() => setGeserSheet(active.id)}
-                     className="flex-1 py-2 rounded-xl bg-surface border border-border text-[11px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
-                   >
-                     ⏱ Geser Waktu
-                   </button>
+                      className="flex-1 min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                    >
+                      <Clock3 className="h-4 w-4" /> Geser Waktu
+                    </button>
                  </div>
                </div>
             </div>
@@ -717,37 +718,37 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-3 sticky top-0 z-30 glass-panel py-3 px-3 rounded-[24px]">
-        <div className="flex items-center gap-2">
-          <div className="text-[11px] font-black tracking-[0.12em] uppercase text-text3">Jadwal Hari Ini</div>
+      <div className="flex items-center justify-between mt-4 mb-3 sticky top-0 z-30 glass-panel py-3 px-3 rounded-3xl gap-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+          <div className="app-section-title px-0 whitespace-nowrap">Jadwal Hari Ini</div>
            {!active && items.length > 0 && !items.every(x => x.done) && (
              <div className="flex gap-2 flex-wrap">
                <button 
                  onClick={() => setEarlyDismissSheet(true)}
-                 className="text-[9px] font-bold text-blue-500 px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap"
-               >
-                 🏠 Pulang Awal
-               </button>
-               <button
+                  className="text-[10px] font-bold text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap flex items-center gap-1"
+                >
+                  <Home className="h-3 w-3" /> Pulang Awal
+                </button>
+                <button
                  onClick={() => {
                     const today = dateKey();
                    setReschedulerDate(today);
                    setReschedulerOpen(true);
                  }}
-                 className="text-[9px] font-bold text-amber-600 px-2 py-0.5 rounded-full border border-amber-600/30 bg-amber-600/10 transition-colors hover:bg-amber-600/20 whitespace-nowrap"
-               >
-                 🏥 Izin/Cuti
-               </button>
+                  className="text-[10px] font-bold text-amber-600 px-2.5 py-1 rounded-full border border-amber-600/30 bg-amber-600/10 transition-colors hover:bg-amber-600/20 whitespace-nowrap flex items-center gap-1"
+                >
+                  <HeartPulse className="h-3 w-3" /> Izin/Cuti
+                </button>
              </div>
            )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {active && (
-            <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]">
+            <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_hsl(var(--primary)/0.2)]">
               ● {Math.max(0, timeToMin(active.endTime) - currentMin())} mnt tersisa
             </span>
           )}
-          <div className="text-[11px] text-text3 font-medium px-2 py-1 bg-surface border border-border rounded-full">{doneCount}/{items.length} Selesai</div>
+          <div className="text-[11px] text-text3 font-bold px-2.5 py-1 bg-surface border border-border rounded-full whitespace-nowrap">{doneCount}/{items.length}</div>
         </div>
       </div>
 
@@ -870,7 +871,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Reminder pertemuan depan dari sesi lalu */}
             {prevReminder && (
-              <div className="mt-1.5 bg-amber/8 border border-amber/25 rounded-xl px-3 py-2 flex items-start gap-2 animate-slide-up">
+              <div className="mt-1.5 bg-amber/10 border border-amber/25 rounded-xl px-3 py-2 flex items-start gap-2 animate-slide-up">
                 <span className="text-base flex-shrink-0 mt-0.5">📌</span>
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-wider text-amber mb-0.5">📋 Catatan dari Pertemuan Lalu</div>
@@ -933,10 +934,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ─── Bottom Sheet: Pulang Awal ─────────────────────────────────── */}
       {earlyDismissSheet && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setEarlyDismissSheet(false)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
-            <div className="text-base font-bold mb-1">🏠 Pulang Awal</div>
+        <div className="app-overlay z-[500]" onClick={() => setEarlyDismissSheet(false)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1 flex items-center gap-2"><Home className="h-5 w-5 text-primary" /> Pulang Awal</div>
             <p className="text-[12px] text-text2 mb-4">Jadwal setelah jam ini akan dicoret dan tidak dihitung sebagai sesi terlewat.</p>
             <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Mulai libur dari jam:</label>
             <input
@@ -964,10 +965,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ─── Bottom Sheet: Tugas Baru ──────────────────────────────────── */}
       {newTaskSheet && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setNewTaskSheet(null)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
-            <div className="text-base font-bold mb-1">📋 Tugas Baru</div>
+        <div className="app-overlay z-[500]" onClick={() => setNewTaskSheet(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1 flex items-center gap-2"><FilePenLine className="h-5 w-5 text-primary" /> Tugas Baru</div>
             <p className="text-[12px] text-text2 mb-4">Deadline otomatis 7 hari ke depan. Akan muncul di Inbox Tugas.</p>
             <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Nama Tugas:</label>
             <input
@@ -1007,15 +1008,15 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ─── Bottom Sheet: Skip Confirmation (#5) ────────────────────── */}
       {skipConfirm && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setSkipConfirm(null)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
-            <div className="text-base font-bold mb-1">⏭ Lewati Sesi Ini?</div>
+        <div className="app-overlay z-[500]" onClick={() => setSkipConfirm(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1 flex items-center gap-2"><SkipForward className="h-5 w-5 text-amber" /> Lewati Sesi Ini?</div>
             <p className="text-[13px] text-text2 mb-2 leading-relaxed">
               Sesi <strong>{skipConfirm.className} — {skipConfirm.subjectName}</strong> akan ditandai dilewati.
             </p>
-            <p className="text-[12px] text-amber/90 bg-amber/8 border border-amber/20 rounded-lg px-3 py-2 mb-5">
-              ⚠️ Materi tidak akan tercatat. Gunakan ini hanya jika kelas tidak jadi berlangsung.
+            <p className="text-[12px] text-amber/90 bg-amber/10 border border-amber/20 rounded-2xl px-3 py-2 mb-5">
+              Materi tidak akan tercatat. Gunakan ini hanya jika kelas tidak jadi berlangsung.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setSkipConfirm(null)} className="flex-1 py-3 bg-surface border border-border2 rounded-xl text-sm font-medium">Batal</button>
@@ -1035,12 +1036,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ─── Bottom Sheet: Catatan Real-time (#4) ────────────────────── */}
       {liveNoteOpen && active && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setLiveNoteOpen(false)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-4" />
+        <div className="app-overlay z-[500]" onClick={() => setLiveNoteOpen(false)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">📝</span>
-              <div className="text-base font-bold">Catatan Sesi</div>
+              <FilePenLine className="h-5 w-5 text-primary" />
+              <div className="app-sheet-title text-[20px]">Catatan Sesi</div>
               <span className="ml-auto text-[11px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">{active.className}</span>
             </div>
             <p className="text-[11px] text-text3 mb-3">Akan tersimpan ke jurnal sesi setelah kelas selesai.</p>
@@ -1074,10 +1075,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ─── Bottom Sheet: Geser Waktu (#6) ──────────────────────────── */}
       {geserSheet && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setGeserSheet(null)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
-            <div className="text-base font-bold mb-1">⏱ Geser Waktu Selesai</div>
+        <div className="app-overlay z-[500]" onClick={() => setGeserSheet(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1 flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary" /> Geser Waktu Selesai</div>
             <p className="text-[12px] text-text2 mb-5">Perpanjang durasi kelas hari ini (tidak mengubah jadwal permanen).</p>
             <div className="grid grid-cols-3 gap-3">
               {[15, 30, 45, 60, 90].map(mins => (

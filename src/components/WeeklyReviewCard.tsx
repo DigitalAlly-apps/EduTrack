@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { getWeeklyStats, generateDailyJournal } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { ClipboardCopy, LineChart } from 'lucide-react';
 
 export default function WeeklyReviewCard() {
   const { toast } = useToast();
@@ -18,10 +19,12 @@ export default function WeeklyReviewCard() {
   })();
 
   return (
-    <div className="bg-surface/50 border border-border/60 rounded-2xl p-4 mb-3 shadow-sm animate-slide-up">
+    <div className="app-card-soft p-4 mb-3 animate-slide-up">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-base">📊</span>
+          <div className="w-9 h-9 rounded-2xl bg-primary/10 border border-primary/20 text-primary grid place-items-center">
+            <LineChart className="h-4 w-4" />
+          </div>
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-text3">Laporan Minggu Ini</div>
             <div className="text-[10px] text-text3 opacity-60">{dateLabel}</div>
@@ -33,29 +36,29 @@ export default function WeeklyReviewCard() {
             navigator.clipboard.writeText(text);
             toast({ title: '📋 Jurnal Disalin!' });
           }}
-          className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg hover:bg-primary/20 transition-colors"
+          className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded-xl hover:bg-primary/20 transition-colors flex items-center gap-1.5"
         >
-          Salin Jurnal
+          <ClipboardCopy className="h-3.5 w-3.5" /> Salin
         </button>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         {/* Completed */}
-        <div className="bg-green/8 border border-green/20 rounded-xl p-2.5 text-center">
+        <div className="bg-green/10 border border-green/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-green leading-none mb-0.5">{st.completed}</div>
           <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Selesai</div>
           <div className={`text-[9px] font-bold mt-0.5 ${diffColor}`}>{diffLabel}</div>
         </div>
 
         {/* Skipped */}
-        <div className="bg-amber/8 border border-amber/20 rounded-xl p-2.5 text-center">
+        <div className="bg-amber/10 border border-amber/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-amber leading-none mb-0.5">{st.skipped}</div>
           <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Dilewati</div>
           <div className="text-[9px] text-text3 mt-0.5">{st.total > 0 ? Math.round((st.skipped / st.total) * 100) : 0}% dari total</div>
         </div>
 
         {/* Materials */}
-        <div className="bg-primary/8 border border-primary/20 rounded-xl p-2.5 text-center">
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-primary leading-none mb-0.5">{st.materialsCovered}</div>
           <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Materi</div>
           <div className="text-[9px] text-text3 mt-0.5">{st.uniqueClasses} kelas aktif</div>

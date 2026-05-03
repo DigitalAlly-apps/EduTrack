@@ -3,6 +3,7 @@ import {
   getData, updateData, genId, DAYS_SHORT, checkOverlap,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { CalendarDays, X } from 'lucide-react';
 
 interface QuickAddModalProps {
   open: boolean;
@@ -44,10 +45,18 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] bg-[rgba(0,0,0,0.75)] flex items-end transition-opacity" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-[26px] p-5 pb-10 max-h-[88dvh] overflow-y-auto animate-slide-up">
-        <div className="w-9 h-[3px] bg-[hsl(var(--border2))] rounded-full mx-auto mb-[18px]" />
-        <div className="font-display text-[22px] font-medium tracking-tight mb-[18px]">Tambah Jadwal</div>
+    <div className="app-overlay z-[500] transition-opacity" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="app-bottom-sheet">
+        <div className="app-sheet-handle" />
+        <div className="flex items-start gap-3 mb-5">
+          <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 text-primary grid place-items-center flex-shrink-0">
+            <CalendarDays className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="app-sheet-title">Tambah Jadwal</div>
+            <div className="app-sheet-desc">Buat jadwal mingguan cepat tanpa membuka menu Kelola.</div>
+          </div>
+        </div>
 
         <div className="mb-3">
           <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Kelas</label>
@@ -67,11 +76,11 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
 
         <div className="mb-3">
           <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Hari</label>
-          <div className="flex gap-1 flex-wrap">
+          <div className="grid grid-cols-7 gap-1.5">
             {DAYS_SHORT.map((d, i) => (
               <button key={i} onClick={() => toggleDay(i)}
-                className={`px-[11px] py-[7px] rounded-full text-xs font-medium border transition-all min-h-[36px] ${
-                  selectedDays.includes(i) ? 'bg-teal-dim border-teal text-teal' : 'bg-surface border-border text-text2'
+                className={`rounded-xl text-xs font-bold border transition-all min-h-[38px] ${
+                  selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-border3'
                 }`}>
                 {d}
               </button>
@@ -90,8 +99,8 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
           </div>
         </div>
 
-        <button onClick={add} className="btn-primary-style">Tambah Jadwal</button>
-        <button onClick={onClose} className="w-full py-[13px] text-text2 text-[13px] mt-2">Batal</button>
+        <button onClick={add} className="btn-primary-style flex items-center justify-center gap-2"><CalendarDays className="h-4 w-4" /> Tambah Jadwal</button>
+        <button onClick={onClose} className="w-full py-[13px] text-text2 text-[13px] mt-2 flex items-center justify-center gap-1.5"><X className="h-4 w-4" /> Batal</button>
       </div>
     </div>
   );

@@ -296,6 +296,48 @@
 .btn-primary-style:active {
   transform: scale(0.98);
 }
+.app-card {
+  @apply bg-surface border border-border rounded-3xl shadow-sm;
+}
+.app-card-soft {
+  @apply border border-border rounded-2xl shadow-sm;
+  background: hsl(var(--surface2));
+}
+.app-list-item {
+  @apply bg-surface border border-border rounded-2xl p-4 transition-all shadow-sm;
+}
+.app-list-item:hover {
+  background: hsl(var(--surface2));
+  border-color: hsl(var(--border2));
+}
+.app-section-title {
+  @apply text-[11px] font-black uppercase tracking-[0.16em] text-text3 px-1;
+}
+.app-icon-button {
+  @apply rounded-2xl bg-surface2 border border-border2 text-text2 grid place-items-center transition-all active:scale-95;
+}
+.app-icon-button:hover {
+  background: hsl(var(--surface3));
+  border-color: hsl(var(--border3));
+  color: hsl(var(--foreground));
+}
+.app-overlay {
+  @apply fixed inset-0 bg-black/70 flex items-end;
+}
+.app-bottom-sheet {
+  @apply w-full max-w-[430px] mx-auto rounded-t-3xl p-5 pb-10 max-h-[88dvh] overflow-y-auto animate-slide-up border-t border-border shadow-[0_-24px_70px_rgba(0,0,0,0.42)];
+  background: hsl(var(--surface2));
+}
+.app-sheet-handle {
+  @apply w-10 h-1 rounded-full mx-auto mb-5;
+  background: hsl(var(--border2));
+}
+.app-sheet-title {
+  @apply font-display text-[22px] font-black tracking-tight leading-none;
+}
+.app-sheet-desc {
+  @apply text-[13px] text-text2 leading-relaxed mt-1;
+}
 .data-btn-style {
   @apply flex-1 min-w-[90px] py-[11px] px-[10px] rounded-2xl bg-surface2 border border-border text-xs font-bold flex items-center justify-center gap-[6px] transition-all min-h-[44px];
 }

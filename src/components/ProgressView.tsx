@@ -1,4 +1,5 @@
-import { useState, useMemo, memo, useCallback, useEffect } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect, type ElementType } from 'react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, History, LayoutDashboard, TrendingUp } from 'lucide-react';
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
@@ -35,7 +36,7 @@ function PaceSuggestionsCard() {
   };
 
   return (
-    <div className="relative bg-gradient-to-br from-primary/8 via-primary/3 to-transparent border border-primary/20 rounded-2xl overflow-hidden mb-4 animate-slide-up shadow-sm">
+    <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl overflow-hidden mb-4 animate-slide-up shadow-sm">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')]" />
       <div className="relative p-4 flex items-center justify-between border-b border-primary/10">
         <div className="flex items-center gap-2.5">
@@ -119,6 +120,11 @@ function getEffectiveStatus(st: ReturnType<typeof getSubjectStatus>): 'green' | 
 
 export default function ProgressView() {
   const [tab, setTab] = useState<'progress' | 'history' | 'kalender'>('progress');
+  const tabs: { id: typeof tab; label: string; icon: ElementType }[] = [
+    { id: 'progress', label: 'Progres', icon: LayoutDashboard },
+    { id: 'kalender', label: 'Kalender', icon: CalendarDays },
+    { id: 'history', label: 'Riwayat', icon: History },
+  ];
 
   // Compute predictive finishes (Feature 5)
   const predictiveFinishes = useMemo(() => {
@@ -142,10 +148,21 @@ export default function ProgressView() {
 
   return (
     <div className="pt-1">
-      <div className="flex bg-surface/40 backdrop-blur-md border border-border/60 rounded-2xl mb-[18px] p-1 shadow-sm gap-1">
-        <button onClick={() => setTab('progress')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'progress' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Progres</button>
-        <button onClick={() => setTab('kalender')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'kalender' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Kalender</button>
-        <button onClick={() => setTab('history')} className={`flex-1 py-[8px] text-[11px] font-bold tracking-wide uppercase rounded-[10px] transition-all duration-300 ${tab === 'history' ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}>Riwayat</button>
+      <div className="flex bg-surface/50 backdrop-blur-md border border-border/60 rounded-2xl mb-[18px] p-1 shadow-sm gap-1">
+        {tabs.map(item => {
+          const Icon = item.icon;
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              className={`flex-1 min-h-[38px] text-[11px] font-black tracking-wide uppercase rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 ${active ? 'bg-primary text-primary-foreground shadow-sm scale-[1.02]' : 'text-text3 hover:text-foreground hover:bg-surface2/50'}`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
       {tab === 'progress' && <ProgressTab predictiveFinishes={predictiveFinishes} examPrepItems={examPrepItems} />}
       {tab === 'kalender' && <CalendarTab />}
@@ -282,20 +299,26 @@ function ProgressTab({ predictiveFinishes, examPrepItems }: {
       <>
         <div className="mt-2">
         {/* Filter bar */}
-        <div className="mb-5 flex gap-2 w-full">
+        <div className="mb-5 grid grid-cols-2 gap-2 w-full">
           <button
             onClick={() => setFilter('semua')}
-            className={`flex-1 min-h-[44px] rounded-2xl flex flex-col items-center justify-center transition-all ${filter === 'semua' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface border border-border text-text2 hover:bg-surface2'}`}
+            className={`min-h-[58px] rounded-2xl flex items-center justify-center gap-3 transition-all ${filter === 'semua' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface border border-border text-text2 hover:bg-surface2'}`}
           >
-            <span className="text-lg font-bold">{allCards.length}</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">Semua Mapel</span>
+            <CheckCircle2 className="h-5 w-5" />
+            <span className="text-left leading-tight">
+              <span className="block text-lg font-black">{allCards.length}</span>
+              <span className="block text-[10px] uppercase font-bold tracking-wider opacity-80">Semua Mapel</span>
+            </span>
           </button>
           <button
             onClick={() => setFilter('bermasalah')}
-            className={`flex-1 min-h-[44px] rounded-2xl flex flex-col items-center justify-center transition-all ${filter === 'bermasalah' ? 'bg-red text-white shadow-md' : 'bg-surface border border-red/20 text-red hover:bg-red/5'}`}
+            className={`min-h-[58px] rounded-2xl flex items-center justify-center gap-3 transition-all ${filter === 'bermasalah' ? 'bg-red text-white shadow-md' : 'bg-surface border border-red/20 text-red hover:bg-red/5'}`}
           >
-            <span className="text-lg font-bold">{bermasalahCount}</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">Perlu Perhatian</span>
+            <AlertTriangle className="h-5 w-5" />
+            <span className="text-left leading-tight">
+              <span className="block text-lg font-black">{bermasalahCount}</span>
+              <span className="block text-[10px] uppercase font-bold tracking-wider opacity-80">Perlu Perhatian</span>
+            </span>
           </button>
         </div>
 
@@ -336,25 +359,30 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="animate-slide-up">
+    <div className="animate-slide-up app-card p-3">
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between mb-3 cursor-pointer group px-1 select-none"
+        className="flex items-center justify-between cursor-pointer group select-none px-1 py-1"
       >
-        <div className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold tracking-tight text-foreground">{group.clsName}</span>
-          <span className="text-[12px] font-bold text-text3 bg-surface border border-border px-2 py-0.5 rounded-full">{group.cards.length} Mapel</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center text-primary flex-shrink-0">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <span className="font-display text-xl font-bold tracking-tight text-foreground block truncate">{group.clsName}</span>
+            <span className="text-[12px] font-semibold text-text3">{group.cards.length} mapel dipantau</span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {group.issues > 0 && (
-            <span className="text-[11px] font-bold bg-red text-white px-2 py-0.5 rounded-md uppercase tracking-wider">{group.issues} Bermasalah</span>
+            <span className="text-[10px] font-black bg-red text-white px-2 py-1 rounded-full uppercase tracking-wide">{group.issues} Perlu</span>
           )}
-          <span className={`text-text3 group-hover:text-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
+          <ChevronDown className={`h-4 w-4 text-text3 group-hover:text-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
         </div>
       </div>
 
       {isExpanded && (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5 mt-3">
           {group.cards.map((card: CardData) => (
             <SubjectCard key={`${card.clsId}-${card.subId}`} card={card} />
           ))}
@@ -378,16 +406,22 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const totalProgressText = totalSessAll > 0
     ? `Selesai ${Math.min(totalSessDone, totalSessAll)} dari ${totalSessAll} pertemuan total`
     : 'Belum ada pertemuan terdaftar';
+  const progressPct = totalSessAll > 0 ? Math.min(100, Math.round((Math.min(totalSessDone, totalSessAll) / totalSessAll) * 100)) : 0;
+  const statusTone = effectiveColor === 'red'
+    ? 'text-red bg-red/10 border-red/20'
+    : effectiveColor === 'amber'
+      ? 'text-amber bg-amber/10 border-amber/20'
+      : 'text-green bg-green/10 border-green/20';
 
   return (
-    <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors ${
+    <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors shadow-sm ${
       effectiveColor === 'red' ? 'border-red/30' :
       effectiveColor === 'amber' ? 'border-amber/30' :
       'border-border/60 hover:border-border3'
     }`}>
       <button 
         onClick={() => setShowMats(!showMats)}
-        className="w-full relative p-4 flex items-center justify-between hover:bg-surface2/50 transition-colors text-left"
+        className="w-full relative p-4 flex items-start justify-between hover:bg-surface2/50 transition-colors text-left"
       >
         <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${
           effectiveColor === 'red' ? 'bg-red' : 
@@ -396,32 +430,37 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
         }`} />
         
         <div className="flex-1 min-w-0 pl-3">
-          <div className="flex items-center justify-between gap-3 mb-1.5">
-            <span className="text-[15px] font-bold text-foreground tracking-tight truncate">{subName}</span>
-            <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0 border ${
-              effectiveColor === 'red' ? 'bg-red/10 text-red border-red/20' :
-              effectiveColor === 'amber' ? 'bg-amber/10 text-amber border-amber/20' :
-              'bg-green-dim/60 text-green border-green/20'
-            }`}>{st.label}</span>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <span className="text-[15px] font-black text-foreground tracking-tight truncate block">{subName}</span>
+              <span className="text-[11px] font-semibold text-text3">{progressPct}% selesai</span>
+            </div>
+            <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0 border ${statusTone}`}>{st.label}</span>
           </div>
 
-          <div className="mb-2 rounded-xl bg-surface/60 border border-border/50 px-3 py-2">
+          <div className="h-2 bg-surface2 rounded-full overflow-hidden border border-border/40 mb-3">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${effectiveColor === 'red' ? 'bg-red' : effectiveColor === 'amber' ? 'bg-amber' : 'bg-green'}`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          <div className="mb-3 rounded-2xl bg-surface/60 border border-border/50 px-3 py-2.5">
             {activeMaterial.isComplete ? (
               <>
                 <div className="text-[13px] font-bold text-foreground leading-snug">Semua bab selesai</div>
-                <div className="text-[11px] text-text2 mt-0.5">{totalProgressText}</div>
+                <div className="text-[12px] text-text2 mt-0.5">{totalProgressText}</div>
               </>
             ) : activeMaterial.material ? (
               <>
                 <div className="text-[13px] font-bold text-foreground leading-snug truncate" title={activeMaterial.material.name}>
                   {activeMaterial.material.name}
                 </div>
-                <div className="text-[11px] text-text2 mt-0.5">
+                <div className="text-[12px] text-text2 mt-0.5">
                   Pertemuan {activeMaterial.sessionIndex}/{activeMaterial.totalSessionsInMaterial} di bab ini
                 </div>
                 {activePageLabel && <div className="text-[11px] text-text2 mt-0.5">{activePageLabel}</div>}
                 {activeMaterial.material.note && <div className="text-[11px] text-text3 mt-0.5 truncate">Catatan: {activeMaterial.material.note}</div>}
-                <div className="text-[11px] text-text3 mt-0.5">{totalProgressText}</div>
               </>
             ) : (
               <>
@@ -430,30 +469,42 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
               </>
             )}
           </div>
-          
+           
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="rounded-xl bg-surface2/60 border border-border/50 px-2 py-2 text-center">
+              <div className="text-[10px] font-black text-text3 uppercase tracking-wide">Selesai</div>
+              <div className="text-sm font-black text-foreground mt-0.5">{Math.min(totalSessDone, totalSessAll)}</div>
+            </div>
+            <div className="rounded-xl bg-surface2/60 border border-border/50 px-2 py-2 text-center">
+              <div className="text-[10px] font-black text-text3 uppercase tracking-wide">Total</div>
+              <div className="text-sm font-black text-foreground mt-0.5">{totalSessAll}</div>
+            </div>
+            <div className={`rounded-xl border px-2 py-2 text-center ${sessionDeficit > 0 ? 'bg-red/10 border-red/20' : 'bg-green/10 border-green/20'}`}>
+              <div className="text-[10px] font-black text-text3 uppercase tracking-wide">Kurang</div>
+              <div className={`text-sm font-black mt-0.5 ${sessionDeficit > 0 ? 'text-red' : 'text-green'}`}>{sessionDeficit}</div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 text-[12px] text-text2 flex-wrap font-medium">
-            <span>{totalProgressText}</span>
             {st.daysLeft !== undefined && (
               <>
-                <span className="opacity-40">•</span>
                 <button
                   onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' })); }}
-                  className={`flex items-center gap-0.5 underline-offset-2 hover:underline transition-colors ${st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold' : 'text-amber font-bold') : 'text-text3'}`}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors ${st.daysLeft <= 14 ? (st.daysLeft <= 7 ? 'text-red font-bold border-red/20 bg-red/10' : 'text-amber font-bold border-amber/20 bg-amber/10') : 'text-text3 border-border bg-surface'}`}
                   title="Lihat di tab Ujian"
                 >
-                  📅 {st.daysLeft} hari ujian ↗
+                  <CalendarDays className="h-3.5 w-3.5" /> {st.daysLeft} hari ujian
                 </button>
               </>
             )}
             {predictiveFinish?.predictedFinishDate && (
               <>
-                <span className="opacity-40">•</span>
-                <span className={`${
+                <span className={`inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 ${
                   predictiveFinish.pace === 'ahead' ? 'text-green' :
                   predictiveFinish.pace === 'behind' ? 'text-red' :
                   'text-foreground'
                 }`}>
-                  📅 Prediksi: {new Date(predictiveFinish.predictedFinishDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  <TrendingUp className="h-3.5 w-3.5" /> Prediksi: {new Date(predictiveFinish.predictedFinishDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                 </span>
                 {predictiveFinish.examDate && predictiveFinish.daysDifference !== null && (
                   <span className={`
@@ -495,7 +546,7 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                    <div className="text-[15px] font-black text-foreground mt-0.5">{sessionsAvailable}</div>
                    <div className="text-[9px] text-text3">jadwal lagi</div>
                  </div>
-                 <div className={`rounded-lg border px-2 py-2 ${sessionDeficit > 0 ? 'bg-red/8 border-red/20' : 'bg-green/8 border-green/20'}`}>
+                  <div className={`rounded-lg border px-2 py-2 ${sessionDeficit > 0 ? 'bg-red/10 border-red/20' : 'bg-green/10 border-green/20'}`}>
                    <div className="text-[10px] font-bold text-text3 uppercase tracking-wide">Kurang</div>
                    <div className={`text-[15px] font-black mt-0.5 ${sessionDeficit > 0 ? 'text-red' : 'text-green'}`}>{sessionDeficit}</div>
                    <div className="text-[9px] text-text3">sesi</div>
@@ -562,7 +613,7 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
               <span className="text-[11px] text-text3">Salah input? Koreksi progres:</span>
               <button
                 onClick={() => setUndoConfirm(true)}
-                className="text-[11px] font-bold text-amber border border-amber/30 bg-amber/8 px-3 py-1.5 rounded-lg hover:bg-amber/15 transition-colors flex items-center gap-1"
+                className="text-[11px] font-bold text-amber border border-amber/30 bg-amber/10 px-3 py-1.5 rounded-lg hover:bg-amber/15 transition-colors flex items-center gap-1"
               >
                 ↩ Mundur 1 Sesi
               </button>
@@ -573,15 +624,15 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
 
       {/* Confirmation sheet for undo */}
       {undoConfirm && (
-        <div className="fixed inset-0 z-[500] bg-black/70 flex items-end" onClick={() => setUndoConfirm(false)}>
-          <div className="w-full max-w-[430px] mx-auto bg-surface2 rounded-t-3xl p-5 pb-10 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="w-9 h-1 bg-border2 rounded-full mx-auto mb-5" />
-            <div className="text-base font-bold mb-1">↩ Koreksi Progres</div>
+        <div className="app-overlay z-[500]" onClick={() => setUndoConfirm(false)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title text-[20px] mb-1">Koreksi Progres</div>
             <p className="text-[13px] text-text2 mb-2 leading-relaxed">
               Sesi terakhir <strong>{card.subName}</strong> ({card.clsName}) akan dihapus dan progres mundur 1.
             </p>
-            <p className="text-[12px] text-red/80 bg-red/8 border border-red/20 rounded-lg px-3 py-2 mb-5">
-              ⚠️ Tindakan ini tidak bisa dibatalkan kembali.
+            <p className="text-[12px] text-red/80 bg-red/10 border border-red/20 rounded-2xl px-3 py-2 mb-5">
+              Tindakan ini tidak bisa dibatalkan kembali.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setUndoConfirm(false)} className="flex-1 py-3 bg-surface border border-border2 rounded-xl text-sm font-medium">Batal</button>
@@ -756,15 +807,15 @@ function CalendarTab() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-green/8 border border-green/20 rounded-xl p-2 text-center">
+        <div className="bg-green/10 border border-green/20 rounded-xl p-2 text-center">
           <div className="text-xl font-black text-green">{summary.done}</div>
           <div className="text-[9px] text-text3 font-bold uppercase">Selesai</div>
         </div>
-        <div className="bg-amber/8 border border-amber/20 rounded-xl p-2 text-center">
+        <div className="bg-amber/10 border border-amber/20 rounded-xl p-2 text-center">
           <div className="text-xl font-black text-amber">{summary.partial}</div>
           <div className="text-[9px] text-text3 font-bold uppercase">Sebagian</div>
         </div>
-        <div className="bg-red/8 border border-red/20 rounded-xl p-2 text-center">
+        <div className="bg-red/10 border border-red/20 rounded-xl p-2 text-center">
           <div className="text-xl font-black text-red">{summary.missed}</div>
           <div className="text-[9px] text-text3 font-bold uppercase">Terlewat</div>
         </div>
