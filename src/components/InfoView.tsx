@@ -239,15 +239,18 @@ export default function InfoView() {
                        { icon: ShieldCheck, t: 'Data Pribadi 100%', d: 'Semua data tersimpan lokal di browser dan tidak dikirim ke server.' },
                        { icon: Zap, t: 'Ringan & Cepat', d: 'Dioptimalkan untuk pengalaman mobile yang responsif.' },
                        { icon: TrendingUp, t: 'Estimasi Akurat', d: 'Hitung sisa materi vs sisa hari efektif secara presisi.' },
-                    ].map((u, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-background/60 rounded-lg border border-border/30">
-                        <div className="w-8 h-8 bg-primary-dim rounded-lg flex items-center justify-center text-primary flex-shrink-0"><u.icon className="h-4 w-4" /></div>
-                        <div className="flex-1">
-                          <div className="text-sm font-semibold text-foreground mb-0.5">{u.t}</div>
-                          <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
+                    ].map((u, i) => {
+                      const Icon = u.icon;
+                      return (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-background/60 rounded-lg border border-border/30">
+                          <div className="w-8 h-8 bg-primary-dim rounded-lg flex items-center justify-center text-primary flex-shrink-0"><Icon className="h-4 w-4" /></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-semibold text-foreground mb-0.5">{u.t}</div>
+                            <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
               </div>
           </div>
@@ -259,15 +262,18 @@ export default function InfoView() {
             <div key={gIdx}>
               <div className="app-section-title mb-3 flex items-center gap-2"><GroupIcon className="h-3.5 w-3.5" /> {group.title}</div>
               <div className="space-y-2.5">
-                {group.items.map((u, i) => (
-                  <div key={i} className="app-list-item flex items-start gap-3">
-                    <div className="w-9 h-9 bg-primary-dim rounded-2xl flex items-center justify-center text-primary flex-shrink-0"><u.icon className="h-4 w-4" /></div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-foreground mb-1">{u.t}</div>
-                      <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
+                {group.items.map((u, i) => {
+                  const Icon = u.icon;
+                  return (
+                    <div key={i} className="app-list-item flex items-start gap-3">
+                      <div className="w-9 h-9 bg-primary-dim rounded-2xl flex items-center justify-center text-primary flex-shrink-0"><Icon className="h-4 w-4" /></div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-foreground mb-1">{u.t}</div>
+                        <div className="text-xs text-text2 leading-relaxed">{u.d}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );})}
@@ -280,15 +286,18 @@ export default function InfoView() {
                 { icon: BookOpen, t: 'Jadwal Otomatis', d: 'Input jadwal sekali, sistem mendeteksi sesi berjalan otomatis.' },
                 { icon: Rocket, t: 'Input Massal', d: 'Copy-paste banyak bab materi sekaligus.' },
                 { icon: DatabaseBackup, t: 'Backup & Restore', d: 'Export JSON dan import ulang kapan saja.' },
-              ].map((f, i) => (
-                <div key={i} className="app-list-item flex items-center gap-3">
-                  <div className="flex-shrink-0 w-9 h-9 bg-surface2 rounded-2xl flex items-center justify-center text-text2"><f.icon className="h-4 w-4" /></div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-foreground">{f.t}</div>
-                    <div className="text-xs text-text2 leading-relaxed mt-0.5">{f.d}</div>
+              ].map((f, i) => {
+                const Icon = f.icon;
+                return (
+                  <div key={i} className="app-list-item flex items-center gap-3">
+                    <div className="flex-shrink-0 w-9 h-9 bg-surface2 rounded-2xl flex items-center justify-center text-text2"><Icon className="h-4 w-4" /></div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-foreground">{f.t}</div>
+                      <div className="text-xs text-text2 leading-relaxed mt-0.5">{f.d}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
