@@ -128,12 +128,24 @@
   body {
     @apply bg-background text-foreground;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: 'Manrope', sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     background:
       radial-gradient(circle at 18% -8%, hsl(var(--primary-glow)) 0, transparent 34%),
       radial-gradient(circle at 92% 12%, hsl(var(--teal-glow)) 0, transparent 30%),
       linear-gradient(145deg, hsl(var(--background)), hsl(var(--bg2)) 70%);
+  }
+  html {
+    overflow-x: hidden;
+  }
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
   ::-webkit-scrollbar {
     width: 2px;
