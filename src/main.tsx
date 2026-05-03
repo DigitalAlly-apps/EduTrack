@@ -57,9 +57,17 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
+const shouldDisableServiceWorker = import.meta.env.DEV || isPreviewHost || isInIframe;
+
+if (shouldDisableServiceWorker) {
+  navigator.serviceWorker?.getRegistrations().then(async (registrations) => {
+    await Promise.all(registrations.map((r) => r.unregister()));
+    try {
+      const names = await caches.keys();
+      await Promise.all(names.map(name => caches.delete(name)));
+    } catch {
+      // Cache API can be unavailable in some browsers/private modes.
+    }
   });
 }
 
