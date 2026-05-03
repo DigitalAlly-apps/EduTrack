@@ -372,6 +372,9 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, teachingPosition, predictiveFinish } = card;
   const activeMaterial = teachingPosition;
   const activePageLabel = getMaterialPageLabel(activeMaterial.material);
+  const sessionsAvailable = st.sessLeft ?? 0;
+  const sessionsNeeded = st.sessionsNeeded ?? st.remaining;
+  const sessionDeficit = Math.max(0, sessionsNeeded - sessionsAvailable);
   const totalProgressText = totalSessAll > 0
     ? `Selesai ${Math.min(totalSessDone, totalSessAll)} dari ${totalSessAll} pertemuan total`
     : 'Belum ada pertemuan terdaftar';
@@ -480,15 +483,28 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
       {showMats && (
         <div className="p-4 pt-2 border-t border-border/40 bg-surface3/10 shadow-inner">
            {st.daysLeft !== undefined && (
-             <div className="flex flex-wrap items-center justify-between mb-4 bg-surface border border-border2 rounded-xl p-3 shadow-sm">
-               <div className="text-[11px] font-medium text-text2 flex flex-col gap-[2px]">
-                  <span>Sisa Jadwal Mengajar</span>
-                  <strong className="text-foreground text-[14px]">{st.sessLeft} <span className="text-[11px] font-normal">Sesi</span></strong>
+             <div className="mb-4 bg-surface border border-border2 rounded-xl p-3 shadow-sm">
+               <div className="grid grid-cols-3 gap-2 text-center">
+                 <div className="rounded-lg bg-surface2/60 border border-border/50 px-2 py-2">
+                   <div className="text-[10px] font-bold text-text3 uppercase tracking-wide">Butuh</div>
+                   <div className="text-[15px] font-black text-foreground mt-0.5">{sessionsNeeded}</div>
+                   <div className="text-[9px] text-text3">sesi materi</div>
+                 </div>
+                 <div className="rounded-lg bg-surface2/60 border border-border/50 px-2 py-2">
+                   <div className="text-[10px] font-bold text-text3 uppercase tracking-wide">Tersedia</div>
+                   <div className="text-[15px] font-black text-foreground mt-0.5">{sessionsAvailable}</div>
+                   <div className="text-[9px] text-text3">jadwal lagi</div>
+                 </div>
+                 <div className={`rounded-lg border px-2 py-2 ${sessionDeficit > 0 ? 'bg-red/8 border-red/20' : 'bg-green/8 border-green/20'}`}>
+                   <div className="text-[10px] font-bold text-text3 uppercase tracking-wide">Kurang</div>
+                   <div className={`text-[15px] font-black mt-0.5 ${sessionDeficit > 0 ? 'text-red' : 'text-green'}`}>{sessionDeficit}</div>
+                   <div className="text-[9px] text-text3">sesi</div>
+                 </div>
                </div>
-               <div className="w-[1px] h-8 bg-border2"></div>
-               <div className="text-[11px] font-medium text-text2 flex flex-col gap-[2px]">
-                  <span>Materi Tertinggal</span>
-                  <strong className="text-foreground text-[14px]">{st.sessionsNeeded} <span className="text-[11px] font-normal">Sesi</span></strong>
+               <div className="mt-2 text-[11px] text-text2 leading-snug">
+                 {sessionDeficit > 0
+                   ? `Materi masih butuh ${sessionsNeeded} sesi, tapi jadwal tersisa hanya ${sessionsAvailable}. Perlu tambah ${sessionDeficit} sesi atau ringkas materi.`
+                   : `Jadwal masih cukup untuk menyelesaikan ${sessionsNeeded} sesi materi.`}
                </div>
              </div>
            )}
