@@ -511,13 +511,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                    </div>
                 </div>
 
-                <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4">
+                <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4 overflow-hidden">
                   <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">📖</div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="text-[10px] font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
-                    <div className="text-[15px] font-bold leading-tight text-foreground/90">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
-                    {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1">{activePageLabel}</div>}
-                    {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug">Catatan: {activeMaterial.note}</div>}
+                    <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
+                    {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
+                    {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
                   </div>
                 </div>
               </div>
@@ -634,9 +634,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
 
                 {upcoming.nextMat && (
-                  <div className="mt-5 text-[13px] font-semibold text-text3 flex items-center gap-2.5 px-2">
-                    <span className="opacity-50">Persiapan:</span> 
-                    <strong className="text-foreground/70 bg-surface3/40 px-2 py-0.5 rounded-md border border-border/20">{upcoming.nextMat.name}</strong>
+                  <div className="mt-5 text-[13px] font-semibold text-text3 flex items-start gap-2.5 px-2 min-w-0">
+                    <span className="opacity-50 flex-shrink-0">Persiapan:</span> 
+                    <strong className="min-w-0 text-foreground/70 bg-surface3/40 px-2 py-0.5 rounded-md border border-border/20 break-words [overflow-wrap:anywhere] line-clamp-2">{upcoming.nextMat.name}</strong>
                   </div>
                 )}
                 
@@ -696,8 +696,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="w-[38px] h-[38px] rounded-[10px] bg-teal-dim border border-teal grid place-items-center text-base flex-shrink-0">📚</div>
           <div className="flex-1 min-w-0">
             <div className="text-[9px] font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
-            <div className="text-sm font-semibold">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
-            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px]">📖 {next.nextMat.name}</div>}
+            <div className="text-sm font-semibold truncate">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
+            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}</div>}
           </div>
           <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
             <span className="text-[13px] font-semibold text-teal tabular-nums block leading-tight">{fmt(next.startTime)}</span>
@@ -823,8 +823,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             </div>
 
             {/* Card */}
-            <div className="flex-1 mb-4">
-              <div className={`group bg-surface/40 backdrop-blur-md border rounded-3xl p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md ${
+            <div className="flex-1 min-w-0 mb-4">
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-3xl p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md overflow-hidden ${
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
@@ -845,8 +845,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     )}
                   </div>
                   
-                  <div className="text-[12px] text-text2 font-medium flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
-                    <span className="flex-shrink-0">{item.subjectName}</span>
+                  <div className="text-[12px] text-text2 font-medium flex items-center flex-wrap gap-x-1.5 gap-y-0.5 min-w-0">
+                    <span className="min-w-0 max-w-full truncate">{item.subjectName}</span>
                     <span className="opacity-30">•</span>
                     <span className="font-bold text-foreground flex-shrink-0">
                       {item.totalMats > 0 
@@ -854,7 +854,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         : 'Belum ada materi'}
                     </span>
                     {!item.done && itemMaterial && (
-                      <span className="text-text3/70 truncate max-w-full">📖 {itemMaterial.name}</span>
+                      <span className="basis-full min-w-0 text-text3/80 leading-snug break-words line-clamp-2">📖 {itemMaterial.name}</span>
                     )}
                   </div>
                   {!item.done && (itemPageLabel || itemMaterial?.note) && (
