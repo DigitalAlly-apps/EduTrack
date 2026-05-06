@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import DailyBriefing from './DailyBriefing';
 import SmartReschedulerModal from './SmartReschedulerModal';
 import { Check, Clock3, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
+import { getExamDayMode, toggleExamDayMode } from '@/lib/examData';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -303,8 +304,40 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const showBackupBtn = shouldShowBackupReminder();
   const countdowns = getExamCountdowns();
 
+  const [examModeBanner, setExamModeBanner] = useState(getExamDayMode());
+
+  const handleTurnOffExamMode = () => {
+    toggleExamDayMode();
+    setExamModeBanner(false);
+    onRefresh();
+    toast({ title: '📚 Mode KBM Normal kembali aktif' });
+  };
+
   return (
     <div>
+      {/* Mode Ujian Banner */}
+      {examModeBanner && (
+        <div className="flex items-center justify-between bg-amber/10 border border-amber/30 rounded-2xl px-4 py-3 mb-3 animate-slide-up">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl flex-shrink-0">📋</span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-black text-amber uppercase tracking-wide">Mode Ujian Aktif</div>
+              <div className="text-[11px] text-text2 leading-snug">KBM tidak dijadwalkan hari ini</div>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 ml-2">
+            <button
+              onClick={handleTurnOffExamMode}
+              className="text-[10px] font-bold text-amber-950 bg-amber px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap"
+            >
+              Nonaktifkan
+            </button>
+            <button onClick={() => setExamModeBanner(false)} className="text-[11px] text-text3 px-2 py-1.5 hover:bg-surface2 rounded-lg transition-colors">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       {/* Daily Briefing — collapsible */}
       <div className={`mb-3 border rounded-2xl overflow-hidden transition-all ${briefingOpen ? 'border-border2' : 'border-transparent'}`}>
         <button

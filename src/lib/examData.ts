@@ -3,6 +3,59 @@ import { getData, genId, now, DAYS_ID, timeToMin, currentMin, fmt, dateKey, date
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type CorrectionStatus = 'belum' | 'sedang' | 'selesai';
 
+// ── Exam Day Mode (stop KBM tracking) ─────────────────────────────────────────
+// Disimpan per tanggal — aktif = KBM hari ini tidak ditampilkan sebagai "tugas"
+const EXAM_MODE_KEY = 'edutrack_exam_mode';
+export function getExamDayMode(): boolean {
+  try {
+    const val = localStorage.getItem(EXAM_MODE_KEY);
+    if (!val) return false;
+    const parsed: { date: string; active: boolean } = JSON.parse(val);
+    return parsed.date === dateKey() && parsed.active;
+  } catch { return false; }
+}
+export function setExamDayMode(active: boolean): void {
+  localStorage.setItem(EXAM_MODE_KEY, JSON.stringify({ date: dateKey(), active }));
+}
+export function toggleExamDayMode(): void {
+  setExamDayMode(!getExamDayMode());
+}
+
+// ── Ngawas (Exam Proctoring) ───────────────────────────────────────────────────
+// Guru bisa ngawas ujian mapel lain dengan waktu ngawas yang berbeda dari ujian mapelnya sendiri
+export interface ProctorSession {
+  id: string;
+  date: string;        // YYYY-MM-DD
+  startTime: string;   // HH:mm
+  endTime: string;     // HH:mm
+  subjectName: string; // nama mapel yang diawasi (free-text)
+  location?: string;   // ruangan opsional
+  note?: string;
+  createdAt: string;
+}
+
+const PROCTOR_KEY = 'edutrack_proctor_sessions';
+
+export function getProctorSessions(): ProctorSession[] {
+  try { return JSON.parse(localStorage.getItem(PROCTOR_KEY) || '[]'); } catch { return []; }
+}
+
+export function getTodayProctorSessions(): ProctorSession[] {
+  return getProctorSessions().filter(s => s.date === dateKey())
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
+export function addProctorSession(session: Omit<ProctorSession, 'id' | 'createdAt'>): void {
+  const all = getProctorSessions();
+  all.push({ ...session, id: genId(), createdAt: now().toISOString() });
+  localStorage.setItem(PROCTOR_KEY, JSON.stringify(all));
+}
+
+export function deleteProctorSession(id: string): void {
+  const all = getProctorSessions().filter(s => s.id !== id);
+  localStorage.setItem(PROCTOR_KEY, JSON.stringify(all));
+}
+
 export interface ExamCorrection {
   id: string;
   subjectId: string;
