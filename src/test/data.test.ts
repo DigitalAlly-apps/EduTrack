@@ -9,6 +9,7 @@ import {
   getMaterials,
   getDailyPriorities,
   getPredictiveFinishes,
+  getTodaySchedules,
   getTeachingPosition,
   importJSON,
   markDone,
@@ -18,6 +19,7 @@ import {
   skipSession,
   updateMaterial,
 } from '@/lib/data';
+import { addExamSchedule, deleteExamSchedule, getExamSchedules, getTodayExamItems } from '@/lib/examData';
 import { AppData } from '@/lib/types';
 
 const baseData = (day = new Date().getDay()): AppData => ({
@@ -266,6 +268,63 @@ describe('teacher leave', () => {
   });
 });
 
+describe('exam schedules', () => {
+  it('stores detailed exam schedules and builds today exam items from them', () => {
+    saveData(baseData());
+    const today = dateKey();
+
+    const created = addExamSchedule({
+      classId: 'c1',
+      subjectId: 's1',
+      date: today,
+      startTime: '07:30',
+      endTime: '09:00',
+      location: 'R. 1',
+      note: 'PTS',
+    });
+
+    expect(getExamSchedules()).toHaveLength(1);
+    expect(getData().subjects[0].examDate).toBe(today);
+    const [item] = getTodayExamItems();
+    expect(item).toMatchObject({
+      scheduleId: created.id,
+      className: '10A',
+      subjectName: 'Matematika',
+      duration: 90,
+      location: 'R. 1',
+      note: 'PTS',
+    });
+
+    deleteExamSchedule(created.id);
+    expect(getExamSchedules()).toHaveLength(0);
+    expect(getData().subjects[0].examDate).toBeNull();
+  });
+
+  it('syncs subject exam date to the earliest detailed exam schedule', () => {
+    saveData(baseData());
+
+    addExamSchedule({ classId: 'c1', subjectId: 's1', date: '2026-05-20', startTime: '09:00', endTime: '10:00' });
+    const earliest = addExamSchedule({ classId: 'c2', subjectId: 's1', date: '2026-05-10', startTime: '07:30', endTime: '09:00' });
+
+    expect(getData().subjects[0].examDate).toBe('2026-05-10');
+
+    deleteExamSchedule(earliest.id);
+    expect(getData().subjects[0].examDate).toBe('2026-05-20');
+  });
+});
+
+describe('exam day mode', () => {
+  it('stops today KBM schedules while exam mode is active', () => {
+    const today = dateKey();
+    saveData(baseData(new Date().getDay()));
+
+    expect(getTodaySchedules()).toHaveLength(1);
+
+    localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: today, active: true }));
+    expect(getTodaySchedules()).toEqual([]);
+  });
+});
+
 describe('backup and import', () => {
   it('exports and imports exam corrections with the JSON backup', async () => {
     saveData(baseData());
@@ -303,5 +362,6 @@ describe('backup and import', () => {
     expect(material.pageStart).toBeUndefined();
     expect(material.pageEnd).toBeUndefined();
     expect(material.note).toBeUndefined();
+    expect(getData().examSchedules).toEqual([]);
   });
 });

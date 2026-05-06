@@ -1,4 +1,5 @@
-import { getData, genId, now, DAYS_ID, timeToMin, currentMin, fmt, dateKey, dateFromKey } from './data';
+import { getData, updateData, genId, now, DAYS_ID, timeToMin, currentMin, fmt, dateKey, dateFromKey } from './data';
+import type { ExamSchedule } from './types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type CorrectionStatus = 'belum' | 'sedang' | 'selesai';
@@ -56,6 +57,48 @@ export function deleteProctorSession(id: string): void {
   localStorage.setItem(PROCTOR_KEY, JSON.stringify(all));
 }
 
+// ── Jadwal Ujian Detail (mapel sendiri) ───────────────────────────────────────
+export type ExamScheduleDraft = Omit<ExamSchedule, 'id' | 'createdAt'>;
+
+function compareExamSchedules(a: ExamSchedule, b: ExamSchedule) {
+  return a.date.localeCompare(b.date) || timeToMin(a.startTime) - timeToMin(b.startTime);
+}
+
+function getSyncedSubjectExamDate(schedules: ExamSchedule[], subjectId: string) {
+  const subjectSchedules = schedules
+    .filter(s => s.subjectId === subjectId)
+    .sort(compareExamSchedules);
+  return subjectSchedules[0]?.date || null;
+}
+
+export function getExamSchedules(): ExamSchedule[] {
+  const data = getData();
+  return [...(data.examSchedules || [])].sort(compareExamSchedules);
+}
+
+export function addExamSchedule(schedule: ExamScheduleDraft): ExamSchedule {
+  let created: ExamSchedule | null = null;
+  updateData(d => {
+    if (!Array.isArray(d.examSchedules)) d.examSchedules = [];
+    created = { ...schedule, id: genId(), createdAt: now().toISOString() };
+    d.examSchedules.push(created);
+    const subject = d.subjects.find(s => s.id === schedule.subjectId);
+    if (subject) subject.examDate = getSyncedSubjectExamDate(d.examSchedules, schedule.subjectId);
+  });
+  return created!;
+}
+
+export function deleteExamSchedule(id: string): void {
+  updateData(d => {
+    const deleted = (d.examSchedules || []).find(s => s.id === id);
+    d.examSchedules = (d.examSchedules || []).filter(s => s.id !== id);
+    if (deleted) {
+      const subject = d.subjects.find(s => s.id === deleted.subjectId);
+      if (subject) subject.examDate = getSyncedSubjectExamDate(d.examSchedules, deleted.subjectId);
+    }
+  });
+}
+
 export interface ExamCorrection {
   id: string;
   subjectId: string;
@@ -66,6 +109,7 @@ export interface ExamCorrection {
 }
 
 export interface ExamWatchItem {
+  scheduleId?: string;
   subjectId: string;
   subjectName: string;
   classId: string;
@@ -74,6 +118,8 @@ export interface ExamWatchItem {
   startTime: string;
   endTime: string;
   duration: number;
+  location?: string;
+  note?: string;
   isActive: boolean;     // sedang dalam rentang waktu ujian sekarang
   isDone: boolean;       // sudah selesai hari ini (past endTime)
   daysLeft: number;      // 0 = hari ini, positif = akan datang, negatif = sudah lewat
@@ -101,6 +147,36 @@ export function getTodayExamItems(): ExamWatchItem[] {
   const corrections = getCorrections();
   const todayStr = dateKey();
   const curMin = currentMin();
+
+  const detailedItems = (data.examSchedules || [])
+    .filter(s => s.date === todayStr)
+    .map(s => {
+      const cls = data.classes.find(c => c.id === s.classId);
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      const startMin = timeToMin(s.startTime);
+      const endMin = timeToMin(s.endTime);
+      const correction = corrections.find(c => c.subjectId === s.subjectId && c.classId === s.classId && c.examDate === s.date) || null;
+      return {
+        scheduleId: s.id,
+        subjectId: s.subjectId,
+        subjectName: sub?.name || '?',
+        classId: s.classId,
+        className: cls?.name || '?',
+        examDate: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        duration: Math.max(0, endMin - startMin),
+        location: s.location,
+        note: s.note,
+        isActive: curMin >= startMin && curMin < endMin,
+        isDone: curMin >= endMin,
+        daysLeft: 0,
+        correction,
+      };
+    })
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+
+  if (detailedItems.length > 0) return detailedItems;
 
   const items: ExamWatchItem[] = [];
 
@@ -159,6 +235,10 @@ export interface ExamSubjectItem {
   classes: {
     classId: string;
     className: string;
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+    note?: string;
     correction: ExamCorrection | null;
   }[];
 }
@@ -167,6 +247,40 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
   const data = getData();
   const corrections = getCorrections();
   const today = dateFromKey(dateKey());
+
+  if ((data.examSchedules || []).length > 0) {
+    const grouped = new Map<string, ExamSubjectItem>();
+
+    getExamSchedules().forEach(schedule => {
+      const sub = data.subjects.find(s => s.id === schedule.subjectId);
+      const cls = data.classes.find(c => c.id === schedule.classId);
+      const examDt = dateFromKey(schedule.date);
+      const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
+      const key = `${schedule.subjectId}:${schedule.date}`;
+      const item = grouped.get(key) || {
+        subjectId: schedule.subjectId,
+        subjectName: sub?.name || '?',
+        examDate: schedule.date,
+        daysLeft,
+        classes: [],
+      };
+
+      if (!item.classes.some(c => c.classId === schedule.classId)) {
+        item.classes.push({
+          classId: schedule.classId,
+          className: cls?.name || '?',
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          location: schedule.location,
+          note: schedule.note,
+          correction: corrections.find(c => c.subjectId === schedule.subjectId && c.classId === schedule.classId && c.examDate === schedule.date) || null,
+        });
+      }
+      grouped.set(key, item);
+    });
+
+    return [...grouped.values()].sort((a, b) => a.daysLeft - b.daysLeft || a.subjectName.localeCompare(b.subjectName));
+  }
 
   return data.subjects
     .filter(s => s.examDate)

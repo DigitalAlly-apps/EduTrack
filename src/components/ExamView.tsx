@@ -2,19 +2,20 @@ import { useState, useEffect } from 'react';
 import {
   getTodayExamItems, getAllExamSubjects,
   upsertCorrection, getExamDayMode, toggleExamDayMode,
+  getExamSchedules, addExamSchedule, deleteExamSchedule,
   getTodayProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
   ExamSubjectItem, CorrectionStatus, ProctorSession,
   fmt,
 } from '@/lib/examData';
-import { currentMin, timeToMin, dateKey } from '@/lib/data';
+import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
-type ExamTab = 'mode' | 'mapelku' | 'ngawas';
+type ExamTab = 'input' | 'mode' | 'mapelku' | 'ngawas';
 type MapelSubTab = 'hari-ini' | 'semua';
 
 export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
@@ -24,6 +25,15 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [examMode, setExamMode] = useState(getExamDayMode());
+
+  // Jadwal ujian mapel sendiri form
+  const [eDate, setEDate] = useState(dateKey());
+  const [eClassId, setEClassId] = useState('');
+  const [eSubjectId, setESubjectId] = useState('');
+  const [eStart, setEStart] = useState('');
+  const [eEnd, setEEnd] = useState('');
+  const [eLocation, setELocation] = useState('');
+  const [eNote, setENote] = useState('');
 
   // Ngawas form
   const [nDate, setNDate] = useState(dateKey());
@@ -41,6 +51,8 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
   const todayItems = getTodayExamItems();
   const allSubjects = getAllExamSubjects();
+  const data = getData();
+  const examSchedules = getExamSchedules();
   const upcoming = allSubjects.filter(s => s.daysLeft >= 0);
   const past = allSubjects.filter(s => s.daysLeft < 0);
   const todayProctor = getTodayProctorSessions();
@@ -57,6 +69,33 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     setExamMode(next);
     onRefresh();
     toast({ title: next ? '📋 Mode Ujian Aktif' : '📚 Mode KBM Normal' });
+  };
+
+  const handleAddExam = () => {
+    if (!eClassId || !eSubjectId || !eDate || !eStart || !eEnd) {
+      toast({ title: 'Lengkapi kelas, mapel, tanggal, dan jam ujian' }); return;
+    }
+    if (timeToMin(eEnd) <= timeToMin(eStart)) {
+      toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
+    }
+    addExamSchedule({
+      classId: eClassId,
+      subjectId: eSubjectId,
+      date: eDate,
+      startTime: eStart,
+      endTime: eEnd,
+      location: eLocation.trim() || undefined,
+      note: eNote.trim() || undefined,
+    });
+    setEStart(''); setEEnd(''); setELocation(''); setENote('');
+    onRefresh();
+    toast({ title: '✓ Jadwal ujian ditambahkan' });
+  };
+
+  const handleDeleteExam = (id: string) => {
+    deleteExamSchedule(id);
+    onRefresh();
+    toast({ title: 'Jadwal ujian dihapus' });
   };
 
   const handleAddProctor = () => {
@@ -82,6 +121,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
   // ─── Tab navigation items ─────────────────────────────────────────────────
   const tabItems: { id: ExamTab; label: string; emoji: string }[] = [
+    { id: 'input',   label: 'Input Ujian', emoji: '📝' },
     { id: 'mode',    label: 'Mode Ujian', emoji: '📋' },
     { id: 'mapelku', label: 'Mapelku',    emoji: '📚' },
     { id: 'ngawas',  label: 'Ngawas',     emoji: '👁' },
@@ -126,13 +166,51 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     );
   };
 
+  const ExamScheduleCard = ({ s }: { s: ReturnType<typeof getExamSchedules>[number] }) => {
+    const cls = data.classes.find(c => c.id === s.classId);
+    const sub = data.subjects.find(x => x.id === s.subjectId);
+    const isToday = s.date === dateKey();
+    const curMin = currentMin();
+    const startMin = timeToMin(s.startTime);
+    const endMin = timeToMin(s.endTime);
+    const isActive = isToday && curMin >= startMin && curMin < endMin;
+    const isDone = isToday && curMin >= endMin;
+
+    return (
+      <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
+        isActive ? 'bg-amber/10 border-amber/30' : isDone ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
+      }`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            {isActive && <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
+            {isDone && <span className="text-[9px] font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
+          </div>
+          <div className="text-sm font-bold">{cls?.name || '?'} · {sub?.name || '?'}</div>
+          <div className="text-xs text-text2">
+            {fmtDate(s.date)} · {fmt(s.startTime)} – {fmt(s.endTime)}
+            {s.location && ` · ${s.location}`}
+          </div>
+          {s.note && <div className="text-[11px] text-text3 mt-0.5 italic">{s.note}</div>}
+        </div>
+        <button
+          onClick={() => handleDeleteExam(s.id)}
+          className="w-8 h-8 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
+          aria-label="Hapus jadwal ujian"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  };
+
   // ─── SubjectCard ─────────────────────────────────────────────────────────
   const SubjectCard = ({ item }: { item: ExamSubjectItem }) => {
-    const isExp = expanded === item.subjectId;
+    const expandKey = `${item.subjectId}-${item.examDate}`;
+    const isExp = expanded === expandKey;
     const done  = item.classes.filter(c => c.correction?.status === 'selesai').length;
     return (
       <div className="bg-surface border border-border2 rounded-2xl overflow-hidden">
-        <button className="w-full flex items-center justify-between px-4 py-3 text-left" onClick={() => setExpanded(isExp ? null : item.subjectId)}>
+        <button className="w-full flex items-center justify-between px-4 py-3 text-left" onClick={() => setExpanded(isExp ? null : expandKey)}>
           <div>
             <div className="text-sm font-semibold">{item.subjectName}</div>
             <div className={`text-xs mt-0.5 ${dayLabelColor(item.daysLeft)}`}>
@@ -150,12 +228,21 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
         </button>
         {isExp && (
           <div className="border-t border-border px-4 pb-3 pt-2 space-y-2">
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mb-1">Koreksi per Kelas</div>
+            <div className="text-xs text-text3 font-bold uppercase tracking-wide mb-1">Jadwal & Koreksi per Kelas</div>
             {item.classes.map(cls => {
               const st = cls.correction?.status ?? null;
               return (
-                <div key={cls.classId} className="flex items-center justify-between py-1">
-                  <span className="text-sm">{cls.className}</span>
+                <div key={`${cls.classId}-${cls.startTime || ''}`} className="flex items-center justify-between gap-3 py-1.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold">{cls.className}</div>
+                    {(cls.startTime || cls.location || cls.note) && (
+                      <div className="text-[11px] text-text3 leading-snug mt-0.5">
+                        {cls.startTime && cls.endTime && <span>{fmt(cls.startTime)}–{fmt(cls.endTime)}</span>}
+                        {cls.location && <span>{cls.startTime && cls.endTime ? ' · ' : ''}{cls.location}</span>}
+                        {cls.note && <span>{(cls.startTime && cls.endTime) || cls.location ? ' · ' : ''}{cls.note}</span>}
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={() => handleCycle(item.subjectId, cls.classId, item.examDate, st)}
                     className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${st ? STATUS_CLS[st] : 'text-text3 bg-surface border-border2'}`}
@@ -167,6 +254,122 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
             })}
           </div>
         )}
+      </div>
+    );
+  };
+
+  // ─── Tab: Input Ujian ──────────────────────────────────────────────────────
+  const renderInputUjian = () => {
+    const today = dateKey();
+    const todayExamSchedules = examSchedules.filter(s => s.date === today);
+    const futureExamSchedules = examSchedules.filter(s => s.date > today);
+    const pastExamSchedules = [...examSchedules].filter(s => s.date < today).sort((a, b) => b.date.localeCompare(a.date) || timeToMin(a.startTime) - timeToMin(b.startTime));
+    const uniqueExamDays = new Set(examSchedules.map(s => s.date)).size;
+
+    return (
+      <div className="space-y-4 animate-slide-up">
+        <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-3">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-widest text-primary">Input Jadwal Ujian</div>
+            <div className="text-[12px] text-text3 mt-1 leading-snug">Masukkan jadwal mapelmu diujikan per kelas dan jam ujian.</div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
+              <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-select-style text-xs h-10 w-full">
+                <option value="">Pilih kelas</option>
+                {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
+              <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-select-style text-xs h-10 w-full">
+                <option value="">Pilih mapel</option>
+                {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+            <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
+              <input type="time" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
+              <input type="time" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
+            <input value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style text-sm h-10 w-full" />
+          </div>
+
+          <div>
+            <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
+            <input value={eNote} onChange={e => setENote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddExam()} placeholder="cth: PTS, PAS, kisi-kisi khusus..." className="form-input-style text-sm h-10 w-full" />
+          </div>
+
+          <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105">
+            ＋ Simpan Jadwal Ujian
+          </button>
+        </div>
+
+        {data.classes.length === 0 || data.subjects.length === 0 ? (
+          <div className="bg-amber/10 border border-amber/25 rounded-2xl p-4 text-sm text-amber leading-snug">
+            Tambahkan kelas dan mapel dulu di Kelola supaya input jadwal ujian bisa dipakai.
+          </div>
+        ) : null}
+
+        {examSchedules.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+              <div className="text-lg font-black leading-none">{examSchedules.length}</div>
+              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
+            </div>
+            <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+              <div className="text-lg font-black leading-none">{uniqueExamDays}</div>
+              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
+            </div>
+            <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+              <div className="text-lg font-black leading-none">{todayExamSchedules.length}</div>
+              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari Ini</div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {examSchedules.length === 0 && (
+            <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
+              Belum ada jadwal ujian detail.
+            </div>
+          )}
+          {todayExamSchedules.length > 0 && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Ujian Hari Ini ({todayExamSchedules.length})</div>
+              <div className="space-y-2">{todayExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+            </div>
+          )}
+          {futureExamSchedules.length > 0 && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Akan Datang ({futureExamSchedules.length})</div>
+              <div className="space-y-2">{futureExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+            </div>
+          )}
+          {pastExamSchedules.length > 0 && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Sudah Lewat ({pastExamSchedules.length})</div>
+              <div className="space-y-2">{pastExamSchedules.slice(0, 20).map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -232,7 +435,11 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold">{item.className}</div>
-                    <div className="text-xs text-text2">{item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}</div>
+                    <div className="text-xs text-text2">
+                      {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
+                      {item.location && ` · ${item.location}`}
+                    </div>
+                    {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
                     {state === 'active' && <div className="text-[10px] text-amber font-bold mt-0.5 animate-pulse">● Sedang berlangsung</div>}
                     {state === 'done'   && <div className="text-[10px] text-green font-bold mt-0.5">✓ Selesai</div>}
                   </div>
@@ -302,7 +509,11 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
                   }`}>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold">{item.className}</div>
-                      <div className="text-xs text-text2">{item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}</div>
+                      <div className="text-xs text-text2">
+                        {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
+                        {item.location && ` · ${item.location}`}
+                      </div>
+                      {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
                       {state === 'done' && <div className="text-[11px] text-green mt-1 font-semibold">✓ Selesai</div>}
                     </div>
                     <button
@@ -331,13 +542,13 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
           {upcoming.length > 0 && (
             <div>
               <div className="text-[11px] font-bold text-text3 uppercase tracking-wider px-1 mb-2.5">Akan Datang</div>
-              <div className="space-y-2">{upcoming.map(item => <SubjectCard key={item.subjectId} item={item} />)}</div>
+              <div className="space-y-2">{upcoming.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}</div>
             </div>
           )}
           {past.length > 0 && (
             <div>
               <div className="text-[11px] font-bold text-text3 uppercase tracking-wider px-1 mt-4 mb-2.5">Sudah Lewat</div>
-              <div className="space-y-2">{past.map(item => <SubjectCard key={item.subjectId} item={item} />)}</div>
+              <div className="space-y-2">{past.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}</div>
             </div>
           )}
         </div>
@@ -446,6 +657,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
         ))}
       </div>
 
+      {tab === 'input'   && renderInputUjian()}
       {tab === 'mode'    && renderModeUjian()}
       {tab === 'mapelku' && renderMapelku()}
       {tab === 'ngawas'  && renderNgawas()}

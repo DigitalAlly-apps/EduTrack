@@ -2,10 +2,11 @@ import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem,
 
 const DB_KEY = 'pengajar_v4';
 const CORR_KEY = 'edutrack_corrections';
+const EXAM_MODE_KEY = 'edutrack_exam_mode';
 
 const DEFAULT_DATA: AppData = {
   teacherName: '', classes: [], subjects: [], materials: [], schedules: [],
-  progress: [], sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [],
+  progress: [], sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [], examSchedules: [],
   academicYear: '',
 };
 
@@ -78,7 +79,7 @@ export function getData(): AppData {
     if (typeof parsed !== 'object' || parsed === null) return structuredClone(DEFAULT_DATA);
     // Deep merge: pastikan semua array field tidak null/undefined agar tidak crash
     const merged = { ...structuredClone(DEFAULT_DATA), ...parsed };
-    const arrayFields = ['classes','subjects','materials','schedules','progress','sessions','tasks','notes','holidays','scheduleOverrides'] as const;
+    const arrayFields = ['classes','subjects','materials','schedules','progress','sessions','tasks','notes','holidays','scheduleOverrides','examSchedules'] as const;
     for (const f of arrayFields) {
       if (!Array.isArray(merged[f])) merged[f] = [] as any;
     }
@@ -262,7 +263,18 @@ export function isTodayHolidayGlobal(): boolean {
   return holidays.some(h => (typeof h === 'string' ? h === todayStr : (h.date === todayStr && !h.level)));
 }
 
+function isExamDayModeActive(): boolean {
+  try {
+    const val = localStorage.getItem(EXAM_MODE_KEY);
+    if (!val) return false;
+    const parsed: { date: string; active: boolean } = JSON.parse(val);
+    return parsed.date === dateKey() && parsed.active;
+  } catch { return false; }
+}
+
 export function getTodaySchedules(): TodayScheduleItem[] {
+  if (isExamDayModeActive()) return [];
+
   const data = getData();
   const today = todayNum();
   const todayStr = dateKey();
@@ -784,6 +796,7 @@ export function importJSON(file: File): Promise<void> {
           notes: Array.isArray(raw.notes) ? raw.notes : [],
           holidays: Array.isArray(raw.holidays) ? raw.holidays : [],
           scheduleOverrides: Array.isArray(raw.scheduleOverrides) ? raw.scheduleOverrides : [],
+          examSchedules: Array.isArray(raw.examSchedules) ? raw.examSchedules : [],
         };
         saveData(merged);
         const corrections = Array.isArray(raw.corrections)

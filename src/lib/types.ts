@@ -55,6 +55,17 @@ export interface TeacherTask {
   deadline: string; // YYYY-MM-DD
   status: 'pending' | 'done';
 }
+export interface ExamSchedule {
+  id: string;
+  classId: string;
+  subjectId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  location?: string;
+  note?: string;
+  createdAt: string;
+}
 export interface AppData {
   teacherName: string;
   classes: ClassItem[];
@@ -69,6 +80,7 @@ export interface AppData {
   reminderDismissed: string | null;
   holidays: (string | { date: string; level?: string })[];
   scheduleOverrides?: { date: string; scheduleId: string; startTime: string; durationOverride?: number; skipped?: boolean; isExtra?: boolean }[];
+  examSchedules?: ExamSchedule[];
   academicYear?: string; // e.g., "2024/2025" or "2025 Semester Ganjil"
 }
 export interface TodayScheduleItem extends Schedule {
