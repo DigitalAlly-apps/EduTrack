@@ -693,6 +693,44 @@ export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
   return count;
 }
 
+export function applySubjectDismissal(dateStr: string, subjectId: string, skipAfterTime?: string, classId?: string) {
+  const data = getData();
+  const dayOfWeek = dateFromKey(dateStr).getDay();
+  const limitMin = skipAfterTime ? timeToMin(skipAfterTime) : null;
+
+  const scheds = data.schedules.filter(s => {
+    if (!s.days.includes(dayOfWeek)) return false;
+    if (s.subjectId !== subjectId) return false;
+    if (classId && s.classId !== classId) return false;
+    if (isDateHolidayForSubject(dateStr, data.subjects.find(x => x.id === s.subjectId)?.level)) return false;
+    return true;
+  });
+
+  if (!data.scheduleOverrides) data.scheduleOverrides = [];
+
+  let count = 0;
+  for (const s of scheds) {
+    const override = data.scheduleOverrides.find(o => o.scheduleId === s.id && o.date === dateStr);
+    const effectiveStartMin = timeToMin(override ? override.startTime : s.startTime);
+    if (limitMin !== null && effectiveStartMin < limitMin) continue;
+
+    if (override) {
+      override.skipped = true;
+    } else {
+      data.scheduleOverrides.push({
+        date: dateStr,
+        scheduleId: s.id,
+        startTime: s.startTime,
+        skipped: true,
+      });
+    }
+    count++;
+  }
+
+  saveData(data);
+  return count;
+}
+
 function getFutureDate(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return dateKey(d); }
 function getYesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return dateKey(d); }
 

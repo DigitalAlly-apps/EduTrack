@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applySmartReschedule,
+  applySubjectDismissal,
   applyTeacherLeave,
   bulkAddMaterials,
   dateKey,
@@ -249,6 +250,26 @@ describe('smart reschedule', () => {
     expect(data.scheduleOverrides?.find(o => o.date === today && o.scheduleId === 'sc1')?.skipped).toBe(true);
     expect(data.scheduleOverrides?.some(o => o.startTime === '176:00')).toBe(false);
     expect(data.tasks.some(t => t.title.includes('Lanjutkan sesi tertunda'))).toBe(true);
+  });
+
+  it('skips only the selected subject after the selected time', () => {
+    const day = new Date().getDay();
+    const data = baseData(day);
+    data.subjects.push({ id: 's2', name: 'IPA', level: '10', examDate: null });
+    data.schedules.push(
+      { id: 'sc2', classId: 'c2', subjectId: 's1', days: [day], startTime: '12:00', duration: 45 },
+      { id: 'sc3', classId: 'c1', subjectId: 's2', days: [day], startTime: '12:30', duration: 45 },
+    );
+    saveData(data);
+
+    const count = applySubjectDismissal(dateKey(), 's1', '11:20');
+
+    expect(count).toBe(1);
+    expect(getData().scheduleOverrides).toEqual(expect.arrayContaining([
+      expect.objectContaining({ scheduleId: 'sc2', skipped: true }),
+    ]));
+    expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc1')).toBe(false);
+    expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc3')).toBe(false);
   });
 });
 

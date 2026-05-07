@@ -4,7 +4,7 @@ import {
   markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
-  undoLastSession, dateKey, getTeachingPosition, getDailyPriorities,
+  undoLastSession, dateKey, getTeachingPosition, getDailyPriorities, applySubjectDismissal,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +50,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   // Bottom sheet states (replacing prompt())
   const [earlyDismissSheet, setEarlyDismissSheet] = useState(false);
   const [earlyDismissTime, setEarlyDismissTime] = useState('10:00');
+  const [subjectDismissSheet, setSubjectDismissSheet] = useState(false);
+  const [subjectDismissSubjectId, setSubjectDismissSubjectId] = useState('');
+  const [subjectDismissClassId, setSubjectDismissClassId] = useState('');
+  const [subjectDismissTime, setSubjectDismissTime] = useState('11:20');
+  const [subjectDismissUseTime, setSubjectDismissUseTime] = useState(true);
   const [newTaskSheet, setNewTaskSheet] = useState<{ classId: string; subjectId: string } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   // Orange fixes
@@ -814,11 +819,22 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="app-section-title px-0 whitespace-nowrap">Jadwal Hari Ini</div>
            {!active && items.length > 0 && !items.every(x => x.done) && (
              <div className="flex gap-2 flex-wrap">
-               <button 
-                 onClick={() => setEarlyDismissSheet(true)}
-                  className="text-[10px] font-bold text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap flex items-center gap-1"
+                <button 
+                  onClick={() => setEarlyDismissSheet(true)}
+                   className="text-[10px] font-bold text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap flex items-center gap-1"
                 >
                   <Home className="h-3 w-3" /> Pulang Awal
+                </button>
+                <button 
+                  onClick={() => {
+                    const firstSubject = items.find(i => !i.done)?.subjectId || items[0]?.subjectId || '';
+                    setSubjectDismissSubjectId(firstSubject);
+                    setSubjectDismissClassId('');
+                    setSubjectDismissSheet(true);
+                  }}
+                   className="text-[10px] font-bold text-teal px-2.5 py-1 rounded-full border border-teal/30 bg-teal/10 transition-colors hover:bg-teal/20 whitespace-nowrap flex items-center gap-1"
+                >
+                  <SkipForward className="h-3 w-3" /> Liburkan Mapel
                 </button>
                 <button
                  onClick={() => {
@@ -1053,6 +1069,69 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         </div>
       )}
+
+      {/* ─── Bottom Sheet: Liburkan Mapel ──────────────────────────────── */}
+      {subjectDismissSheet && (() => {
+        const data = getData();
+        const availableSubjects = data.subjects.filter(sub => items.some(item => item.subjectId === sub.id && !item.done));
+        const availableClasses = data.classes.filter(cls => items.some(item => item.classId === cls.id && item.subjectId === subjectDismissSubjectId && !item.done));
+        return (
+          <div className="app-overlay z-[500]" onClick={() => setSubjectDismissSheet(false)}>
+            <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+              <div className="app-sheet-handle" />
+              <div className="app-sheet-title mb-1 flex items-center gap-2"><SkipForward className="h-5 w-5 text-primary" /> Liburkan Mapel</div>
+              <p className="text-[12px] text-text2 mb-4">Coret jadwal mapel tertentu hari ini tanpa menambah progres materi.</p>
+
+              <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Mapel:</label>
+              <select value={subjectDismissSubjectId} onChange={e => { setSubjectDismissSubjectId(e.target.value); setSubjectDismissClassId(''); }} className="form-select-style mb-3">
+                <option value="">Pilih mapel</option>
+                {availableSubjects.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+              </select>
+
+              <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Kelas:</label>
+              <select value={subjectDismissClassId} onChange={e => setSubjectDismissClassId(e.target.value)} className="form-select-style mb-3">
+                <option value="">Semua kelas untuk mapel ini</option>
+                {availableClasses.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+              </select>
+
+              <label className="flex items-center gap-2 text-[12px] text-text2 font-semibold mb-2">
+                <input type="checkbox" checked={subjectDismissUseTime} onChange={e => setSubjectDismissUseTime(e.target.checked)} className="accent-primary" />
+                Hanya jadwal mulai setelah jam tertentu
+              </label>
+              {subjectDismissUseTime && (
+                <input
+                  type="time"
+                  value={subjectDismissTime}
+                  onChange={e => setSubjectDismissTime(e.target.value)}
+                  className="form-input-style mb-4"
+                />
+              )}
+
+              <button
+                onClick={() => {
+                  if (!subjectDismissSubjectId) {
+                    toast({ title: 'Pilih mapel dulu' });
+                    return;
+                  }
+                  const count = applySubjectDismissal(
+                    dateKey(),
+                    subjectDismissSubjectId,
+                    subjectDismissUseTime ? subjectDismissTime : undefined,
+                    subjectDismissClassId || undefined,
+                  );
+                  onRefresh();
+                  setSubjectDismissSheet(false);
+                  toast({ title: `📚 ${count} jadwal mapel diliburkan` });
+                }}
+                className="btn-primary-style bg-primary text-primary-foreground font-bold"
+              >
+                Terapkan
+              </button>
+              <button onClick={() => setSubjectDismissSheet(false)} className="w-full py-3 text-text2 text-[13px] mt-2">Batal</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── Bottom Sheet: Tugas Baru ──────────────────────────────────── */}
       {newTaskSheet && (
