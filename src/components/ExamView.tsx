@@ -3,10 +3,11 @@ import {
   getTodayExamItems, getAllExamSubjects,
   upsertCorrection, getExamDayMode, toggleExamDayMode,
   getExamSchedules, addExamSchedule, deleteExamSchedule,
+  getExamReminderSettings, updateExamReminderSetting,
   getTodayProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
-  ExamSubjectItem, CorrectionStatus, ProctorSession,
+  ExamSubjectItem, CorrectionStatus, ProctorSession, ExamReminderSettingKey,
   fmt,
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
@@ -29,6 +30,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [examMode, setExamMode] = useState(getExamDayMode());
+  const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
 
   // Jadwal ujian mapel sendiri form
   const [eDate, setEDate] = useState(dateKey());
@@ -73,6 +75,11 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     setExamMode(next);
     onRefresh();
     toast({ title: next ? '📋 Mode Ujian Aktif' : '📚 Mode KBM Normal' });
+  };
+
+  const handleToggleReminder = (key: ExamReminderSettingKey) => {
+    setReminderSettings(updateExamReminderSetting(key, !reminderSettings[key]));
+    onRefresh();
   };
 
   const handleAddExam = () => {
@@ -378,6 +385,28 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     );
   };
 
+  const ReminderToggle = ({ settingKey, title, desc }: { settingKey: ExamReminderSettingKey; title: string; desc: string }) => {
+    const active = reminderSettings[settingKey];
+    const disabled = settingKey !== 'enabled' && !reminderSettings.enabled;
+    return (
+      <button
+        onClick={() => handleToggleReminder(settingKey)}
+        disabled={disabled}
+        className={`w-full flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all ${
+          disabled ? 'bg-surface2/20 border-border/40 opacity-50' : active ? 'bg-primary/10 border-primary-border text-foreground' : 'bg-surface2/50 border-border2 text-text2 hover:border-border3'
+        }`}
+      >
+        <div className="min-w-0">
+          <div className="text-[12px] font-bold leading-tight">{title}</div>
+          <div className="text-[10px] text-text3 mt-0.5 leading-snug">{desc}</div>
+        </div>
+        <span className={`w-10 h-6 rounded-full border flex-shrink-0 relative transition-all ${active && !disabled ? 'bg-primary border-primary' : 'bg-surface border-border2'}`}>
+          <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all ${active && !disabled ? 'left-[18px]' : 'left-0.5'}`} />
+        </span>
+      </button>
+    );
+  };
+
   // ─── Tab: Mode Ujian ──────────────────────────────────────────────────────
   const renderModeUjian = () => (
     <div className="space-y-4 animate-slide-up">
@@ -420,6 +449,19 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-2">
+        <div className="mb-2">
+          <div className="text-[11px] font-black uppercase tracking-widest text-primary">Reminder Ujian</div>
+          <div className="text-[12px] text-text3 mt-1 leading-snug">Notifikasi lokal saat app pernah dibuka dan izin notifikasi aktif. Server push menyusul nanti.</div>
+        </div>
+        <ReminderToggle settingKey="enabled" title="Aktifkan Reminder" desc="Master switch untuk semua pengingat ujian dan ngawas." />
+        <ReminderToggle settingKey="dayBefore" title="H-1 Sore" desc="Ingatkan ujian besok sekitar pukul 18.00." />
+        <ReminderToggle settingKey="fiveHoursBefore" title="5 Jam Sebelum" desc="Pengingat awal untuk siap-siap sebelum sesi ujian." />
+        <ReminderToggle settingKey="oneHourBefore" title="1 Jam Sebelum" desc="Pengingat dekat sebelum ujian dimulai." />
+        <ReminderToggle settingKey="atStart" title="Saat Mulai" desc="Pengingat tepat saat jadwal ujian masuk waktu mulai." />
+        <ReminderToggle settingKey="proctorThirtyMinutes" title="Ngawas 30 Menit" desc="Ingatkan jadwal ngawas 30 menit sebelumnya." />
       </div>
 
       {/* Ujian hari ini sebagai konteks */}

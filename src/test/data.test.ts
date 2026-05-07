@@ -19,7 +19,7 @@ import {
   skipSession,
   updateMaterial,
 } from '@/lib/data';
-import { addExamSchedule, deleteExamSchedule, getExamSchedules, getTodayExamItems } from '@/lib/examData';
+import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting } from '@/lib/examData';
 import { AppData } from '@/lib/types';
 
 const baseData = (day = new Date().getDay()): AppData => ({
@@ -322,6 +322,25 @@ describe('exam day mode', () => {
 
     localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: today, active: true }));
     expect(getTodaySchedules()).toEqual([]);
+  });
+});
+
+describe('exam reminder settings', () => {
+  it('loads defaults and persists reminder preference changes', () => {
+    expect(getExamReminderSettings()).toMatchObject({
+      enabled: true,
+      dayBefore: true,
+      fiveHoursBefore: true,
+      oneHourBefore: true,
+      atStart: false,
+      proctorThirtyMinutes: true,
+    });
+
+    updateExamReminderSetting('fiveHoursBefore', false);
+    updateExamReminderSetting('atStart', true);
+
+    expect(getExamReminderSettings().fiveHoursBefore).toBe(false);
+    expect(getExamReminderSettings().atStart).toBe(true);
   });
 });
 

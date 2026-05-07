@@ -22,6 +22,48 @@ export function toggleExamDayMode(): void {
   setExamDayMode(!getExamDayMode());
 }
 
+// ── Exam Reminder Preferences ────────────────────────────────────────────────
+export interface ExamReminderSettings {
+  enabled: boolean;
+  dayBefore: boolean;
+  fiveHoursBefore: boolean;
+  oneHourBefore: boolean;
+  atStart: boolean;
+  proctorThirtyMinutes: boolean;
+}
+
+export type ExamReminderSettingKey = keyof ExamReminderSettings;
+
+export const DEFAULT_EXAM_REMINDER_SETTINGS: ExamReminderSettings = {
+  enabled: true,
+  dayBefore: true,
+  fiveHoursBefore: true,
+  oneHourBefore: true,
+  atStart: false,
+  proctorThirtyMinutes: true,
+};
+
+const EXAM_REMINDER_SETTINGS_KEY = 'edutrack_exam_reminder_settings';
+
+export function getExamReminderSettings(): ExamReminderSettings {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(EXAM_REMINDER_SETTINGS_KEY) || '{}');
+    return { ...DEFAULT_EXAM_REMINDER_SETTINGS, ...(typeof parsed === 'object' && parsed ? parsed : {}) };
+  } catch {
+    return { ...DEFAULT_EXAM_REMINDER_SETTINGS };
+  }
+}
+
+export function setExamReminderSettings(settings: ExamReminderSettings): void {
+  localStorage.setItem(EXAM_REMINDER_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+export function updateExamReminderSetting(key: ExamReminderSettingKey, value: boolean): ExamReminderSettings {
+  const next = { ...getExamReminderSettings(), [key]: value };
+  setExamReminderSettings(next);
+  return next;
+}
+
 // ── Ngawas (Exam Proctoring) ───────────────────────────────────────────────────
 // Guru bisa ngawas ujian mapel lain dengan waktu ngawas yang berbeda dari ujian mapelnya sendiri
 export interface ProctorSession {

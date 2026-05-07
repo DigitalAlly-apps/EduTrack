@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import DailyBriefing from './DailyBriefing';
 import SmartReschedulerModal from './SmartReschedulerModal';
 import { Check, Clock3, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
-import { getExamDayMode, toggleExamDayMode } from '@/lib/examData';
+import { getExamDayMode, setExamDayMode, getTodayExamItems, getTodayProctorSessions, getExamReminderSettings } from '@/lib/examData';
+import { requestNotifPermission } from '@/lib/notifications';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -305,36 +306,93 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const countdowns = getExamCountdowns();
 
   const [examModeBanner, setExamModeBanner] = useState(getExamDayMode());
+  const [notifPermission, setNotifPermission] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'));
+  const todayExamItems = getTodayExamItems();
+  const todayProctorSessions = getTodayProctorSessions();
+  const examReminderSettings = getExamReminderSettings();
+  const hasExamReminder = todayExamItems.length > 0 || todayProctorSessions.length > 0;
 
   const handleTurnOffExamMode = () => {
-    toggleExamDayMode();
+    setExamDayMode(false);
     setExamModeBanner(false);
     onRefresh();
     toast({ title: '📚 Mode KBM Normal kembali aktif' });
+  };
+
+  const handleTurnOnExamMode = () => {
+    setExamDayMode(true);
+    setExamModeBanner(true);
+    onRefresh();
+    toast({ title: '📋 Mode Ujian Aktif' });
+  };
+
+  const handleOpenExam = () => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' }));
+
+  const handleEnableExamNotifications = async () => {
+    const ok = await requestNotifPermission();
+    setNotifPermission('Notification' in window ? Notification.permission : 'unsupported');
+    toast({ title: ok ? '🔔 Notifikasi ujian aktif' : 'Notifikasi belum diizinkan' });
   };
 
   return (
     <div>
       {/* Mode Ujian Banner */}
       {examModeBanner && (
-        <div className="flex items-center justify-between bg-amber/10 border border-amber/30 rounded-2xl px-4 py-3 mb-3 animate-slide-up">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl flex-shrink-0">📋</span>
-            <div className="min-w-0">
-              <div className="text-[11px] font-black text-amber uppercase tracking-wide">Mode Ujian Aktif</div>
-              <div className="text-[11px] text-text2 leading-snug">KBM tidak dijadwalkan hari ini</div>
+        <div className="bg-amber/10 border border-amber/30 rounded-2xl px-4 py-3 mb-3 animate-slide-up">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <span className="text-xl flex-shrink-0 mt-0.5">📋</span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-black text-amber uppercase tracking-wide">Mode Ujian Aktif</div>
+                <div className="text-[11px] text-text2 leading-snug">
+                  Tracking KBM dihentikan. {todayExamItems.length} ujian, {todayProctorSessions.length} ngawas hari ini.
+                </div>
+              </div>
             </div>
+            <button onClick={() => setExamModeBanner(false)} className="text-[11px] text-text3 px-2 py-1 hover:bg-surface2 rounded-lg transition-colors flex-shrink-0">
+              ✕
+            </button>
           </div>
-          <div className="flex gap-2 flex-shrink-0 ml-2">
+          <div className="flex gap-2 mt-3">
+            <button onClick={handleOpenExam} className="flex-1 text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 px-2.5 py-2 rounded-xl whitespace-nowrap">
+              Buka Ujian
+            </button>
             <button
               onClick={handleTurnOffExamMode}
-              className="text-[10px] font-bold text-amber-950 bg-amber px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap"
+              className="flex-1 text-[10px] font-bold text-amber-950 bg-amber px-2.5 py-2 rounded-xl shadow-sm whitespace-nowrap"
             >
               Nonaktifkan
             </button>
-            <button onClick={() => setExamModeBanner(false)} className="text-[11px] text-text3 px-2 py-1.5 hover:bg-surface2 rounded-lg transition-colors">
-              ✕
+          </div>
+        </div>
+      )}
+
+      {!examModeBanner && hasExamReminder && (
+        <div className="bg-primary/10 border border-primary-border rounded-2xl px-4 py-3 mb-3 animate-slide-up">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <span className="text-xl flex-shrink-0 mt-0.5">🔔</span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-black text-primary uppercase tracking-wide">Reminder Ujian Hari Ini</div>
+              <div className="text-[11px] text-text2 leading-snug">
+                Ada {todayExamItems.length} ujian dan {todayProctorSessions.length} jadwal ngawas. Aktifkan Mode Ujian agar tracking KBM berhenti.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={handleTurnOnExamMode}
+              className="flex-1 text-[10px] font-bold text-primary-foreground bg-primary px-2.5 py-2 rounded-xl shadow-sm whitespace-nowrap"
+            >
+              Aktifkan Mode
             </button>
+            <button onClick={handleOpenExam} className="flex-1 text-[10px] font-bold text-primary bg-primary/10 border border-primary-border px-2.5 py-2 rounded-xl whitespace-nowrap">
+              Lihat Jadwal
+            </button>
+            {examReminderSettings.enabled && notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
+              <button onClick={handleEnableExamNotifications} className="text-[10px] font-bold text-text2 bg-surface border border-border px-2.5 py-2 rounded-xl whitespace-nowrap">
+                Notif
+              </button>
+            )}
           </div>
         </div>
       )}
