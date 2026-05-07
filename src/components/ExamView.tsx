@@ -20,7 +20,11 @@ type MapelSubTab = 'hari-ini' | 'semua';
 
 export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   const { toast } = useToast();
-  const [tab, setTab] = useState<ExamTab>('mode');
+  const [tab, setTab] = useState<ExamTab>(() => {
+    if (getTodayExamItems().length > 0) return 'mapelku';
+    if (getExamSchedules().length === 0) return 'input';
+    return 'mapelku';
+  });
   const [mapelTab, setMapelTab] = useState<MapelSubTab>('hari-ini');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -120,23 +124,11 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   };
 
   // ─── Tab navigation items ─────────────────────────────────────────────────
-  const tabGroups: { title: string; helper: string; items: { id: ExamTab; label: string; desc: string; emoji: string }[] }[] = [
-    {
-      title: 'Atur Ujian',
-      helper: 'Input data dan kendalikan KBM',
-      items: [
-        { id: 'input', label: 'Jadwal Ujian', desc: 'Input per kelas', emoji: '📝' },
-        { id: 'mode', label: 'Mode Ujian', desc: 'Stop tracking KBM', emoji: '📋' },
-      ],
-    },
-    {
-      title: 'Pantau Jadwal',
-      helper: 'Lihat tugas ujian hari ini',
-      items: [
-        { id: 'mapelku', label: 'Mapel Saya', desc: 'Jadwal & koreksi', emoji: '📚' },
-        { id: 'ngawas', label: 'Jadwal Ngawas', desc: 'Sesi pengawasan', emoji: '👁' },
-      ],
-    },
+  const tabItems: { id: ExamTab; label: string; emoji: string }[] = [
+    { id: 'input', label: 'Jadwal', emoji: '📝' },
+    { id: 'mode', label: 'Mode', emoji: '📋' },
+    { id: 'mapelku', label: 'Mapel', emoji: '📚' },
+    { id: 'ngawas', label: 'Ngawas', emoji: '👁' },
   ];
 
   // ─── ProctorCard ─────────────────────────────────────────────────────────
@@ -652,41 +644,41 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
   // ─── Main ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-4 animate-slide-up pb-8">
-      {/* Tab Groups */}
-      <div className="space-y-3">
-        {tabGroups.map(group => (
-          <div key={group.title} className="bg-surface/60 border border-border2 rounded-3xl p-3">
-            <div className="flex items-end justify-between gap-3 px-1 mb-2">
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">{group.title}</div>
-                <div className="text-[11px] text-text3 mt-0.5">{group.helper}</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {group.items.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`min-h-[74px] text-left rounded-2xl border p-3 transition-all duration-200 active:scale-[0.98] ${
-                    tab === t.id
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                      : 'bg-surface2/60 border-border2 text-text2 hover:text-foreground hover:border-border3'
-                  }`}
-                  aria-current={tab === t.id ? 'page' : undefined}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg leading-none">{t.emoji}</span>
-                    <span className="text-[12px] font-black leading-tight">{t.label}</span>
-                  </div>
-                  <div className={`text-[10px] leading-snug ${tab === t.id ? 'text-primary-foreground/75' : 'text-text3'}`}>
-                    {t.desc}
-                  </div>
-                </button>
-              ))}
+    <div className="space-y-3 animate-slide-up pb-8">
+      {/* Compact status and navigation */}
+      <div className="bg-surface/70 border border-border2 rounded-2xl p-3 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="min-w-0">
+            <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
+            <div className="text-[11px] text-text3 truncate">
+              {examSchedules.length} jadwal · {todayItems.length} mapel hari ini · {todayProctor.length} ngawas
             </div>
           </div>
-        ))}
+          <button
+            onClick={() => setTab('mode')}
+            className={`px-2.5 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide flex-shrink-0 ${
+              examMode ? 'bg-amber/15 border-amber/30 text-amber' : 'bg-surface2 border-border2 text-text3'
+            }`}
+          >
+            {examMode ? 'Mode Aktif' : 'KBM Normal'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
+          {tabItems.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`min-h-[42px] rounded-lg px-1 text-[10px] font-black transition-all duration-200 active:scale-[0.98] ${
+                tab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:text-foreground hover:bg-surface2'
+              }`}
+              aria-current={tab === t.id ? 'page' : undefined}
+            >
+              <span className="block text-sm leading-none mb-0.5">{t.emoji}</span>
+              <span className="block leading-none truncate">{t.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === 'input'   && renderInputUjian()}
