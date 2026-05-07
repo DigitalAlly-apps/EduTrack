@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession, getInsights,
-  markDone, skipSession, postponeSchedule, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
+  markDone, skipSession, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
   undoLastSession, dateKey, getTeachingPosition, getDailyPriorities, applySubjectDismissal,
@@ -10,7 +10,7 @@ import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import DailyBriefing from './DailyBriefing';
 import SmartReschedulerModal from './SmartReschedulerModal';
-import { Check, Clock3, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
+import { Check, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
 import { getExamDayMode, setExamDayMode, getTodayExamItems, getTodayProctorSessions, getExamReminderSettings } from '@/lib/examData';
 import { requestNotifPermission } from '@/lib/notifications';
 
@@ -61,7 +61,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [skipConfirm, setSkipConfirm] = useState<TodayScheduleItem | null>(null);
   const [liveNoteOpen, setLiveNoteOpen] = useState(false);
   const [liveNoteDraft, setLiveNoteDraft] = useState('');
-  const [geserSheet, setGeserSheet] = useState<string | null>(null); // scheduleId
 
   // Helpers for reminder pertemuan depan
   const REMINDER_PREFIX = '\n---REMINDER_DEPAN---\n';
@@ -168,12 +167,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </button>
       ) as any,
     });
-  };
-
-  const handlePostpone = (id: string, mins: number) => {
-    postponeSchedule(id, mins);
-    onRefresh();
-    toast({ title: `Jadwal digeser ${mins} menit` });
   };
 
   const handleTLDone = useCallback((id: string) => {
@@ -615,23 +608,26 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </button>
                  </div>
 
-                 {/* Compact secondary actions row */}
-                 <div className="mt-2.5 flex gap-2">
-                   {/* Live note button — #4 */}
-                   <button
-                     onClick={() => { setLiveNoteDraft(''); setLiveNoteOpen(true); }}
-                      className="flex-1 min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                  {/* Compact secondary actions row */}
+                  <div className="mt-2.5 grid grid-cols-2 gap-2">
+                    {/* Live note button — #4 */}
+                    <button
+                      onClick={() => { setLiveNoteDraft(''); setLiveNoteOpen(true); }}
+                       className="min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
                     >
                       <FilePenLine className="h-4 w-4" /> Catat
                     </button>
-                   {/* Geser waktu button — #6 */}
-                   <button
-                     onClick={() => setGeserSheet(active.id)}
-                      className="flex-1 min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                    <button
+                      onClick={() => {
+                        setSubjectDismissSubjectId(active.subjectId);
+                        setSubjectDismissClassId('');
+                        setSubjectDismissSheet(true);
+                      }}
+                       className="min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
                     >
-                      <Clock3 className="h-4 w-4" /> Geser Waktu
+                      <SkipForward className="h-4 w-4" /> Libur
                     </button>
-                 </div>
+                  </div>
                </div>
             </div>
           );
@@ -703,14 +699,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   </div>
                 )}
                 
-                <div className="mt-4 flex items-center justify-between border-t border-teal/20 pt-3 relative z-10">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal/70">Geser Jadwal:</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => handlePostpone(upcoming.id, 15)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+15m</button>
-                    <button onClick={() => handlePostpone(upcoming.id, 30)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+30m</button>
-                    <button onClick={() => handlePostpone(upcoming.id, 60)} className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-[11px] font-bold text-teal hover:bg-teal/20 transition-all">+1j</button>
-                  </div>
-                </div>
               </div>
             </div>
           );
@@ -1243,31 +1231,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
 
-      {/* ─── Bottom Sheet: Geser Waktu (#6) ──────────────────────────── */}
-      {geserSheet && (
-        <div className="app-overlay z-[500]" onClick={() => setGeserSheet(null)}>
-          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="app-sheet-handle" />
-            <div className="app-sheet-title mb-1 flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary" /> Geser Waktu Selesai</div>
-            <p className="text-[12px] text-text2 mb-5">Perpanjang durasi kelas hari ini (tidak mengubah jadwal permanen).</p>
-            <div className="grid grid-cols-3 gap-3">
-              {[15, 30, 45, 60, 90].map(mins => (
-                <button
-                  key={mins}
-                  onClick={() => {
-                    handlePostpone(geserSheet, mins);
-                    setGeserSheet(null);
-                  }}
-                  className="py-3 rounded-xl bg-surface border border-border text-sm font-bold text-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
-                >
-                  +{mins < 60 ? `${mins}m` : `${mins/60}j`}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setGeserSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-4">Batal</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
