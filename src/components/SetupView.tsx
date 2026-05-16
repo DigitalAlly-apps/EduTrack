@@ -7,6 +7,7 @@ import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData, dateKey, dateFromKey,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
+  getAutoSaveMeta, restoreFromAutoSave,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -977,6 +978,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
   const [showReset, setShowReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const autoSaveMeta = getAutoSaveMeta();
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -992,9 +994,47 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
     setShowReset(false); setResetVal(''); toast({ title: 'Semua data dihapus' }); onRefresh();
   };
 
+  const handleRestoreAutoSave = () => {
+    const ok = restoreFromAutoSave();
+    if (ok) {
+      toast({ title: '✅ Data dipulihkan dari auto-save' });
+      onRefresh();
+    } else {
+      toast({ variant: 'destructive', title: 'Tidak ada auto-save yang tersedia' });
+    }
+  };
+
+  const formatAutoSaveTime = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch { return isoStr; }
+  };
+
   return (
     <div>
       <StorageInfo />
+
+      {/* Auto-save info */}
+      {autoSaveMeta && (
+        <div className="bg-teal/5 border border-teal/20 rounded-2xl p-4 mb-3">
+          <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-2 flex items-center gap-2">
+            <RotateCcw className="h-3.5 w-3.5" /> Auto-Save Terakhir
+          </div>
+          <div className="text-[12px] text-text2 mb-3 leading-relaxed">
+            Disimpan otomatis: <span className="font-semibold text-foreground">{formatAutoSaveTime(autoSaveMeta.savedAt)}</span>
+            <br />
+            <span className="text-text3">{autoSaveMeta.classes} kelas · {autoSaveMeta.sessions} sesi tercatat</span>
+          </div>
+          <button
+            onClick={handleRestoreAutoSave}
+            className="w-full py-2.5 rounded-xl bg-teal/10 text-teal border border-teal/25 text-[12px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Pulihkan dari Auto-Save
+          </button>
+        </div>
+      )}
+
       <div className="app-card p-4 mb-3">
         <div className="text-[13px] font-black tracking-wide mb-3 flex items-center gap-2"><Download className="h-4 w-4 text-primary" /> Export Data</div>
         <div className="flex gap-[7px] flex-wrap">
