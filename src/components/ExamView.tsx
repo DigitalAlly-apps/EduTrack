@@ -293,23 +293,307 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
   // ─── Tab: Hari Ini ────────────────────────────────────────────────────────
   const renderToday = () => {
-    // Items that are done today and need/have correction tracked
     const correctionItems = todayItems.filter(item => item.isDone || item.correction?.status);
     const corrDone = correctionItems.filter(i => i.correction?.status === 'selesai').length;
     const corrPending = correctionItems.length - corrDone;
 
-    // Hero card stat states
     const hasActiveProctor = todayProctor.some(s => {
       const cur = currentMin();
       return cur >= timeToMin(s.startTime) && cur < timeToMin(s.endTime);
     });
     const hasActiveExam = todayItems.some(i => i.isActive);
     const allExamDone = todayItems.length > 0 && todayItems.every(i => i.isDone);
-
     const hasAnything = todayItems.length > 0 || todayProctor.length > 0;
 
     return (
-    <div className="space-y-4 animate-slide-up">
+    <div className="space-y-3 animate-slide-up pb-20">
+
+      {/* ── Hero Summary Bar ── */}
+      {hasAnything && (
+        <div className="grid grid-cols-3 gap-2">
+          {/* Ngawas */}
+          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
+            hasActiveProctor ? 'bg-amber/10 border-amber/40' :
+            todayProctor.length > 0 ? 'bg-surface border-border2' :
+            'bg-surface/40 border-border/30 opacity-40'
+          }`}>
+            {hasActiveProctor && <div className="absolute inset-0 bg-amber/5 animate-pulse" />}
+            <div className="relative">
+              <div className="text-base leading-none mb-1.5">👁</div>
+              <div className={`text-2xl font-black leading-none tabular-nums ${hasActiveProctor ? 'text-amber' : 'text-foreground'}`}>
+                {todayProctor.length}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Ngawas</div>
+              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${hasActiveProctor ? 'text-amber animate-pulse' : 'text-transparent'}`}>
+                ● Aktif
+              </div>
+            </div>
+          </div>
+
+          {/* Ujian */}
+          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
+            hasActiveExam ? 'bg-amber/10 border-amber/40' :
+            allExamDone ? 'bg-green-dim/20 border-green-dim' :
+            todayItems.length > 0 ? 'bg-surface border-border2' :
+            'bg-surface/40 border-border/30 opacity-40'
+          }`}>
+            {hasActiveExam && <div className="absolute inset-0 bg-amber/5 animate-pulse" />}
+            <div className="relative">
+              <div className="text-base leading-none mb-1.5">📚</div>
+              <div className={`text-2xl font-black leading-none tabular-nums ${hasActiveExam ? 'text-amber' : allExamDone ? 'text-green' : 'text-foreground'}`}>
+                {todayItems.length}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Ujian</div>
+              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${
+                hasActiveExam ? 'text-amber animate-pulse' : allExamDone ? 'text-green' : 'text-transparent'
+              }`}>
+                {hasActiveExam ? '● Aktif' : allExamDone ? '✓ Beres' : '·'}
+              </div>
+            </div>
+          </div>
+
+          {/* Koreksi */}
+          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
+            corrPending > 0 ? 'bg-red/8 border-red/30' :
+            corrDone > 0 ? 'bg-green-dim/20 border-green-dim' :
+            'bg-surface/40 border-border/30 opacity-40'
+          }`}>
+            <div className="relative">
+              <div className="text-base leading-none mb-1.5">✏️</div>
+              <div className={`text-2xl font-black leading-none tabular-nums ${corrPending > 0 ? 'text-red' : corrDone > 0 ? 'text-green' : 'text-text3'}`}>
+                {correctionItems.length > 0 ? `${corrDone}/${correctionItems.length}` : '–'}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Koreksi</div>
+              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${
+                corrPending > 0 ? 'text-red' : corrDone > 0 ? 'text-green' : 'text-transparent'
+              }`}>
+                {corrPending > 0 ? `${corrPending} pending` : corrDone > 0 ? '✓ Beres' : '·'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Empty State ── */}
+      {!hasAnything && (
+        <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
+          <div className="text-5xl mb-4">📭</div>
+          <div className="text-sm font-bold mb-1">Tidak ada agenda ujian hari ini</div>
+          <div className="text-xs text-text3 mb-5">Tidak ada ujian mapelmu maupun jadwal ngawas.</div>
+          <button
+            onClick={() => setTab('manage')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tambah Jadwal
+          </button>
+        </div>
+      )}
+
+      {/* ── 1. NGAWAS ── */}
+      {todayProctor.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 px-1 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">👁 Ngawas</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+            <span className="text-[10px] text-text3 font-bold">{todayProctor.length} sesi</span>
+          </div>
+          <div className="space-y-2">
+            {todayProctor.map(s => {
+              const cur = currentMin();
+              const startMin = timeToMin(s.startTime);
+              const endMin = timeToMin(s.endTime);
+              const isToday = s.date === dateKey();
+              const isActive = isToday && cur >= startMin && cur < endMin;
+              const isDone = isToday && cur >= endMin;
+              return (
+                <div key={s.id} className={`rounded-2xl border p-4 transition-all ${
+                  isActive ? 'bg-amber/10 border-amber/35' :
+                  isDone ? 'bg-green-dim/15 border-green-dim/60' :
+                  'bg-surface border-border2'
+                }`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        {isActive && <span className="text-[9px] font-black bg-amber text-white px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Berlangsung</span>}
+                        {isDone && <span className="text-[9px] font-black bg-green/15 text-green border border-green/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
+                      </div>
+                      <div className="text-sm font-bold leading-snug">{s.subjectName}</div>
+                      <div className="text-xs text-text2 mt-0.5">
+                        {fmt(s.startTime)}–{fmt(s.endTime)}
+                        {s.location && <span className="text-text3"> · {s.location}</span>}
+                      </div>
+                      {s.note && <div className="text-[11px] text-text3 mt-1 italic">{s.note}</div>}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteProctor(s.id)}
+                      className="w-7 h-7 rounded-xl bg-red/8 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/15 transition-all"
+                      aria-label="Hapus"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. UJIAN MAPELKU ── */}
+      {todayItems.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 px-1 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">📚 Ujian Mapelku</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+            <span className="text-[10px] text-text3 font-bold">{todayItems.length} sesi</span>
+          </div>
+
+          {todayItems.length > 3 ? (
+            /* Compact list kalau banyak */
+            <div className="bg-surface border border-border2 rounded-2xl overflow-hidden divide-y divide-border2/50">
+              {todayItems.map(item => {
+                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
+                return (
+                  <div key={`${item.subjectId}-${item.classId}`} className={`flex items-center gap-3 px-4 py-3 transition-all ${
+                    state === 'active' ? 'bg-amber/8' : state === 'done' ? 'bg-green-dim/10' : ''
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      state === 'active' ? 'bg-amber shadow-[0_0_6px_hsl(40_80%_60%/0.7)]' :
+                      state === 'done' ? 'bg-green' : 'bg-border3'
+                    }`} />
+                    <div className="text-xs font-semibold tabular-nums text-text2 w-9 flex-shrink-0">{fmt(item.startTime)}</div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold">{item.className}</span>
+                      <span className="text-xs text-text3 ml-1.5">{item.subjectName}</span>
+                    </div>
+                    {state === 'active' && <span className="text-[9px] font-black text-amber animate-pulse">Aktif</span>}
+                    {state === 'done' && <span className="text-[9px] font-black text-green">✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* Timeline kalau ≤3 */
+            <div className="space-y-1.5">
+              {todayItems.map((item, i) => {
+                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
+                return (
+                  <div key={`${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3">
+                    {/* Spine */}
+                    <div className="flex flex-col items-center w-11 flex-shrink-0 pt-3.5 gap-1">
+                      <div className="text-[10px] font-bold text-text3 tabular-nums leading-none">{fmt(item.startTime)}</div>
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 transition-all relative ${
+                        state === 'active' ? 'bg-amber shadow-[0_0_10px_hsl(40_80%_60%/0.5)]' :
+                        state === 'done' ? 'bg-green' : 'bg-border3'
+                      }`}>
+                        {state === 'active' && <div className="absolute inset-0 rounded-full border-2 border-amber animate-ping opacity-40" />}
+                      </div>
+                      {i < todayItems.length - 1 && <div className="flex-1 w-px bg-gradient-to-b from-border2 to-transparent mt-1 min-h-4" />}
+                    </div>
+                    {/* Card */}
+                    <div className="flex-1 pb-1.5">
+                      <div className={`rounded-2xl border px-4 py-3 transition-all ${
+                        state === 'active' ? 'bg-amber/10 border-amber/35' :
+                        state === 'done' ? 'bg-green-dim/15 border-green-dim/60' :
+                        'bg-surface border-border2'
+                      }`}>
+                        <div className="text-sm font-bold leading-snug">{item.className}</div>
+                        <div className="text-xs text-text2 mt-0.5">
+                          {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
+                          {item.location && <span className="text-text3"> · {item.location}</span>}
+                        </div>
+                        {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
+                        {state === 'active' && <div className="text-[11px] text-amber font-bold mt-1.5 animate-pulse">⏱ Sedang berlangsung</div>}
+                        {state === 'done' && <div className="text-[11px] text-green font-bold mt-1.5">✓ Selesai</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── 3. KOREKSI ── */}
+      {correctionItems.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 px-1 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">✏️ Koreksi</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+            <span className={`text-[10px] font-bold ${corrPending > 0 ? 'text-red' : 'text-green'}`}>
+              {corrDone}/{correctionItems.length}
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="h-1 bg-surface2 rounded-full overflow-hidden mb-2.5 mx-1">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                corrPending === 0 ? 'bg-green' : corrDone > 0 ? 'bg-amber' : 'bg-red/50'
+              }`}
+              style={{ width: `${correctionItems.length > 0 ? Math.max(4, (corrDone / correctionItems.length) * 100) : 0}%` }}
+            />
+          </div>
+          <div className="space-y-2">
+            {correctionItems.map(item => {
+              const corrSt = item.correction?.status ?? null;
+              return (
+                <div key={`corr-${item.subjectId}-${item.classId}`} className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
+                  corrSt === 'selesai' ? 'bg-green-dim/15 border-green-dim/60' :
+                  corrSt ? 'bg-amber/8 border-amber/25' :
+                  'bg-surface border-border2'
+                }`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold leading-snug">{item.className}</div>
+                    <div className="text-xs text-text2">{item.subjectName}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
+                    className={`text-xs px-3.5 py-1.5 rounded-full border font-bold transition-all flex-shrink-0 active:scale-95 ${
+                      corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface2 border-border2 hover:border-border3'
+                    }`}
+                  >
+                    {corrSt ? STATUS_LABEL[corrSt] : 'Belum'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mode Ujian — sticky bottom ── */}
+      <div className="sticky bottom-2 z-10 pt-1">
+        <button
+          onClick={handleToggleExamMode}
+          className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-all duration-300 shadow-lg backdrop-blur-md ${
+            examMode
+              ? 'bg-amber/95 border-amber/50 shadow-amber/20'
+              : 'bg-surface/95 border-border2 shadow-black/10'
+          }`}
+        >
+          <div className="text-left">
+            <div className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${examMode ? 'text-white/60' : 'text-text3'}`}>
+              Mode Ujian
+            </div>
+            <div className={`text-sm font-bold ${examMode ? 'text-white' : 'text-foreground'}`}>
+              {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
+            </div>
+          </div>
+          <span className={`w-11 h-6 rounded-full border-2 relative transition-all duration-300 flex-shrink-0 ${
+            examMode ? 'bg-white/25 border-white/40' : 'bg-surface2 border-border2'
+          }`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-300 ${
+              examMode ? 'left-[22px] bg-white' : 'left-0.5 bg-text3'
+            }`} />
+          </span>
+        </button>
+      </div>
+
+    </div>
+    );
+  };
 
       {/* ── Hero Card ── */}
       {hasAnything && (
@@ -522,33 +806,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </div>
         </div>
       )}
-
-      {/* Mode Ujian — sticky bottom strip */}
-      <div className="sticky bottom-2 z-10">
-        <button
-          onClick={handleToggleExamMode}
-          className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-all shadow-lg backdrop-blur-sm ${
-            examMode ? 'bg-amber/90 border-amber/60' : 'bg-surface/90 border-border2'
-          }`}
-        >
-          <div className="text-left">
-            <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${examMode ? 'text-amber-foreground/70' : 'text-text3'}`}>Mode Ujian</div>
-            <div className={`text-sm font-bold ${examMode ? 'text-white' : 'text-foreground'}`}>
-              {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
-            </div>
-          </div>
-          <span className={`w-12 h-6 rounded-full border-2 relative transition-all duration-300 flex-shrink-0 ${
-            examMode ? 'bg-white/30 border-white/40' : 'bg-surface2 border-border2'
-          }`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-300 ${
-              examMode ? 'left-[26px] bg-white' : 'left-0.5 bg-text3'
-            }`} />
-          </span>
-        </button>
-      </div>
-    </div>
-    );
-  };
 
   // ─── Tab: Kelola — Section Ujian ──────────────────────────────────────────
   const renderManageExam = () => {
