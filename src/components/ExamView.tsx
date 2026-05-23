@@ -18,7 +18,7 @@ interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
 type ExamTab = 'today' | 'manage';
 
-export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
+export default function ExamView({ onRefresh }: ExamViewProps) {
   const { toast } = useToast();
   const [tab, setTab] = useState<ExamTab>(() => {
     const todayHasContent = getTodayExamItems().length > 0 || getTodayProctorSessions().length > 0;
@@ -30,7 +30,6 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   const [proctorFormOpen, setProctorFormOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPastExam, setShowPastExam] = useState(false);
-  const [tick, setTick] = useState(0);
   const [examMode, setExamMode] = useState(getExamDayMode());
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
 
@@ -52,9 +51,9 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   const [nNote, setNNote] = useState('');
 
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    const id = setInterval(() => onRefresh(), 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [onRefresh]);
 
   const todayItems = getTodayExamItems();
   const allSubjects = getAllExamSubjects();
@@ -293,74 +292,114 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
   };
 
   // ─── Tab: Hari Ini ────────────────────────────────────────────────────────
-  const renderToday = () => (
+  const renderToday = () => {
+    // Items that are done today and need/have correction tracked
+    const correctionItems = todayItems.filter(item => item.isDone || item.correction?.status);
+    const corrDone = correctionItems.filter(i => i.correction?.status === 'selesai').length;
+    const corrPending = correctionItems.length - corrDone;
+
+    // Hero card stat states
+    const hasActiveProctor = todayProctor.some(s => {
+      const cur = currentMin();
+      return cur >= timeToMin(s.startTime) && cur < timeToMin(s.endTime);
+    });
+    const hasActiveExam = todayItems.some(i => i.isActive);
+    const allExamDone = todayItems.length > 0 && todayItems.every(i => i.isDone);
+
+    const hasAnything = todayItems.length > 0 || todayProctor.length > 0;
+
+    return (
     <div className="space-y-4 animate-slide-up">
+
+      {/* ── Hero Card ── */}
+      {hasAnything && (
+        <div className="bg-surface border border-border2 rounded-3xl p-4">
+          <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-3">Ringkasan Hari Ini</div>
+          <div className="grid grid-cols-3 gap-2">
+            {/* Ngawas */}
+            <div className={`rounded-2xl border p-3 text-center transition-all ${
+              hasActiveProctor
+                ? 'bg-amber/10 border-amber/30'
+                : todayProctor.length > 0
+                  ? 'bg-surface2/60 border-border2'
+                  : 'bg-surface2/20 border-border/40 opacity-50'
+            }`}>
+              <div className="text-lg leading-none mb-1">👁</div>
+              <div className={`text-xl font-black leading-none ${hasActiveProctor ? 'text-amber' : 'text-foreground'}`}>
+                {todayProctor.length}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wide text-text3 mt-1">Ngawas</div>
+              {hasActiveProctor && (
+                <div className="text-[8px] font-black text-amber uppercase tracking-wide mt-0.5 animate-pulse">Aktif</div>
+              )}
+            </div>
+
+            {/* Ujian */}
+            <div className={`rounded-2xl border p-3 text-center transition-all ${
+              hasActiveExam
+                ? 'bg-amber/10 border-amber/30'
+                : allExamDone
+                  ? 'bg-green-dim/20 border-green-dim'
+                  : todayItems.length > 0
+                    ? 'bg-surface2/60 border-border2'
+                    : 'bg-surface2/20 border-border/40 opacity-50'
+            }`}>
+              <div className="text-lg leading-none mb-1">📚</div>
+              <div className={`text-xl font-black leading-none ${hasActiveExam ? 'text-amber' : allExamDone ? 'text-green' : 'text-foreground'}`}>
+                {todayItems.length}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wide text-text3 mt-1">Ujian</div>
+              {hasActiveExam && (
+                <div className="text-[8px] font-black text-amber uppercase tracking-wide mt-0.5 animate-pulse">Aktif</div>
+              )}
+              {allExamDone && (
+                <div className="text-[8px] font-black text-green uppercase tracking-wide mt-0.5">Selesai</div>
+              )}
+            </div>
+
+            {/* Koreksi */}
+            <div className={`rounded-2xl border p-3 text-center transition-all ${
+              corrPending > 0
+                ? 'bg-red/10 border-red/25'
+                : corrDone > 0
+                  ? 'bg-green-dim/20 border-green-dim'
+                  : 'bg-surface2/20 border-border/40 opacity-50'
+            }`}>
+              <div className="text-lg leading-none mb-1">✏️</div>
+              <div className={`text-xl font-black leading-none ${corrPending > 0 ? 'text-red' : corrDone > 0 ? 'text-green' : 'text-text3'}`}>
+                {corrPending > 0 ? corrPending : corrDone > 0 ? corrDone : '–'}
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-wide text-text3 mt-1">Koreksi</div>
+              {corrPending > 0 && (
+                <div className="text-[8px] font-black text-red uppercase tracking-wide mt-0.5">Pending</div>
+              )}
+              {corrPending === 0 && corrDone > 0 && (
+                <div className="text-[8px] font-black text-green uppercase tracking-wide mt-0.5">Beres</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Empty state */}
       {todayItems.length === 0 && todayProctor.length === 0 && (
         <div className="bg-surface border border-border2 rounded-3xl p-8 text-center">
           <div className="text-4xl mb-3">📭</div>
           <div className="text-sm font-bold text-foreground mb-1">Tidak ada agenda ujian hari ini</div>
-          <div className="text-xs text-text3 leading-relaxed max-w-[280px] mx-auto">
-            Tidak ada ujian mapelmu maupun jadwal ngawas. Buka tab <strong>Kelola</strong> untuk menambah jadwal.
+          <div className="text-xs text-text3 leading-relaxed max-w-[280px] mx-auto mb-4">
+            Tidak ada ujian mapelmu maupun jadwal ngawas.
           </div>
+          <button
+            onClick={() => setTab('manage')}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tambah Jadwal
+          </button>
         </div>
       )}
 
-      {/* Ujian Mapelku Hari Ini */}
-      {todayItems.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between px-1 mb-2">
-            <div className="text-[11px] font-black uppercase tracking-widest text-primary">📚 Ujian Mapelku</div>
-            <span className="text-[10px] text-text3 font-bold">{todayItems.length} sesi</span>
-          </div>
-          <div className="space-y-1">
-            {todayItems.map((item, i) => {
-              const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
-              const corrSt = item.correction?.status ?? null;
-              return (
-                <div key={`${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3 animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                  {/* Spine */}
-                  <div className="flex flex-col items-center w-12 flex-shrink-0 py-3 gap-1.5">
-                    <div className="text-[11px] font-semibold text-text2 tabular-nums">{fmt(item.startTime)}</div>
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-500 relative ${
-                      state === 'active' ? 'bg-amber shadow-[0_0_10px_hsl(40_80%_60%/0.5)]' : state === 'done' ? 'bg-green' : 'bg-border3'
-                    }`}>
-                      {state === 'active' && <div className="absolute inset-0 rounded-full border border-amber animate-ping opacity-50" />}
-                    </div>
-                    {i < todayItems.length - 1 && <div className="flex-1 w-0.5 bg-gradient-to-b from-border2 to-transparent min-h-3" />}
-                  </div>
-                  {/* Card */}
-                  <div className="flex-1 mb-2">
-                    <div className={`border rounded-2xl p-4 flex items-center gap-3 transition-all ${
-                      state === 'active' ? 'bg-amber/10 border-amber/30' : state === 'done' ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
-                    }`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold">{item.className}</div>
-                        <div className="text-xs text-text2">
-                          {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
-                          {item.location && ` · ${item.location}`}
-                        </div>
-                        {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
-                        {state === 'done' && <div className="text-[11px] text-green mt-1 font-semibold">✓ Selesai</div>}
-                      </div>
-                      <button
-                        onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all flex-shrink-0 ${
-                          corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface border-border2 hover:border-border3'
-                        }`}
-                      >
-                        {corrSt ? STATUS_LABEL[corrSt] : 'Koreksi?'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Ngawas Hari Ini */}
+      {/* 1. Ngawas Hari Ini — prioritas utama */}
       {todayProctor.length > 0 && (
         <div>
           <div className="flex items-center justify-between px-1 mb-2">
@@ -373,29 +412,143 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
         </div>
       )}
 
-      {/* Mode Ujian quick toggle */}
-      <button
-        onClick={handleToggleExamMode}
-        className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-all ${
-          examMode ? 'bg-amber/10 border-amber/30' : 'bg-surface2/40 border-border2'
-        }`}
-      >
-        <div className="text-left">
-          <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-0.5">Mode Ujian</div>
-          <div className={`text-sm font-bold ${examMode ? 'text-amber' : 'text-foreground'}`}>
-            {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
+      {/* 2. Ujian Mapelku Hari Ini — compact kalau >3, timeline kalau ≤3 */}
+      {todayItems.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <div className="text-[11px] font-black uppercase tracking-widest text-primary">📚 Ujian Mapelku</div>
+            <span className="text-[10px] text-text3 font-bold">{todayItems.length} sesi</span>
+          </div>
+
+          {todayItems.length > 3 ? (
+            /* ── Compact list (>3 sesi) ── */
+            <div className="bg-surface border border-border2 rounded-2xl overflow-hidden divide-y divide-border2/60">
+              {todayItems.map(item => {
+                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
+                return (
+                  <div key={`${item.subjectId}-${item.classId}`} className={`flex items-center gap-3 px-4 py-2.5 transition-all ${
+                    state === 'active' ? 'bg-amber/10' : state === 'done' ? 'bg-green-dim/10' : ''
+                  }`}>
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                      state === 'active' ? 'bg-amber shadow-[0_0_6px_hsl(40_80%_60%/0.6)]' : state === 'done' ? 'bg-green' : 'bg-border3'
+                    }`} />
+                    <div className="text-[11px] font-semibold tabular-nums text-text2 w-10 flex-shrink-0">{fmt(item.startTime)}</div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[13px] font-bold">{item.className}</span>
+                      <span className="text-[11px] text-text3 ml-1.5">{item.subjectName}</span>
+                    </div>
+                    {state === 'active' && <span className="text-[9px] font-black text-amber uppercase tracking-wide animate-pulse">Aktif</span>}
+                    {state === 'done' && <span className="text-[9px] font-black text-green uppercase tracking-wide">✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ── Timeline (≤3 sesi) ── */
+            <div className="space-y-1">
+              {todayItems.map((item, i) => {
+                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
+                return (
+                  <div key={`${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3" style={{ animationDelay: `${i * 0.05}s` }}>
+                    <div className="flex flex-col items-center w-12 flex-shrink-0 py-3 gap-1.5">
+                      <div className="text-[11px] font-semibold text-text2 tabular-nums">{fmt(item.startTime)}</div>
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-500 relative ${
+                        state === 'active' ? 'bg-amber shadow-[0_0_10px_hsl(40_80%_60%/0.5)]' : state === 'done' ? 'bg-green' : 'bg-border3'
+                      }`}>
+                        {state === 'active' && <div className="absolute inset-0 rounded-full border border-amber animate-ping opacity-50" />}
+                      </div>
+                      {i < todayItems.length - 1 && <div className="flex-1 w-0.5 bg-gradient-to-b from-border2 to-transparent min-h-3" />}
+                    </div>
+                    <div className="flex-1 mb-2">
+                      <div className={`border rounded-2xl p-4 transition-all ${
+                        state === 'active' ? 'bg-amber/10 border-amber/30' : state === 'done' ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
+                      }`}>
+                        <div className="text-sm font-bold">{item.className}</div>
+                        <div className="text-xs text-text2">
+                          {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
+                          {item.location && ` · ${item.location}`}
+                        </div>
+                        {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
+                        {state === 'active' && <div className="text-[11px] text-amber mt-1 font-semibold animate-pulse">⏱ Sedang berlangsung</div>}
+                        {state === 'done' && <div className="text-[11px] text-green mt-1 font-semibold">✓ Selesai</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Koreksi — hanya muncul kalau ada ujian yang sudah selesai */}
+      {correctionItems.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <div className="text-[11px] font-black uppercase tracking-widest text-primary">✏️ Status Koreksi</div>
+            <span className="text-[10px] text-text3 font-bold">{corrDone}/{correctionItems.length} selesai</span>
+          </div>
+          {/* Progress bar */}
+          <div className="h-1.5 bg-surface2 rounded-full overflow-hidden mb-3">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                corrPending === 0 ? 'bg-green' : corrDone > 0 ? 'bg-amber' : 'bg-red/60'
+              }`}
+              style={{ width: `${correctionItems.length > 0 ? (corrDone / correctionItems.length) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="space-y-2">
+            {correctionItems.map(item => {
+              const corrSt = item.correction?.status ?? null;
+              return (
+                <div key={`corr-${item.subjectId}-${item.classId}`} className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
+                  corrSt === 'selesai' ? 'bg-green-dim/20 border-green-dim' : corrSt ? 'bg-amber/10 border-amber/25' : 'bg-surface2/40 border-border2/60'
+                }`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold">{item.className}</div>
+                    <div className="text-xs text-text2">{item.subjectName}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
+                    className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all flex-shrink-0 active:scale-95 ${
+                      corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface border-border2 hover:border-border3'
+                    }`}
+                  >
+                    {corrSt ? STATUS_LABEL[corrSt] : 'Belum'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <span className={`w-12 h-6 rounded-full border-2 relative transition-all duration-300 flex-shrink-0 ${
-          examMode ? 'bg-amber border-amber/60' : 'bg-surface2 border-border2'
-        }`}>
-          <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-300 ${
-            examMode ? 'left-[26px] bg-white' : 'left-0.5 bg-text3'
-          }`} />
-        </span>
-      </button>
+      )}
+
+      {/* Mode Ujian — sticky bottom strip */}
+      <div className="sticky bottom-2 z-10">
+        <button
+          onClick={handleToggleExamMode}
+          className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-all shadow-lg backdrop-blur-sm ${
+            examMode ? 'bg-amber/90 border-amber/60' : 'bg-surface/90 border-border2'
+          }`}
+        >
+          <div className="text-left">
+            <div className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${examMode ? 'text-amber-foreground/70' : 'text-text3'}`}>Mode Ujian</div>
+            <div className={`text-sm font-bold ${examMode ? 'text-white' : 'text-foreground'}`}>
+              {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
+            </div>
+          </div>
+          <span className={`w-12 h-6 rounded-full border-2 relative transition-all duration-300 flex-shrink-0 ${
+            examMode ? 'bg-white/30 border-white/40' : 'bg-surface2 border-border2'
+          }`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-300 ${
+              examMode ? 'left-[26px] bg-white' : 'left-0.5 bg-text3'
+            }`} />
+          </span>
+        </button>
+      </div>
     </div>
-  );
+    );
+  };
 
   // ─── Tab: Kelola — Section Ujian ──────────────────────────────────────────
   const renderManageExam = () => {
@@ -403,7 +556,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
     const noPrereq = data.classes.length === 0 || data.subjects.length === 0;
 
     return (
-      <div className="space-y-4 animate-slide-up">
+      <div className="space-y-3">
         {/* Stats */}
         {examSchedules.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
@@ -465,12 +618,10 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
                 <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
               </div>
-
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
@@ -481,17 +632,14 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
                   <input type="time" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" />
                 </div>
               </div>
-
               <div>
                 <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
                 <input value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style text-sm h-10 w-full" />
               </div>
-
               <div>
                 <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
                 <input value={eNote} onChange={e => setENote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddExam()} placeholder="cth: PTS, PAS, kisi-kisi khusus..." className="form-input-style text-sm h-10 w-full" />
               </div>
-
               <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105">
                 ＋ Simpan Jadwal Ujian
               </button>
@@ -499,56 +647,51 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
           )}
         </div>
 
-        {/* List jadwal ujian */}
-        <div className="space-y-4">
-          {examSchedules.length === 0 && (
-            <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
-              Belum ada jadwal ujian. Tambah jadwal lewat form di atas.
-            </div>
-          )}
-          {todayExamSchedules.length > 0 && (
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Hari Ini ({todayExamSchedules.length})</div>
-              <div className="space-y-2">{todayExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
-            </div>
-          )}
-          {futureExamSchedules.length > 0 && (
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Akan Datang ({futureExamSchedules.length})</div>
-              <div className="space-y-2">{futureExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
-            </div>
-          )}
-
-          {/* Semua Ujian (group by mapel) */}
-          {allSubjects.length > 0 && (
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2 mt-4">Per Mapel ({upcoming.length} aktif)</div>
-              <div className="space-y-2">
-                {upcoming.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}
+        {/* List jadwal */}
+        {examSchedules.length === 0 ? (
+          <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
+            Belum ada jadwal ujian. Tambah lewat form di atas.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {todayExamSchedules.length > 0 && (
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Hari Ini ({todayExamSchedules.length})</div>
+                <div className="space-y-2">{todayExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
               </div>
-            </div>
-          )}
-
-          {/* Past — collapsible */}
-          {(pastExamSchedules.length > 0 || past.length > 0) && (
-            <div>
-              <button
-                onClick={() => setShowPastExam(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-surface border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
-              >
-                <span>📁 Riwayat Ujian ({pastExamSchedules.length || past.length})</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-text3 transition-transform ${showPastExam ? 'rotate-180' : ''}`} />
-              </button>
-              {showPastExam && (
-                <div className="space-y-2 mt-2">
-                  {pastExamSchedules.length > 0
-                    ? pastExamSchedules.slice(0, 20).map(s => <ExamScheduleCard key={s.id} s={s} />)
-                    : past.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+            {futureExamSchedules.length > 0 && (
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureExamSchedules.length})</div>
+                <div className="space-y-2">{futureExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+              </div>
+            )}
+            {upcoming.length > 0 && (
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Per Mapel ({upcoming.length} aktif)</div>
+                <div className="space-y-2">{upcoming.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}</div>
+              </div>
+            )}
+            {(pastExamSchedules.length > 0 || past.length > 0) && (
+              <div>
+                <button
+                  onClick={() => setShowPastExam(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-surface border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+                >
+                  <span>📁 Riwayat Ujian ({pastExamSchedules.length || past.length})</span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-text3 transition-transform ${showPastExam ? 'rotate-180' : ''}`} />
+                </button>
+                {showPastExam && (
+                  <div className="space-y-2 mt-2">
+                    {pastExamSchedules.length > 0
+                      ? pastExamSchedules.slice(0, 20).map(s => <ExamScheduleCard key={s.id} s={s} />)
+                      : past.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -617,7 +760,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
       {/* Today's proctor */}
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider text-text3 px-1 mb-2">Ngawas Hari Ini</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Hari Ini</div>
         {todayProctor.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-2xl p-4 text-center text-sm text-text3">
             Belum ada sesi ngawas hari ini.
@@ -649,7 +792,7 @@ export default function ExamView({ refreshKey, onRefresh }: ExamViewProps) {
 
   // ─── Tab: Kelola — Section Mode & Reminder ────────────────────────────────
   const renderManageMode = () => (
-    <div className="space-y-4 animate-slide-up">
+    <div className="space-y-3">
       {/* Hero Toggle */}
       <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 ${
         examMode ? 'bg-amber/10 border-amber/30 shadow-[0_0_30px_hsl(40_80%_60%/0.08)]' : 'bg-surface/60 border-border2'
