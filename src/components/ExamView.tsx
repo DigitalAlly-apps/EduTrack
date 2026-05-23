@@ -716,33 +716,31 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </div>
         )}
 
-        {noPrereq && (
-          <div className="bg-amber/10 border border-amber/25 rounded-2xl p-4 text-sm text-amber leading-snug">
-            Tambahkan kelas dan mapel dulu di tab Setup supaya input jadwal ujian bisa dipakai.
-          </div>
-        )}
-
         {/* Form (collapsible) */}
         <div className="bg-surface/60 border border-border2 rounded-3xl overflow-hidden">
           <button
             onClick={() => setExamFormOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface2/30 transition-colors"
-            disabled={noPrereq}
           >
             <div className="flex items-center gap-2.5 text-left">
               <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary flex-shrink-0">
                 <Plus className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-[13px] font-bold leading-tight">Tambah Jadwal Ujian</div>
+                <div className="text-[13px] font-bold leading-tight">Tambah Jadwal Ujian Mapelku</div>
                 <div className="text-[11px] text-text3 mt-0.5">Per kelas dan jam ujian mapelmu</div>
               </div>
             </div>
             <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {examFormOpen && !noPrereq && (
+          {examFormOpen && (
             <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border2/60">
+              {noPrereq && (
+                <div className="bg-amber/10 border border-amber/25 rounded-xl p-3 text-xs text-amber leading-snug">
+                  Tambahkan kelas dan mapel dulu di tab Setup supaya jadwal bisa disimpan.
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
@@ -781,7 +779,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
                 <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
                 <input value={eNote} onChange={e => setENote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddExam()} placeholder="cth: PTS, PAS, kisi-kisi khusus..." className="form-input-style text-sm h-10 w-full" />
               </div>
-              <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105">
+              <button onClick={handleAddExam} disabled={noPrereq} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed">
                 ＋ Simpan Jadwal Ujian
               </button>
             </div>
@@ -838,8 +836,38 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   };
 
   // ─── Tab: Kelola — Section Ngawas ─────────────────────────────────────────
-  const renderManageProctor = () => (
+  const renderManageProctor = () => {
+    const todayStr = dateKey();
+    const futureProctor = allProctor.filter(s => s.date > todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date) || timeToMin(a.startTime) - timeToMin(b.startTime));
+    const uniqueProctorDays = new Set(allProctor.map(s => s.date)).size;
+    const totalDuration = allProctor.reduce((acc, s) => acc + Math.max(0, timeToMin(s.endTime) - timeToMin(s.startTime)), 0);
+    const totalHours = Math.floor(totalDuration / 60);
+    const totalMins = totalDuration % 60;
+
+    return (
     <div className="space-y-4 animate-slide-up">
+
+      {/* Stats */}
+      {allProctor.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+            <div className="text-lg font-black leading-none">{allProctor.length}</div>
+            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
+          </div>
+          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+            <div className="text-lg font-black leading-none">{uniqueProctorDays}</div>
+            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
+          </div>
+          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
+            <div className="text-lg font-black leading-none tabular-nums">
+              {totalHours > 0 ? `${totalHours}j` : `${totalMins}m`}
+            </div>
+            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Total</div>
+          </div>
+        </div>
+      )}
+
       {/* Form (collapsible) */}
       <div className="bg-surface/60 border border-border2 rounded-3xl overflow-hidden">
         <button
@@ -899,17 +927,19 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         )}
       </div>
 
-      {/* Today's proctor */}
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Hari Ini</div>
-        {todayProctor.length === 0 ? (
-          <div className="bg-surface border border-border2 rounded-2xl p-4 text-center text-sm text-text3">
-            Belum ada sesi ngawas hari ini.
-          </div>
-        ) : (
-          <div className="space-y-2">{todayProctor.map(s => <ProctorCard key={s.id} s={s} />)}</div>
-        )}
-      </div>
+      {/* Upcoming proctor */}
+      {futureProctor.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureProctor.length})</div>
+          <div className="space-y-2">{futureProctor.map(s => <ProctorCard key={s.id} s={s} />)}</div>
+        </div>
+      )}
+
+      {allProctor.length === 0 && (
+        <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
+          Belum ada sesi ngawas. Tambah lewat form di atas.
+        </div>
+      )}
 
       {/* History */}
       {pastProctor.length > 0 && (
@@ -929,7 +959,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   // ─── Tab: Kelola — Section Mode & Reminder ────────────────────────────────
   const renderManageMode = () => (
