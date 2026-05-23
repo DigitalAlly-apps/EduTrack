@@ -88,6 +88,52 @@ export function getTodayProctorSessions(): ProctorSession[] {
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
+export function getTomorrowProctorSessions(): ProctorSession[] {
+  const tomorrow = new Date(now());
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = dateKey(tomorrow);
+  return getProctorSessions().filter(s => s.date === tomorrowStr)
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
+export function getTomorrowExamItems(): ExamWatchItem[] {
+  const data = getData();
+  const corrections = getCorrections();
+  const tomorrow = new Date(now());
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = dateKey(tomorrow);
+
+  const items = (data.examSchedules || [])
+    .filter(s => s.date === tomorrowStr)
+    .map(s => {
+      const cls = data.classes.find(c => c.id === s.classId);
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      const startMin = timeToMin(s.startTime);
+      const endMin = timeToMin(s.endTime);
+      const correction = corrections.find(c => c.subjectId === s.subjectId && c.classId === s.classId && c.examDate === s.date) || null;
+      return {
+        scheduleId: s.id,
+        subjectId: s.subjectId,
+        subjectName: sub?.name || '?',
+        classId: s.classId,
+        className: cls?.name || '?',
+        examDate: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        duration: Math.max(0, endMin - startMin),
+        location: s.location,
+        note: s.note,
+        isActive: false,
+        isDone: false,
+        daysLeft: 1,
+        correction,
+      };
+    })
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+
+  return items;
+}
+
 export function addProctorSession(session: Omit<ProctorSession, 'id' | 'createdAt'>): void {
   const all = getProctorSessions();
   all.push({ ...session, id: genId(), createdAt: now().toISOString() });

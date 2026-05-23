@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  getTodayExamItems, getAllExamSubjects,
+  getTodayExamItems, getTomorrowExamItems, getAllExamSubjects,
   upsertCorrection, getExamDayMode, toggleExamDayMode,
   getExamSchedules, addExamSchedule, deleteExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
-  getTodayProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
+  getTodayProctorSessions, getTomorrowProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
   ExamSubjectItem, CorrectionStatus, ProctorSession, ExamReminderSettingKey,
@@ -56,12 +56,14 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   }, [onRefresh]);
 
   const todayItems = getTodayExamItems();
+  const tomorrowItems = getTomorrowExamItems();
   const allSubjects = getAllExamSubjects();
   const data = getData();
   const examSchedules = getExamSchedules();
   const upcoming = allSubjects.filter(s => s.daysLeft >= 0);
   const past = allSubjects.filter(s => s.daysLeft < 0);
   const todayProctor = getTodayProctorSessions();
+  const tomorrowProctor = getTomorrowProctorSessions();
   const allProctor = getProctorSessions().sort((a, b) => b.date.localeCompare(a.date));
   const pastProctor = allProctor.filter(s => s.date !== dateKey());
 
@@ -291,7 +293,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     );
   };
 
-  // ─── Tab: Hari Ini ────────────────────────────────────────────────────────
+  // ─── Tab: Agenda 2 Hari ───────────────────────────────────────────────────
   const renderToday = () => {
     const correctionItems = todayItems.filter(item => item.isDone || item.correction?.status);
     const corrDone = correctionItems.filter(i => i.correction?.status === 'selesai').length;
@@ -303,13 +305,15 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     });
     const hasActiveExam = todayItems.some(i => i.isActive);
     const allExamDone = todayItems.length > 0 && todayItems.every(i => i.isDone);
-    const hasAnything = todayItems.length > 0 || todayProctor.length > 0;
+    const hasAnythingToday = todayItems.length > 0 || todayProctor.length > 0;
+    const hasAnythingTomorrow = tomorrowItems.length > 0 || tomorrowProctor.length > 0;
+    const hasAnything = hasAnythingToday || hasAnythingTomorrow;
 
     return (
     <div className="space-y-3 animate-slide-up pb-20">
 
       {/* ── Hero Summary Bar ── */}
-      {hasAnything && (
+      {hasAnythingToday && (
         <div className="grid grid-cols-3 gap-2">
           {/* Ngawas */}
           <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
@@ -378,8 +382,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
       {!hasAnything && (
         <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
           <div className="text-5xl mb-4">📭</div>
-          <div className="text-sm font-bold mb-1">Tidak ada agenda ujian hari ini</div>
-          <div className="text-xs text-text3 mb-5">Tidak ada ujian mapelmu maupun jadwal ngawas.</div>
+          <div className="text-sm font-bold mb-1">Tidak ada agenda ujian 2 hari ke depan</div>
+          <div className="text-xs text-text3 mb-5">Tidak ada ujian mapelmu maupun jadwal ngawas hari ini dan besok.</div>
           <button
             onClick={() => setTab('manage')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
@@ -387,6 +391,14 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
             <Plus className="h-3.5 w-3.5" />
             Tambah Jadwal
           </button>
+        </div>
+      )}
+
+      {/* ── SECTION: HARI INI ── */}
+      {hasAnythingToday && (
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[11px] font-black uppercase tracking-widest text-foreground">📅 Hari Ini</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-border2 to-transparent" />
         </div>
       )}
 
@@ -560,6 +572,89 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── SECTION: BESOK ── */}
+      {hasAnythingTomorrow && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1 mt-1">
+            <span className="text-[11px] font-black uppercase tracking-widest text-text2">🌅 Besok</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-border2 to-transparent" />
+            <span className="text-[10px] text-text3 font-bold">
+              {tomorrowItems.length + tomorrowProctor.length} agenda
+            </span>
+          </div>
+
+          {/* Ngawas besok */}
+          {tomorrowProctor.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 px-1 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-text3">👁 Ngawas</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-border2/50 to-transparent" />
+                <span className="text-[10px] text-text3 font-bold">{tomorrowProctor.length} sesi</span>
+              </div>
+              <div className="space-y-2">
+                {tomorrowProctor.map(s => (
+                  <div key={s.id} className="rounded-2xl border bg-surface/60 border-border2/70 p-3.5 opacity-80">
+                    <div className="text-sm font-bold leading-snug">{s.subjectName}</div>
+                    <div className="text-xs text-text2 mt-0.5">
+                      {fmt(s.startTime)}–{fmt(s.endTime)}
+                      {s.location && <span className="text-text3"> · {s.location}</span>}
+                    </div>
+                    {s.note && <div className="text-[11px] text-text3 mt-0.5 italic">{s.note}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ujian besok */}
+          {tomorrowItems.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 px-1 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-text3">📚 Ujian Mapelku</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-border2/50 to-transparent" />
+                <span className="text-[10px] text-text3 font-bold">{tomorrowItems.length} sesi</span>
+              </div>
+              {tomorrowItems.length > 3 ? (
+                <div className="bg-surface/60 border border-border2/70 rounded-2xl overflow-hidden divide-y divide-border2/40 opacity-80">
+                  {tomorrowItems.map(item => (
+                    <div key={`tmr-${item.subjectId}-${item.classId}`} className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0 bg-border3" />
+                      <div className="text-xs font-semibold tabular-nums text-text2 w-9 flex-shrink-0">{fmt(item.startTime)}</div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold">{item.className}</span>
+                        <span className="text-xs text-text3 ml-1.5">{item.subjectName}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1.5 opacity-80">
+                  {tomorrowItems.map((item, i) => (
+                    <div key={`tmr-${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3">
+                      <div className="flex flex-col items-center w-11 flex-shrink-0 pt-3.5 gap-1">
+                        <div className="text-[10px] font-bold text-text3 tabular-nums leading-none">{fmt(item.startTime)}</div>
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 bg-border3" />
+                        {i < tomorrowItems.length - 1 && <div className="flex-1 w-px bg-gradient-to-b from-border2 to-transparent mt-1 min-h-4" />}
+                      </div>
+                      <div className="flex-1 pb-1.5">
+                        <div className="rounded-2xl border bg-surface/60 border-border2/70 px-4 py-3">
+                          <div className="text-sm font-bold leading-snug">{item.className}</div>
+                          <div className="text-xs text-text2 mt-0.5">
+                            {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
+                            {item.location && <span className="text-text3"> · {item.location}</span>}
+                          </div>
+                          {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -896,16 +991,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   // ─── Tab: Kelola (single scroll, section headers) ────────────────────────
   const renderManage = () => (
     <div className="space-y-6 animate-slide-up">
-      {/* ── Section: Ujian Mapel ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="text-base">📚</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Ujian Mapel</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-        </div>
-        {renderManageExam()}
-      </div>
-
       {/* ── Section: Ngawas ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
@@ -914,6 +999,16 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageProctor()}
+      </div>
+
+      {/* ── Section: Ujian Mapel ── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5 px-1">
+          <span className="text-base">📚</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Ujian Mapel</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+        </div>
+        {renderManageExam()}
       </div>
 
       {/* ── Section: Mode & Reminder ── */}
@@ -930,7 +1025,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
   // ─── Main shell ───────────────────────────────────────────────────────────
   const tabItems: { id: ExamTab; label: string; emoji: string }[] = [
-    { id: 'today', label: 'Hari Ini', emoji: '📅' },
+    { id: 'today', label: 'Agenda 2 Hari', emoji: '📅' },
     { id: 'manage', label: 'Kelola', emoji: '⚙️' },
   ];
 
@@ -942,7 +1037,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
             <div className="text-[11px] text-text3 truncate">
-              {examSchedules.length} jadwal · {todayItems.length} mapel hari ini · {todayProctor.length} ngawas
+              {examSchedules.length} jadwal · {todayItems.length} mapel hari ini · {tomorrowItems.length} besok · {todayProctor.length} ngawas
             </div>
           </div>
           <button
