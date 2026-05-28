@@ -416,3 +416,17 @@ export const STATUS_CLS: Record<CorrectionStatus, string> = {
   selesai: 'text-green bg-green/10 border-green/20',
 };
 export { fmt };
+
+// ── Reset semua data ujian ────────────────────────────────────────────────────
+// Menghapus semua jadwal ujian, sesi ngawas, koreksi, mode ujian, dan reminder.
+// Tidak menghapus data lain (kelas, mapel, jadwal KBM, materi, dll).
+export function resetAllExamData(): void {
+  updateData(d => {
+    d.examSchedules = [];
+    d.subjects.forEach(s => { s.examDate = null; });
+  });
+  localStorage.removeItem(PROCTOR_KEY);
+  localStorage.removeItem(CORR_KEY);
+  localStorage.removeItem(EXAM_MODE_KEY);
+  localStorage.removeItem(EXAM_REMINDER_SETTINGS_KEY);
+}

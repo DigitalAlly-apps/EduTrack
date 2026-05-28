@@ -8,11 +8,11 @@ import {
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
   ExamSubjectItem, CorrectionStatus, ProctorSession, ExamReminderSettingKey,
-  fmt,
+  fmt, resetAllExamData,
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
@@ -32,6 +32,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [showPastExam, setShowPastExam] = useState(false);
   const [examMode, setExamMode] = useState(getExamDayMode());
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
@@ -138,6 +139,15 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     deleteProctorSession(id);
     onRefresh();
     toast({ title: 'Sesi ngawas dihapus' });
+  };
+
+  const handleResetExamData = () => {
+    resetAllExamData();
+    setShowResetConfirm(false);
+    setExamMode(false);
+    setReminderSettings(getExamReminderSettings());
+    onRefresh();
+    toast({ title: '🗑️ Semua data ujian berhasil direset' });
   };
 
   // ─── Card components ─────────────────────────────────────────────────────
@@ -1050,6 +1060,61 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageMode()}
+      </div>
+
+      {/* ── Section: Reset Data Ujian ── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5 px-1">
+          <span className="text-base">🗑️</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-red">Reset Data</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-red/20 to-transparent" />
+        </div>
+
+        {!showResetConfirm ? (
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-red/20 bg-red/5 hover:bg-red/10 transition-all text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-red/10 border border-red/20 grid place-items-center flex-shrink-0">
+              <Trash2 className="h-4 w-4 text-red" />
+            </div>
+            <div>
+              <div className="text-[13px] font-bold text-red">Reset Semua Data Ujian</div>
+              <div className="text-[11px] text-text3 mt-0.5">Hapus jadwal ujian, ngawas, koreksi, dan mode ujian</div>
+            </div>
+          </button>
+        ) : (
+          <div className="rounded-2xl border-2 border-red/30 bg-red/5 p-4 space-y-3 animate-slide-up">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-bold text-red">Yakin reset semua data ujian?</div>
+                <div className="text-xs text-text2 mt-1 leading-relaxed">
+                  Ini akan menghapus:<br />
+                  • Semua jadwal ujian mapel<br />
+                  • Semua sesi ngawas<br />
+                  • Semua status koreksi<br />
+                  • Mode ujian & pengaturan reminder
+                </div>
+                <div className="text-[11px] text-red/80 font-semibold mt-2">⚠️ Aksi ini tidak bisa dibatalkan.</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border2 bg-surface text-sm font-bold text-text2 hover:bg-surface2 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleResetExamData}
+                className="flex-1 py-2.5 rounded-xl bg-red text-white text-sm font-bold hover:brightness-110 transition-all active:scale-[0.97]"
+              >
+                Ya, Reset
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
