@@ -668,33 +668,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         </div>
       )}
 
-      {/* ── Mode Ujian — sticky bottom ── */}
-      <div className="sticky bottom-2 z-10 pt-1">
-        <button
-          onClick={handleToggleExamMode}
-          className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-all duration-300 shadow-lg backdrop-blur-md ${
-            examMode
-              ? 'bg-amber/95 border-amber/50 shadow-amber/20'
-              : 'bg-surface/95 border-border2 shadow-black/10'
-          }`}
-        >
-          <div className="text-left">
-            <div className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${examMode ? 'text-white/60' : 'text-text3'}`}>
-              Mode Ujian
-            </div>
-            <div className={`text-sm font-bold ${examMode ? 'text-white' : 'text-foreground'}`}>
-              {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
-            </div>
-          </div>
-          <span className={`w-11 h-6 rounded-full border-2 relative transition-all duration-300 flex-shrink-0 ${
-            examMode ? 'bg-white/25 border-white/40' : 'bg-surface2 border-border2'
-          }`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-all duration-300 ${
-              examMode ? 'left-[22px] bg-white' : 'left-0.5 bg-text3'
-            }`} />
-          </span>
-        </button>
-      </div>
+
 
     </div>
     );

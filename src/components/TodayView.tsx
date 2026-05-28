@@ -32,6 +32,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const dailyPriorities = getDailyPriorities();
   const { toast } = useToast();
 
+  const [examModeBanner, setExamModeBanner] = useState(getExamDayMode());
+  const [notifPermission, setNotifPermission] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'));
+
   // Smart Rescheduler state
   const [reschedulerOpen, setReschedulerOpen] = useState(false);
   const [reschedulerDate, setReschedulerDate] = useState('');
@@ -206,6 +209,94 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: 'Catatan disimpan' });
   };
 
+  const countdowns = getExamCountdowns();
+  const todayExamItems = getTodayExamItems();
+  const todayProctorSessions = getTodayProctorSessions();
+  const examReminderSettings = getExamReminderSettings();
+  const hasExamReminder = todayExamItems.length > 0 || todayProctorSessions.length > 0;
+
+  const handleTurnOffExamMode = () => {
+    setExamDayMode(false);
+    setExamModeBanner(false);
+    onRefresh();
+    toast({ title: '📚 Mode KBM Normal kembali aktif' });
+  };
+
+  const handleTurnOnExamMode = () => {
+    setExamDayMode(true);
+    setExamModeBanner(true);
+    onRefresh();
+    toast({ title: '📋 Mode Ujian Aktif' });
+  };
+
+  const handleOpenExam = () => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' }));
+
+  const handleEnableExamNotifications = async () => {
+    const ok = await requestNotifPermission();
+    setNotifPermission('Notification' in window ? Notification.permission : 'unsupported');
+    toast({ title: ok ? '🔔 Notifikasi ujian aktif' : 'Notifikasi belum diizinkan' });
+  };
+
+  if (getExamDayMode()) {
+    return (
+      <div className="space-y-6 py-4 animate-slide-up">
+        {/* Header Card */}
+        <div className="glass-panel rounded-[34px] overflow-hidden relative border-amber/20 p-6 shadow-xl shadow-amber/5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--amber)/0.12),transparent_60%)] pointer-events-none" />
+          <div className="absolute right-5 top-5 text-[80px] leading-none opacity-[0.045] font-display font-black pointer-events-none">EXAM</div>
+          
+          <div className="relative text-center py-6">
+            <div className="w-20 h-20 rounded-full bg-amber/10 border border-amber/30 flex items-center justify-center text-4xl mx-auto mb-5 shadow-[0_0_25px_rgba(245,158,11,0.15)] animate-pulse">
+              🔕
+            </div>
+            
+            <h1 className="font-display text-3xl font-bold tracking-tight leading-tight text-foreground mb-3">
+              Mode Ujian Aktif
+            </h1>
+            
+            <p className="text-[13px] font-semibold text-text2 leading-relaxed max-w-sm mx-auto mb-6 px-2">
+              Kegiatan Belajar Mengajar (KBM) dan pelacakan jadwal harian dinonaktifkan sementara untuk hari ini.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-3">
+              <div className="bg-surface/65 backdrop-blur-md border border-border2/60 rounded-2xl p-3.5 text-center">
+                <div className="text-2xl font-black text-amber leading-none">{todayExamItems.length}</div>
+                <div className="text-[10px] text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ujian</div>
+              </div>
+              <div className="bg-surface/65 backdrop-blur-md border border-border2/60 rounded-2xl p-3.5 text-center">
+                <div className="text-2xl font-black text-primary leading-none">{todayProctorSessions.length}</div>
+                <div className="text-[10px] text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ngawas</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="px-2 pb-2 relative z-10 space-y-2.5">
+            <button
+              onClick={handleOpenExam}
+              className="w-full min-h-[54px] rounded-2xl bg-gradient-to-r from-amber to-amber-600 text-amber-950 font-black text-[14px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber/20 active:translate-y-0.5 active:shadow-none hover:brightness-105"
+            >
+              📖 Buka Agenda Ujian
+            </button>
+            <button
+              onClick={handleTurnOffExamMode}
+              className="w-full min-h-[48px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-2 hover:bg-surface2 transition-all"
+            >
+              🔄 Kembali ke KBM Normal
+            </button>
+          </div>
+        </div>
+
+        {/* Small Elegant Note */}
+        <div className="bg-surface/30 border border-border/50 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-base mt-0.5">💡</span>
+          <div className="text-[12px] text-text3 leading-relaxed">
+            Anda dapat menonaktifkan Mode Ujian kapan saja melalui tombol di atas atau melalui tab <strong>Ujian</strong> → <strong>Kelola</strong>.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isTodayHolidayGlobal()) {
     return (
       <div className="text-center py-12 px-6 animate-slide-up flex flex-col items-center">
@@ -301,99 +392,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   const doneCount = items.filter(x => x.done).length;
   const showBackupBtn = shouldShowBackupReminder();
-  const countdowns = getExamCountdowns();
-
-  const [examModeBanner, setExamModeBanner] = useState(getExamDayMode());
-  const [notifPermission, setNotifPermission] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'));
-  const todayExamItems = getTodayExamItems();
-  const todayProctorSessions = getTodayProctorSessions();
-  const examReminderSettings = getExamReminderSettings();
-  const hasExamReminder = todayExamItems.length > 0 || todayProctorSessions.length > 0;
-
-  const handleTurnOffExamMode = () => {
-    setExamDayMode(false);
-    setExamModeBanner(false);
-    onRefresh();
-    toast({ title: '📚 Mode KBM Normal kembali aktif' });
-  };
-
-  const handleTurnOnExamMode = () => {
-    setExamDayMode(true);
-    setExamModeBanner(true);
-    onRefresh();
-    toast({ title: '📋 Mode Ujian Aktif' });
-  };
-
-  const handleOpenExam = () => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' }));
-
-  const handleEnableExamNotifications = async () => {
-    const ok = await requestNotifPermission();
-    setNotifPermission('Notification' in window ? Notification.permission : 'unsupported');
-    toast({ title: ok ? '🔔 Notifikasi ujian aktif' : 'Notifikasi belum diizinkan' });
-  };
 
   return (
     <div>
-      {/* Mode Ujian Banner */}
-      {examModeBanner && (
-        <div className="bg-amber/10 border border-amber/30 rounded-2xl px-4 py-3 mb-3 animate-slide-up">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5 min-w-0">
-              <span className="text-xl flex-shrink-0 mt-0.5">📋</span>
-              <div className="min-w-0">
-                <div className="text-[11px] font-black text-amber uppercase tracking-wide">Mode Ujian Aktif</div>
-                <div className="text-[11px] text-text2 leading-snug">
-                  Tracking KBM dihentikan. {todayExamItems.length} ujian, {todayProctorSessions.length} ngawas hari ini.
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setExamModeBanner(false)} className="text-[11px] text-text3 px-2 py-1 hover:bg-surface2 rounded-lg transition-colors flex-shrink-0">
-              ✕
-            </button>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button onClick={handleOpenExam} className="flex-1 text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 px-2.5 py-2 rounded-xl whitespace-nowrap">
-              Buka Ujian
-            </button>
-            <button
-              onClick={handleTurnOffExamMode}
-              className="flex-1 text-[10px] font-bold text-amber-950 bg-amber px-2.5 py-2 rounded-xl shadow-sm whitespace-nowrap"
-            >
-              Nonaktifkan
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!examModeBanner && hasExamReminder && (
-        <div className="bg-primary/10 border border-primary-border rounded-2xl px-4 py-3 mb-3 animate-slide-up">
-          <div className="flex items-start gap-2.5 min-w-0">
-            <span className="text-xl flex-shrink-0 mt-0.5">🔔</span>
-            <div className="min-w-0">
-              <div className="text-[11px] font-black text-primary uppercase tracking-wide">Reminder Ujian Hari Ini</div>
-              <div className="text-[11px] text-text2 leading-snug">
-                Ada {todayExamItems.length} ujian dan {todayProctorSessions.length} jadwal ngawas. Aktifkan Mode Ujian agar tracking KBM berhenti.
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleTurnOnExamMode}
-              className="flex-1 text-[10px] font-bold text-primary-foreground bg-primary px-2.5 py-2 rounded-xl shadow-sm whitespace-nowrap"
-            >
-              Aktifkan Mode
-            </button>
-            <button onClick={handleOpenExam} className="flex-1 text-[10px] font-bold text-primary bg-primary/10 border border-primary-border px-2.5 py-2 rounded-xl whitespace-nowrap">
-              Lihat Jadwal
-            </button>
-            {examReminderSettings.enabled && notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
-              <button onClick={handleEnableExamNotifications} className="text-[10px] font-bold text-text2 bg-surface border border-border px-2.5 py-2 rounded-xl whitespace-nowrap">
-                Notif
-              </button>
-            )}
-          </div>
-        </div>
-      )}
       {/* Daily Briefing — collapsible */}
       <div className={`mb-3 border rounded-2xl overflow-hidden transition-all ${briefingOpen ? 'border-border2' : 'border-transparent'}`}>
         <button
@@ -510,19 +511,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               )}
               
               <div className="p-5 relative">
-                {/* Status + Exam Badges at Top */}
+                {/* Status at Top */}
                 <div className="flex items-center justify-between gap-3 mb-5">
                   <div className={`inline-flex items-center gap-2 border text-[10px] font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
                     <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
-                  </div>
-                  
-                  <div className="flex gap-1 overflow-x-auto scrollbar-none ml-auto">
-                    {hasExams && countdowns.slice(0, 1).map((cd, i) => (
-                      <div key={i} className={`whitespace-nowrap px-2 py-0.5 rounded-full border text-[9px] font-bold tracking-tight flex-shrink-0 ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
-                        {cd.subject}: {cd.daysLeft}h
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -650,15 +643,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="inline-flex items-center gap-[6px] bg-teal-dim border border-teal/40 text-[10px] text-teal font-extrabold tracking-[0.9px] uppercase px-[14px] py-[8px] rounded-full shadow-[0_0_15px_hsl(var(--teal-glow))]">
                     🕐 Berikutnya
                   </div>
-                  {hasExams && (
-                    <div className="flex gap-1">
-                      {countdowns.slice(0, 1).map((cd, i) => (
-                        <div key={i} className={`whitespace-nowrap px-2.5 py-1 rounded-lg border text-[10px] font-bold ${cd.daysLeft <= 7 ? 'bg-red/10 border-red/20 text-red' : 'bg-amber/10 border-amber/20 text-amber'}`}>
-                          📅 {cd.subject}: {cd.daysLeft}h
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div className="font-display text-3xl font-black tracking-[-0.04em] leading-[0.95] bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent mb-2">{upcoming.className}</div>
@@ -704,39 +688,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           );
         }
 
-        // State 3: No sessions today, but Exams exist
-        if (hasExams) {
-          return (
-             <div className="bg-surface/50 backdrop-blur-xl border border-border rounded-3xl p-7 mb-4 animate-slide-up shadow-lg">
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="text-2xl">⚡</span>
-                   <div className="text-[11px] font-black uppercase tracking-widest text-text3">Fokus Ujian Mendatang</div>
-                </div>
-                <div className="space-y-4">
-                  {countdowns.slice(0, 3).map((cd, i) => (
-                    <div key={i} className={`flex items-center justify-between p-4 rounded-2xl border ${cd.daysLeft <= 7 ? 'bg-red/5 border-red/20' : 'bg-surface2/60 border-border'}`}>
-                      <div>
-                        <div className="text-[14px] font-extrabold text-foreground">{cd.subject}</div>
-                        <div className="text-[11px] font-bold text-text3 uppercase mt-0.5">Mata Pelajaran</div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-2xl font-black tabular-nums leading-none ${cd.daysLeft <= 7 ? 'text-red' : cd.daysLeft <= 14 ? 'text-amber' : 'text-primary'}`}>{cd.daysLeft}</div>
-                        <div className="text-[9px] font-black text-text3 uppercase mt-1">Hari Lagi</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button 
-                  onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'exam' }))}
-                  className="w-full mt-6 py-3 text-[11px] font-black text-primary uppercase tracking-widest hover:bg-primary/5 rounded-xl transition-colors"
-                >
-                  Lihat Kalender Ujian →
-                </button>
-             </div>
-          );
-        }
-
-        return null; // Should not happen given logic above
+        return null;
       })()}
 
 
