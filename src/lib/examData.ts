@@ -391,6 +391,122 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
     .sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
+// ── Koreksi queue (independen dari jadwal agenda) ─────────────────────────────
+export interface CorrectionQueueItem {
+  subjectId: string;
+  subjectName: string;
+  classId: string;
+  className: string;
+  examDate: string;
+  daysLeft: number;
+  status: CorrectionStatus | null;
+  isOverdue: boolean;
+}
+
+function correctionItemKey(subjectId: string, classId: string, examDate: string) {
+  return `${subjectId}:${classId}:${examDate}`;
+}
+
+function sortCorrectionQueue(a: CorrectionQueueItem, b: CorrectionQueueItem) {
+  if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+  if (a.daysLeft !== b.daysLeft) return b.daysLeft - a.daysLeft;
+  return a.subjectName.localeCompare(b.subjectName) || a.className.localeCompare(b.className);
+}
+
+function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
+  const allExams = getAllExamSubjects();
+  const todayItems = getTodayExamItems();
+  const corrections = getCorrections();
+  const data = getData();
+  const items: CorrectionQueueItem[] = [];
+  const seen = new Set<string>();
+
+  const addItem = (item: CorrectionQueueItem) => {
+    const k = correctionItemKey(item.subjectId, item.classId, item.examDate);
+    if (seen.has(k)) return;
+    seen.add(k);
+    items.push(item);
+  };
+
+  for (const exam of allExams) {
+    if (exam.daysLeft > 0) continue;
+
+    for (const cls of exam.classes) {
+      const status = cls.correction?.status ?? null;
+
+      if (exam.daysLeft === 0) {
+        const todayItem = todayItems.find(
+          t => t.subjectId === exam.subjectId && t.classId === cls.classId && t.examDate === exam.examDate,
+        );
+        if (!todayItem?.isDone && status === null) continue;
+      }
+
+      addItem({
+        subjectId: exam.subjectId,
+        subjectName: exam.subjectName,
+        classId: cls.classId,
+        className: cls.className,
+        examDate: exam.examDate,
+        daysLeft: exam.daysLeft,
+        status,
+        isOverdue: exam.daysLeft < -5 && status !== 'selesai',
+      });
+    }
+  }
+
+  const todayStr = dateKey();
+  for (const corr of corrections) {
+    const k = correctionItemKey(corr.subjectId, corr.classId, corr.examDate);
+    if (seen.has(k)) continue;
+
+    const sub = data.subjects.find(s => s.id === corr.subjectId);
+    const cls = data.classes.find(c => c.id === corr.classId);
+    const today = dateFromKey(todayStr);
+    const examDt = dateFromKey(corr.examDate);
+    const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
+
+    if (daysLeft > 0) continue;
+
+    if (daysLeft === 0) {
+      const todayItem = todayItems.find(
+        t => t.subjectId === corr.subjectId && t.classId === corr.classId && t.examDate === corr.examDate,
+      );
+      if (!todayItem?.isDone && corr.status !== 'selesai') continue;
+    }
+
+    addItem({
+      subjectId: corr.subjectId,
+      subjectName: sub?.name || '?',
+      classId: corr.classId,
+      className: cls?.name || '?',
+      examDate: corr.examDate,
+      daysLeft,
+      status: corr.status,
+      isOverdue: daysLeft < -5 && corr.status !== 'selesai',
+    });
+  }
+
+  return items.sort(sortCorrectionQueue);
+}
+
+export function getCorrectionQueue(options?: { includeCompleted?: boolean }): CorrectionQueueItem[] {
+  const includeCompleted = options?.includeCompleted ?? false;
+  const items = buildCorrectionEligibleItems();
+  if (includeCompleted) return items;
+  return items.filter(i => i.status !== 'selesai');
+}
+
+export function getCorrectionStats() {
+  const all = buildCorrectionEligibleItems();
+  const pending = all.filter(i => i.status !== 'selesai');
+  return {
+    total: all.length,
+    done: all.filter(i => i.status === 'selesai').length,
+    pending: pending.length,
+    overdue: pending.filter(i => i.isOverdue).length,
+  };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function fmtDate(d: string) {
   return dateFromKey(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });

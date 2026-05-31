@@ -5,9 +5,10 @@ import {
   getExamSchedules, addExamSchedule, deleteExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
   getTodayProctorSessions, getTomorrowProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
+  getCorrectionQueue, getCorrectionStats,
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
-  ExamSubjectItem, CorrectionStatus, ProctorSession, ExamReminderSettingKey,
+  ExamSubjectItem, CorrectionStatus, CorrectionQueueItem, ProctorSession, ExamReminderSettingKey,
   fmt, resetAllExamData,
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
@@ -16,14 +17,22 @@ import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
-type ExamTab = 'today' | 'manage';
+type ExamTab = 'today' | 'koreksi' | 'manage';
+
+function getInitialExamTab(): ExamTab {
+  const hasAgenda =
+    getTodayExamItems().length > 0 ||
+    getTomorrowExamItems().length > 0 ||
+    getTodayProctorSessions().length > 0 ||
+    getTomorrowProctorSessions().length > 0;
+  if (hasAgenda) return 'today';
+  if (getCorrectionStats().pending > 0) return 'koreksi';
+  return 'manage';
+}
 
 export default function ExamView({ onRefresh }: ExamViewProps) {
   const { toast } = useToast();
-  const [tab, setTab] = useState<ExamTab>(() => {
-    const todayHasContent = getTodayExamItems().length > 0 || getTodayProctorSessions().length > 0;
-    return todayHasContent ? 'today' : 'manage';
-  });
+  const [tab, setTab] = useState<ExamTab>(getInitialExamTab);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [examFormOpen, setExamFormOpen] = useState(false);
@@ -33,6 +42,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [examMode, setExamMode] = useState(getExamDayMode());
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showCompletedKoreksi, setShowCompletedKoreksi] = useState(false);
 
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
@@ -61,8 +71,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const allSubjects = getAllExamSubjects();
   const data = getData();
   const examSchedules = getExamSchedules();
-  const upcoming = allSubjects.filter(s => s.daysLeft >= 0);
   const past = allSubjects.filter(s => s.daysLeft < 0);
+  const correctionStats = getCorrectionStats();
   const todayProctor = getTodayProctorSessions();
   const tomorrowProctor = getTomorrowProctorSessions();
   const allProctor = getProctorSessions().sort((a, b) => b.date.localeCompare(a.date));
@@ -230,7 +240,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const SubjectCard = ({ item }: { item: ExamSubjectItem }) => {
     const expandKey = `${item.subjectId}-${item.examDate}`;
     const isExp = expanded === expandKey;
-    const done = item.classes.filter(c => c.correction?.status === 'selesai').length;
     return (
       <div className="bg-surface border border-border2 rounded-2xl overflow-hidden">
         <button className="w-full flex items-center justify-between px-4 py-3 text-left" onClick={() => setExpanded(isExp ? null : expandKey)}>
@@ -240,43 +249,62 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
               {fmtDate(item.examDate)} · {fmtDayLabel(item.daysLeft)}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {item.daysLeft < 0 && item.classes.length > 0 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                done === item.classes.length ? 'text-green bg-green-dim border-green' : 'text-amber bg-amber/10 border-amber/25'
-              }`}>{done}/{item.classes.length} ✓</span>
-            )}
-            <span className="text-text3 text-xs">{isExp ? '▲' : '▼'}</span>
-          </div>
+          <span className="text-text3 text-xs">{isExp ? '▲' : '▼'}</span>
         </button>
         {isExp && (
           <div className="border-t border-border px-4 pb-3 pt-2 space-y-2">
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mb-1">Jadwal & Koreksi per Kelas</div>
-            {item.classes.map(cls => {
-              const st = cls.correction?.status ?? null;
-              return (
-                <div key={`${cls.classId}-${cls.startTime || ''}`} className="flex items-center justify-between gap-3 py-1.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold">{cls.className}</div>
-                    {(cls.startTime || cls.location || cls.note) && (
-                      <div className="text-[11px] text-text3 leading-snug mt-0.5">
-                        {cls.startTime && cls.endTime && <span>{fmt(cls.startTime)}–{fmt(cls.endTime)}</span>}
-                        {cls.location && <span>{cls.startTime && cls.endTime ? ' · ' : ''}{cls.location}</span>}
-                        {cls.note && <span>{(cls.startTime && cls.endTime) || cls.location ? ' · ' : ''}{cls.note}</span>}
-                      </div>
-                    )}
+            <div className="text-xs text-text3 font-bold uppercase tracking-wide mb-1">Jadwal per Kelas</div>
+            {item.classes.map(cls => (
+              <div key={`${cls.classId}-${cls.startTime || ''}`} className="py-1.5">
+                <div className="text-sm font-semibold">{cls.className}</div>
+                {(cls.startTime || cls.location || cls.note) && (
+                  <div className="text-[11px] text-text3 leading-snug mt-0.5">
+                    {cls.startTime && cls.endTime && <span>{fmt(cls.startTime)}–{fmt(cls.endTime)}</span>}
+                    {cls.location && <span>{cls.startTime && cls.endTime ? ' · ' : ''}{cls.location}</span>}
+                    {cls.note && <span>{(cls.startTime && cls.endTime) || cls.location ? ' · ' : ''}{cls.note}</span>}
                   </div>
-                  <button
-                    onClick={() => handleCycle(item.subjectId, cls.classId, item.examDate, st)}
-                    className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${st ? STATUS_CLS[st] : 'text-text3 bg-surface border-border2'}`}
-                  >
-                    {st ? STATUS_LABEL[st] : 'Belum'}
-                  </button>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const CorrectionRow = ({ item }: { item: CorrectionQueueItem }) => {
+    const corrSt = item.status;
+    return (
+      <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
+        corrSt === 'selesai' ? 'bg-green-dim/15 border-green-dim/60' :
+        corrSt ? 'bg-amber/8 border-amber/25' :
+        item.isOverdue ? 'bg-red/5 border-red/25' :
+        'bg-surface border-border2'
+      }`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            {item.isOverdue && corrSt !== 'selesai' && (
+              <span className="text-[9px] font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
+            )}
+            {item.daysLeft === 0 && (
+              <span className="text-[9px] font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+            )}
+          </div>
+          <div className="text-sm font-bold leading-snug">{item.className}</div>
+          <div className="text-xs text-text2">{item.subjectName}</div>
+          <div className="text-[11px] text-text3 mt-0.5">
+            {fmtDate(item.examDate)}
+            {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft)}</span>}
+          </div>
+        </div>
+        <button
+          onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
+          className={`text-xs px-3.5 py-1.5 rounded-full border font-bold transition-all flex-shrink-0 active:scale-95 ${
+            corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface2 border-border2 hover:border-border3'
+          }`}
+        >
+          {corrSt ? STATUS_LABEL[corrSt] : 'Belum'}
+        </button>
       </div>
     );
   };
@@ -305,10 +333,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
   // ─── Tab: Agenda 2 Hari ───────────────────────────────────────────────────
   const renderToday = () => {
-    const correctionItems = todayItems.filter(item => item.isDone || item.correction?.status);
-    const corrDone = correctionItems.filter(i => i.correction?.status === 'selesai').length;
-    const corrPending = correctionItems.length - corrDone;
-
     const hasActiveProctor = todayProctor.some(s => {
       const cur = currentMin();
       return cur >= timeToMin(s.startTime) && cur < timeToMin(s.endTime);
@@ -324,7 +348,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
       {/* ── Hero Summary Bar ── */}
       {hasAnythingToday && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {/* Ngawas */}
           <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
             hasActiveProctor ? 'bg-amber/10 border-amber/40' :
@@ -365,26 +389,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
               </div>
             </div>
           </div>
-
-          {/* Koreksi */}
-          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
-            corrPending > 0 ? 'bg-red/8 border-red/30' :
-            corrDone > 0 ? 'bg-green-dim/20 border-green-dim' :
-            'bg-surface/40 border-border/30 opacity-40'
-          }`}>
-            <div className="relative">
-              <div className="text-base leading-none mb-1.5">✏️</div>
-              <div className={`text-2xl font-black leading-none tabular-nums ${corrPending > 0 ? 'text-red' : corrDone > 0 ? 'text-green' : 'text-text3'}`}>
-                {correctionItems.length > 0 ? `${corrDone}/${correctionItems.length}` : '–'}
-              </div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Koreksi</div>
-              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${
-                corrPending > 0 ? 'text-red' : corrDone > 0 ? 'text-green' : 'text-transparent'
-              }`}>
-                {corrPending > 0 ? `${corrPending} pending` : corrDone > 0 ? '✓ Beres' : '·'}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -394,6 +398,14 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="text-5xl mb-4">📭</div>
           <div className="text-sm font-bold mb-1">Tidak ada agenda ujian 2 hari ke depan</div>
           <div className="text-xs text-text3 mb-5">Tidak ada ujian mapelmu maupun jadwal ngawas hari ini dan besok.</div>
+          {correctionStats.pending > 0 && (
+            <button
+              onClick={() => setTab('koreksi')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red/10 border border-red/25 text-red text-xs font-bold transition-all active:scale-[0.97] hover:bg-red/15 mb-3 w-full justify-center"
+            >
+              ✏️ Ada {correctionStats.pending} koreksi pending
+            </button>
+          )}
           <button
             onClick={() => setTab('manage')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
@@ -538,53 +550,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         </div>
       )}
 
-      {/* ── 3. KOREKSI ── */}
-      {correctionItems.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 px-1 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">✏️ Koreksi</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-            <span className={`text-[10px] font-bold ${corrPending > 0 ? 'text-red' : 'text-green'}`}>
-              {corrDone}/{correctionItems.length}
-            </span>
-          </div>
-          {/* Progress bar */}
-          <div className="h-1 bg-surface2 rounded-full overflow-hidden mb-2.5 mx-1">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${
-                corrPending === 0 ? 'bg-green' : corrDone > 0 ? 'bg-amber' : 'bg-red/50'
-              }`}
-              style={{ width: `${correctionItems.length > 0 ? Math.max(4, (corrDone / correctionItems.length) * 100) : 0}%` }}
-            />
-          </div>
-          <div className="space-y-2">
-            {correctionItems.map(item => {
-              const corrSt = item.correction?.status ?? null;
-              return (
-                <div key={`corr-${item.subjectId}-${item.classId}`} className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
-                  corrSt === 'selesai' ? 'bg-green-dim/15 border-green-dim/60' :
-                  corrSt ? 'bg-amber/8 border-amber/25' :
-                  'bg-surface border-border2'
-                }`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold leading-snug">{item.className}</div>
-                    <div className="text-xs text-text2">{item.subjectName}</div>
-                  </div>
-                  <button
-                    onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
-                    className={`text-xs px-3.5 py-1.5 rounded-full border font-bold transition-all flex-shrink-0 active:scale-95 ${
-                      corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface2 border-border2 hover:border-border3'
-                    }`}
-                  >
-                    {corrSt ? STATUS_LABEL[corrSt] : 'Belum'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* ── SECTION: BESOK ── */}
       {hasAnythingTomorrow && (
         <div className="space-y-3">
@@ -674,6 +639,75 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     );
   };
 
+  // ─── Tab: Koreksi ─────────────────────────────────────────────────────────
+  const renderKoreksi = () => {
+    const queue = getCorrectionQueue({ includeCompleted: showCompletedKoreksi }).slice(0, showCompletedKoreksi ? 20 : undefined);
+    const { done, total, pending, overdue } = correctionStats;
+    const progressPct = total > 0 ? Math.max(4, (done / total) * 100) : 0;
+
+    return (
+      <div className="space-y-3 animate-slide-up pb-20">
+        {/* Summary */}
+        <div className={`rounded-2xl border p-4 ${
+          pending > 0 ? 'bg-red/5 border-red/25' : 'bg-green-dim/15 border-green-dim/60'
+        }`}>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-1">Progress Koreksi</div>
+              <div className={`text-2xl font-black tabular-nums ${pending > 0 ? 'text-red' : 'text-green'}`}>
+                {done}/{total}
+              </div>
+            </div>
+            {overdue > 0 && (
+              <span className="text-[10px] font-black bg-red/15 text-red border border-red/25 px-2.5 py-1 rounded-full uppercase tracking-wide">
+                {overdue} terlambat
+              </span>
+            )}
+          </div>
+          <div className="h-1.5 bg-surface2 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${pending === 0 ? 'bg-green' : done > 0 ? 'bg-amber' : 'bg-red/50'}`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-text3 mt-2">
+            {pending > 0 ? `${pending} kelas belum selesai dikoreksi` : 'Semua koreksi sudah beres'}
+          </div>
+        </div>
+
+        {/* Filter toggle */}
+        <button
+          onClick={() => setShowCompletedKoreksi(v => !v)}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border text-xs font-semibold transition-all ${
+            showCompletedKoreksi ? 'bg-primary/10 border-primary-border text-foreground' : 'bg-surface border-border2 text-text2 hover:bg-surface2'
+          }`}
+        >
+          <span>{showCompletedKoreksi ? '✓ Menampilkan selesai' : 'Tampilkan selesai'}</span>
+          <span className="text-text3">{showCompletedKoreksi ? '▲' : '▼'}</span>
+        </button>
+
+        {queue.length === 0 ? (
+          <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
+            <div className="text-5xl mb-4">{showCompletedKoreksi ? '📭' : '✅'}</div>
+            <div className="text-sm font-bold mb-1">
+              {showCompletedKoreksi ? 'Belum ada riwayat koreksi' : 'Semua koreksi beres'}
+            </div>
+            <div className="text-xs text-text3">
+              {showCompletedKoreksi
+                ? 'Koreksi yang sudah selesai akan muncul di sini.'
+                : 'Tidak ada ujian yang perlu dikoreksi saat ini.'}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {queue.map(item => (
+              <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ─── Tab: Kelola — Section Ujian ──────────────────────────────────────────
   const renderManageExam = () => {
@@ -789,13 +823,20 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
                 <div className="space-y-2">{futureExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
               </div>
             )}
-            {upcoming.length > 0 && (
+            {examSchedules.length === 0 && allSubjects.filter(s => s.daysLeft >= 0).length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Per Mapel ({upcoming.length} aktif)</div>
-                <div className="space-y-2">{upcoming.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Dari Tanggal Mapel</div>
+                <div className="bg-amber/10 border border-amber/25 rounded-xl p-3 text-xs text-amber leading-snug mb-2">
+                  Tambah jadwal detail per kelas supaya jam ujian lebih akurat.
+                </div>
+                <div className="space-y-2">
+                  {allSubjects.filter(s => s.daysLeft >= 0).map(item => (
+                    <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />
+                  ))}
+                </div>
               </div>
             )}
-            {(pastExamSchedules.length > 0 || past.length > 0) && (
+            {(pastExamSchedules.length > 0 || (examSchedules.length === 0 && past.length > 0)) && (
               <div>
                 <button
                   onClick={() => setShowPastExam(o => !o)}
@@ -990,8 +1031,10 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
       {/* Reminders */}
       <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-2">
         <div className="mb-2">
-          <div className="text-[11px] font-black uppercase tracking-widest text-primary">Reminder Ujian</div>
-          <div className="text-[12px] text-text3 mt-1 leading-snug">Notifikasi lokal saat app pernah dibuka dan izin notifikasi aktif. Server push menyusul nanti.</div>
+          <div className="text-[11px] font-black uppercase tracking-widest text-primary">Pengingat</div>
+          <div className="text-[12px] text-text3 mt-1 leading-snug">
+            Hanya untuk jadwal ujian dan ngawas hari ini serta besok. Butuh izin notifikasi aktif.
+          </div>
         </div>
         <ReminderToggle settingKey="enabled" title="Aktifkan Reminder" desc="Master switch untuk semua pengingat ujian dan ngawas." />
         <ReminderToggle settingKey="dayBefore" title="H-1 Sore" desc="Ingatkan ujian besok sekitar pukul 18.00." />
@@ -1016,21 +1059,24 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         {renderManageProctor()}
       </div>
 
-      {/* ── Section: Ujian Mapel ── */}
+      {/* ── Section: Jadwal Ujian ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
           <span className="text-base">📚</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Ujian Mapel</span>
+          <div className="min-w-0">
+            <span className="text-[11px] font-black uppercase tracking-widest text-primary">Jadwal Ujian</span>
+            <div className="text-[10px] text-text3 mt-0.5">Atur tanggal &amp; jam ujian per kelas</div>
+          </div>
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageExam()}
       </div>
 
-      {/* ── Section: Mode & Reminder ── */}
+      {/* ── Section: Pengaturan ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
           <span className="text-base">⚙️</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Mode &amp; Reminder</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Pengaturan</span>
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageMode()}
@@ -1094,8 +1140,9 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   );
 
   // ─── Main shell ───────────────────────────────────────────────────────────
-  const tabItems: { id: ExamTab; label: string; emoji: string }[] = [
+  const tabItems: { id: ExamTab; label: string; emoji: string; badge?: number }[] = [
     { id: 'today', label: 'Agenda 2 Hari', emoji: '📅' },
+    { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
     { id: 'manage', label: 'Kelola', emoji: '⚙️' },
   ];
 
@@ -1107,7 +1154,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
             <div className="text-[11px] text-text3 truncate">
-              {examSchedules.length} jadwal · {todayItems.length} mapel hari ini · {tomorrowItems.length} besok · {todayProctor.length} ngawas
+              {todayProctor.length} ngawas · {todayItems.length} ujian hari ini · {tomorrowItems.length} besok
+              {correctionStats.pending > 0 && ` · ${correctionStats.pending} koreksi pending`}
             </div>
           </div>
           <button
@@ -1120,16 +1168,21 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-3 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
           {tabItems.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`min-h-[42px] rounded-lg px-1 text-[11px] font-black transition-all duration-200 active:scale-[0.98] ${
+              className={`relative min-h-[42px] rounded-lg px-1 text-[11px] font-black transition-all duration-200 active:scale-[0.98] ${
                 tab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:text-foreground hover:bg-surface2'
               }`}
               aria-current={tab === t.id ? 'page' : undefined}
             >
+              {t.badge !== undefined && (
+                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red text-white text-[9px] font-black grid place-items-center leading-none">
+                  {t.badge}
+                </span>
+              )}
               <span className="block text-sm leading-none mb-0.5">{t.emoji}</span>
               <span className="block leading-none truncate">{t.label}</span>
             </button>
@@ -1138,6 +1191,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
       </div>
 
       {tab === 'today' && renderToday()}
+      {tab === 'koreksi' && renderKoreksi()}
       {tab === 'manage' && renderManage()}
     </div>
   );

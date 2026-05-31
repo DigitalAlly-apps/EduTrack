@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as dataLib from '@/lib/data';
 import {
   applySmartReschedule,
   applySubjectDismissal,
@@ -20,7 +21,7 @@ import {
   skipSession,
   updateMaterial,
 } from '@/lib/data';
-import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting } from '@/lib/examData';
+import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
 import { AppData } from '@/lib/types';
 
 const baseData = (day = new Date().getDay()): AppData => ({
@@ -331,6 +332,120 @@ describe('exam schedules', () => {
 
     deleteExamSchedule(earliest.id);
     expect(getData().subjects[0].examDate).toBe('2026-05-20');
+  });
+});
+
+describe('correction queue', () => {
+  const daysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return dateKey(d);
+  };
+
+  const daysFromNow = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return dateKey(d);
+  };
+
+  it('includes past exams with pending correction status', () => {
+    saveData(baseData());
+    addExamSchedule({
+      classId: 'c1',
+      subjectId: 's1',
+      date: daysAgo(3),
+      startTime: '07:30',
+      endTime: '09:00',
+    });
+
+    const queue = getCorrectionQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      classId: 'c1',
+      subjectId: 's1',
+      subjectName: 'Matematika',
+      className: '10A',
+      daysLeft: -3,
+      status: null,
+    });
+  });
+
+  it('excludes tomorrow exams from the correction queue', () => {
+    saveData(baseData());
+    addExamSchedule({
+      classId: 'c1',
+      subjectId: 's1',
+      date: daysFromNow(1),
+      startTime: '07:30',
+      endTime: '09:00',
+    });
+
+    expect(getCorrectionQueue()).toHaveLength(0);
+  });
+
+  it('excludes today exams until the session is done unless correction already started', () => {
+    saveData(baseData());
+    const today = dateKey();
+    const curMinSpy = vi.spyOn(dataLib, 'currentMin').mockReturnValue(8 * 60);
+
+    addExamSchedule({
+      classId: 'c1',
+      subjectId: 's1',
+      date: today,
+      startTime: '07:30',
+      endTime: '09:00',
+    });
+
+    expect(getCorrectionQueue()).toHaveLength(0);
+
+    upsertCorrection('s1', 'c1', today, 'sedang');
+    expect(getCorrectionQueue()).toHaveLength(1);
+
+    curMinSpy.mockRestore();
+  });
+
+  it('keeps orphan corrections when the detailed schedule was removed', () => {
+    saveData(baseData());
+    const pastDate = daysAgo(2);
+    localStorage.setItem('edutrack_corrections', JSON.stringify([{
+      id: 'corr-orphan',
+      subjectId: 's1',
+      classId: 'c1',
+      examDate: pastDate,
+      status: 'sedang',
+      updatedAt: new Date().toISOString(),
+    }]));
+
+    const queue = getCorrectionQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      subjectId: 's1',
+      classId: 'c1',
+      examDate: pastDate,
+      status: 'sedang',
+      daysLeft: -2,
+    });
+  });
+
+  it('reports correction stats for pending, done, and overdue items', () => {
+    saveData(baseData());
+    addExamSchedule({ classId: 'c1', subjectId: 's1', date: daysAgo(3), startTime: '07:30', endTime: '09:00' });
+    addExamSchedule({ classId: 'c2', subjectId: 's1', date: daysAgo(8), startTime: '07:30', endTime: '09:00' });
+    upsertCorrection('s1', 'c2', daysAgo(8), 'selesai');
+
+    const stats = getCorrectionStats();
+    expect(stats.total).toBe(2);
+    expect(stats.done).toBe(1);
+    expect(stats.pending).toBe(1);
+    expect(stats.overdue).toBe(0);
+
+    upsertCorrection('s1', 'c1', daysAgo(3), 'belum');
+    const pendingOnly = getCorrectionQueue();
+    expect(pendingOnly).toHaveLength(1);
+    expect(pendingOnly[0].classId).toBe('c1');
+
+    upsertCorrection('s1', 'c2', daysAgo(8), 'sedang');
+    expect(getCorrectionStats().overdue).toBe(1);
   });
 });
 
