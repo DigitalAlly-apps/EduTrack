@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dataLib from '@/lib/data';
+import fs from 'fs';
+import path from 'path';
 import {
   applySmartReschedule,
   applySubjectDismissal,
@@ -518,5 +520,24 @@ describe('backup and import', () => {
     expect(material.pageEnd).toBeUndefined();
     expect(material.note).toBeUndefined();
     expect(getData().examSchedules).toEqual([]);
+  });
+
+  it('imports the real backup file and successfully computes insights and daily priorities without hanging', async () => {
+    const backupPath = path.resolve(__dirname, '../../backup/edutrack_backup_2026-06-01.json');
+    const backupText = fs.readFileSync(backupPath, 'utf8');
+
+    const start = Date.now();
+    await importJSON(new File([backupText], 'backup.json', { type: 'application/json' }));
+    
+    // Call functions that previously hung/blocked CPU
+    const priorities = getDailyPriorities();
+    const predictiveFinishes = getPredictiveFinishes();
+    
+    const duration = Date.now() - start;
+    
+    // Expect execution to be extremely fast (well under 200ms)
+    expect(duration).toBeLessThan(200);
+    expect(priorities).toBeDefined();
+    expect(predictiveFinishes).toBeDefined();
   });
 });

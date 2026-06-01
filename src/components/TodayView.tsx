@@ -323,7 +323,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="text-[12px] text-text2 mt-1 flex flex-wrap gap-2">
                       <span className="font-semibold text-text1">{fmt(exam.startTime)}–{fmt(exam.endTime)}</span>
                       <span className="opacity-30">•</span>
-                      <span>Kelas: {exam.classes.map(c => c.className).join(', ')}</span>
+                      <span>Kelas: {exam.className}</span>
                       {exam.location && (
                         <>
                           <span className="opacity-30">•</span>
@@ -397,7 +397,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       <div className="min-w-0 flex-1">
                         <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
                         <div className="text-[11px] text-text2 mt-0.5">
-                          {fmt(exam.startTime)}–{fmt(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
+                          {fmt(exam.startTime)}–{fmt(exam.endTime)} · Kelas {exam.className}
                         </div>
                       </div>
                     </div>
@@ -629,7 +629,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* Unified Hero Area: Active Session, Upcoming, or Exams */}
       {(() => {
-        const hasExams = countdowns.length > 0;
+        const hasExams = todayExamItems.length > 0;
         
         // State 1: Active Session (Highest Priority)
         if (active) {
@@ -1143,7 +1143,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </div>
                     <div className="text-[14px] font-bold text-foreground leading-snug">{exam.subjectName}</div>
                     <div className="text-[11px] text-text2 mt-0.5">
-                      {exam.classes.map(c => c.className).join(' • ')}
+                      Kelas {exam.className}
                       {exam.location && <span className="text-text3"> · 📍{exam.location}</span>}
                     </div>
                   </div>
@@ -1222,7 +1222,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
                       <div className="text-[11px] text-text2 mt-0.5">
-                        {fmt(exam.startTime)}–{fmt(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
+                        {fmt(exam.startTime)}–{fmt(exam.endTime)} · Kelas {exam.className}
                       </div>
                     </div>
                   </div>

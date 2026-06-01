@@ -1,0 +1,1066 @@
+{
+  "teacherName": "Miqdad Abdussalam, S.H",
+  "classes": [
+    {
+      "id": "mo1j63h11bgp",
+      "name": "7A",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ld0l80kkm",
+      "name": "3A",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ld3rknv5w",
+      "name": "3B",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ld5mpqop0",
+      "name": "4A",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ld86vfj06",
+      "name": "4B",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ldblf9oti",
+      "name": "4C",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ldk7lfj6o",
+      "name": "7B",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ldx1mdyvv",
+      "name": "8A",
+      "color": "blue"
+    },
+    {
+      "id": "mo1ldyziq0p7",
+      "name": "8B",
+      "color": "blue"
+    }
+  ],
+  "subjects": [
+    {
+      "id": "mo1le5s6ugn3",
+      "name": "Aqidah",
+      "level": "SD/MI",
+      "examDate": "2026-05-30"
+    },
+    {
+      "id": "mo1lebs97d88",
+      "name": "Adab",
+      "level": "SD/MI",
+      "examDate": "2026-05-29"
+    },
+    {
+      "id": "mo1lefuxb226",
+      "name": "Fiqh",
+      "level": "SD/MI",
+      "examDate": "2026-05-30"
+    },
+    {
+      "id": "mo1lgwps40lv",
+      "name": "B.Arab",
+      "level": "SD/MI",
+      "examDate": "2026-05-29"
+    },
+    {
+      "id": "mo1ljf8p6cgf",
+      "name": "Qurdis",
+      "level": "SD/MI",
+      "examDate": "2026-05-30"
+    },
+    {
+      "id": "mo1ljmdmammy",
+      "name": "Sejarah",
+      "level": "SD/MI",
+      "examDate": null
+    },
+    {
+      "id": "mo1lk19c4hnp",
+      "name": "Qiro'ah",
+      "level": "SMP/MTs",
+      "examDate": null
+    },
+    {
+      "id": "mo1lnii5x9qz",
+      "name": "Imla'",
+      "level": "SMP/MTs",
+      "examDate": "2026-06-03"
+    },
+    {
+      "id": "mo1lnmts0z52",
+      "name": "Akhlak",
+      "level": "SMP/MTs",
+      "examDate": "2026-05-29"
+    },
+    {
+      "id": "mo1m0pa13kz5",
+      "name": "Tahfidz",
+      "level": "SD/MI",
+      "examDate": "2026-06-03"
+    },
+    {
+      "id": "mo1m0v8p9g6z",
+      "name": "H.Hadits",
+      "level": "SD/MI",
+      "examDate": "2026-06-05"
+    },
+    {
+      "id": "mo1m4xbrcj0o",
+      "name": "PAI",
+      "level": "SD/MI",
+      "examDate": "2026-06-02"
+    }
+  ],
+  "materials": [],
+  "schedules": [
+    {
+      "id": "mo1lr4xh8n2t",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lefuxb226",
+      "days": [
+        1
+      ],
+      "startTime": "08:00",
+      "duration": 35
+    },
+    {
+      "id": "mo1ls5km06uj",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1le5s6ugn3",
+      "days": [
+        1
+      ],
+      "startTime": "09:10",
+      "duration": 35
+    },
+    {
+      "id": "mo1lslp83zzo",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lebs97d88",
+      "days": [
+        1
+      ],
+      "startTime": "08:35",
+      "duration": 35
+    },
+    {
+      "id": "mo1lusopowqq",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lebs97d88",
+      "days": [
+        1
+      ],
+      "startTime": "10:45",
+      "duration": 35
+    },
+    {
+      "id": "mo1lv17m848u",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lefuxb226",
+      "days": [
+        1
+      ],
+      "startTime": "10:10",
+      "duration": 35
+    },
+    {
+      "id": "mo1lvkaktypl",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1le5s6ugn3",
+      "days": [
+        1
+      ],
+      "startTime": "11:20",
+      "duration": 35
+    },
+    {
+      "id": "mo1lwl5mxnjs",
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lnmts0z52",
+      "days": [
+        1
+      ],
+      "startTime": "12:50",
+      "duration": 70
+    },
+    {
+      "id": "mo1m09q3smxz",
+      "classId": "mo1ldk7lfj6o",
+      "subjectId": "mo1lnii5x9qz",
+      "days": [
+        1
+      ],
+      "startTime": "14:00",
+      "duration": 70
+    },
+    {
+      "id": "mo1m1yb9y9lb",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "days": [
+        2
+      ],
+      "startTime": "08:35",
+      "duration": 70
+    },
+    {
+      "id": "mo1m2hsv7obz",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "days": [
+        2
+      ],
+      "startTime": "10:45",
+      "duration": 70
+    },
+    {
+      "id": "mo1m2smdmtdw",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0v8p9g6z",
+      "days": [
+        2
+      ],
+      "startTime": "10:10",
+      "duration": 35
+    },
+    {
+      "id": "mo1m5f1fg1og",
+      "classId": "mo1ldblf9oti",
+      "subjectId": "mo1m4xbrcj0o",
+      "days": [
+        3
+      ],
+      "startTime": "08:35",
+      "duration": 70
+    },
+    {
+      "id": "mo1m5otgueib",
+      "classId": "mo1ld86vfj06",
+      "subjectId": "mo1m4xbrcj0o",
+      "days": [
+        3
+      ],
+      "startTime": "10:10",
+      "duration": 70
+    },
+    {
+      "id": "mo1m6bnoadpl",
+      "classId": "mo1ldyziq0p7",
+      "subjectId": "mo1lnii5x9qz",
+      "days": [
+        2
+      ],
+      "startTime": "12:50",
+      "duration": 70
+    },
+    {
+      "id": "mo1m6ny0j2zj",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lnmts0z52",
+      "days": [
+        2
+      ],
+      "startTime": "12:50",
+      "duration": 70
+    },
+    {
+      "id": "mo1m88vdvo2v",
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lk19c4hnp",
+      "days": [
+        3
+      ],
+      "startTime": "12:50",
+      "duration": 70
+    },
+    {
+      "id": "mo1m985dc5vm",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lgwps40lv",
+      "days": [
+        4
+      ],
+      "startTime": "07:25",
+      "duration": 70
+    },
+    {
+      "id": "mo1ma67w1gyi",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m4xbrcj0o",
+      "days": [
+        4
+      ],
+      "startTime": "08:35",
+      "duration": 70
+    },
+    {
+      "id": "mo1maf300hfy",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m4xbrcj0o",
+      "days": [
+        4
+      ],
+      "startTime": "10:10",
+      "duration": 70
+    },
+    {
+      "id": "mo1mdp7wt58i",
+      "classId": "mo1ld5mpqop0",
+      "subjectId": "mo1m4xbrcj0o",
+      "days": [
+        4
+      ],
+      "startTime": "12:50",
+      "duration": 70
+    },
+    {
+      "id": "mo1mec2w4cyy",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljf8p6cgf",
+      "days": [
+        5
+      ],
+      "startTime": "07:20",
+      "duration": 30
+    },
+    {
+      "id": "mo1meqto0cmv",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljmdmammy",
+      "days": [
+        5
+      ],
+      "startTime": "07:50",
+      "duration": 30
+    },
+    {
+      "id": "mo1mf7b2fywx",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "days": [
+        5
+      ],
+      "startTime": "09:45",
+      "duration": 60
+    },
+    {
+      "id": "mo1mflinpmsz",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "days": [
+        5
+      ],
+      "startTime": "08:20",
+      "duration": 60
+    },
+    {
+      "id": "mo1mhs5rgo61",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljf8p6cgf",
+      "days": [
+        6
+      ],
+      "startTime": "08:35",
+      "duration": 35
+    },
+    {
+      "id": "mo1mj38athes",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0v8p9g6z",
+      "days": [
+        6
+      ],
+      "startTime": "11:20",
+      "duration": 35
+    },
+    {
+      "id": "mo1mjmfiqix7",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lgwps40lv",
+      "days": [
+        6
+      ],
+      "startTime": "10:10",
+      "duration": 70
+    },
+    {
+      "id": "mo26zwrv9d9n",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljmdmammy",
+      "days": [
+        6
+      ],
+      "startTime": "09:10",
+      "duration": 35
+    },
+    {
+      "id": "mo2iorfdtnq9",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lk19c4hnp",
+      "days": [
+        5
+      ],
+      "startTime": "14:00",
+      "duration": 70
+    }
+  ],
+  "progress": [
+    {
+      "id": "mo1lr4xh8kgm",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lefuxb226",
+      "materialsDone": 0,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1ls5kmu52l",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1le5s6ugn3",
+      "materialsDone": 1,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1lslp89fyb",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lebs97d88",
+      "materialsDone": 1,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1lusopbp81",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lebs97d88",
+      "materialsDone": 1,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1lv17mjdwi",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lefuxb226",
+      "materialsDone": 1,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1lvkakxiki",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1le5s6ugn3",
+      "materialsDone": 1,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1lwl5m5rkq",
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lnmts0z52",
+      "materialsDone": 0,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1m09q39jbx",
+      "classId": "mo1ldk7lfj6o",
+      "subjectId": "mo1lnii5x9qz",
+      "materialsDone": 0,
+      "lastSession": "2026-04-20"
+    },
+    {
+      "id": "mo1m1yb9qkkz",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "materialsDone": 0,
+      "lastSession": "2026-04-21"
+    },
+    {
+      "id": "mo1m2hsvthla",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "materialsDone": 0,
+      "lastSession": "2026-04-24"
+    },
+    {
+      "id": "mo1m2smdoe7z",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0v8p9g6z",
+      "materialsDone": 0,
+      "lastSession": "2026-04-21"
+    },
+    {
+      "id": "mo1m5f1fpxhv",
+      "classId": "mo1ldblf9oti",
+      "subjectId": "mo1m4xbrcj0o",
+      "materialsDone": 0,
+      "lastSession": null
+    },
+    {
+      "id": "mo1m5otggya7",
+      "classId": "mo1ld86vfj06",
+      "subjectId": "mo1m4xbrcj0o",
+      "materialsDone": 0,
+      "lastSession": null
+    },
+    {
+      "id": "mo1m6bnoec51",
+      "classId": "mo1ldyziq0p7",
+      "subjectId": "mo1lnii5x9qz",
+      "materialsDone": 0,
+      "lastSession": "2026-04-21"
+    },
+    {
+      "id": "mo1m6ny0ol6x",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lnmts0z52",
+      "materialsDone": 0,
+      "lastSession": "2026-04-21"
+    },
+    {
+      "id": "mo1m88vd26jb",
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lk19c4hnp",
+      "materialsDone": 0,
+      "lastSession": null
+    },
+    {
+      "id": "mo1m985d3vxk",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lgwps40lv",
+      "materialsDone": 0,
+      "lastSession": "2026-05-07"
+    },
+    {
+      "id": "mo1ma67w0a2q",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m4xbrcj0o",
+      "materialsDone": 0,
+      "lastSession": "2026-05-07"
+    },
+    {
+      "id": "mo1maf30y3me",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m4xbrcj0o",
+      "materialsDone": 2,
+      "lastSession": "2026-05-07"
+    },
+    {
+      "id": "mo1mdp7w3ky3",
+      "classId": "mo1ld5mpqop0",
+      "subjectId": "mo1m4xbrcj0o",
+      "materialsDone": 0,
+      "lastSession": null
+    },
+    {
+      "id": "mo1mec2wyvr6",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljf8p6cgf",
+      "materialsDone": 1,
+      "lastSession": "2026-04-17"
+    },
+    {
+      "id": "mo1meqto7i2j",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljmdmammy",
+      "materialsDone": 1,
+      "lastSession": "2026-04-17"
+    },
+    {
+      "id": "mo1mhs5rcksp",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljf8p6cgf",
+      "materialsDone": 0,
+      "lastSession": "2026-04-25"
+    },
+    {
+      "id": "mo1mj38at8c3",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0v8p9g6z",
+      "materialsDone": 0,
+      "lastSession": "2026-04-18"
+    },
+    {
+      "id": "mo1mjmfi62ex",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lgwps40lv",
+      "materialsDone": 0,
+      "lastSession": "2026-04-18"
+    },
+    {
+      "id": "mo26zwrvccvr",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljmdmammy",
+      "materialsDone": 0,
+      "lastSession": "2026-04-25"
+    },
+    {
+      "id": "mo2iorfdy3op",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lk19c4hnp",
+      "materialsDone": 0,
+      "lastSession": "2026-04-17"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "mo277pbrpt70",
+      "scheduleId": "mo1mec2w4cyy",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljf8p6cgf",
+      "date": "2026-04-17",
+      "materialId": "mo269czlx8e8",
+      "completedAt": "2026-04-17T00:57:15.255Z"
+    },
+    {
+      "id": "mo282iblfyuh",
+      "scheduleId": "mo1meqto0cmv",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljmdmammy",
+      "date": "2026-04-17",
+      "materialId": "mo278ittfgkj",
+      "completedAt": "2026-04-17T01:21:12.513Z",
+      "note": "---REMINDER_DEPAN---\nHal 52 pr yang a dan b.\nYg ngumpulin baru sedikit"
+    },
+    {
+      "id": "mo2a85hkt80t",
+      "scheduleId": "mo1mflinpmsz",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-04-17",
+      "materialId": null,
+      "completedAt": "2026-04-17T02:21:35.048Z"
+    },
+    {
+      "id": "mo2dkjm3z4j3",
+      "scheduleId": "mo1mf7b2fywx",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-04-17",
+      "materialId": null,
+      "completedAt": "2026-04-17T03:55:12.075Z"
+    },
+    {
+      "id": "mo2mzlhh5jrt",
+      "scheduleId": "mo2iorfdtnq9",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lk19c4hnp",
+      "date": "2026-04-17",
+      "materialId": null,
+      "completedAt": "2026-04-17T08:18:50.885Z"
+    },
+    {
+      "id": "mo3p8gdirfw7",
+      "scheduleId": "mo1mhs5rgo61",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljf8p6cgf",
+      "date": "2026-04-18",
+      "materialId": "mo26cgfsk1us",
+      "completedAt": "2026-04-18T02:09:29.574Z",
+      "note": "---REMINDER_DEPAN---\nSampai hal 88"
+    },
+    {
+      "id": "mo3tp5xyia2d",
+      "scheduleId": "mo26zwrv9d9n",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljmdmammy",
+      "date": "2026-04-18",
+      "materialId": "mo278ittfgkj",
+      "completedAt": "2026-04-18T04:14:27.670Z"
+    },
+    {
+      "id": "mo43ouuh04cx",
+      "scheduleId": "mo1mj38athes",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0v8p9g6z",
+      "date": "2026-04-18",
+      "materialId": null,
+      "completedAt": "2026-04-18T08:54:09.450Z"
+    },
+    {
+      "id": "mo43ovobygwg",
+      "scheduleId": "mo1mjmfiqix7",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lgwps40lv",
+      "date": "2026-04-18",
+      "materialId": null,
+      "completedAt": "2026-04-18T08:54:10.523Z"
+    },
+    {
+      "id": "mo6iz2wutuqw",
+      "scheduleId": "mo1lr4xh8n2t",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lefuxb226",
+      "date": "2026-04-20",
+      "materialId": null,
+      "completedAt": "2026-04-20T01:37:33.054Z"
+    },
+    {
+      "id": "mo6ljbyqe2qp",
+      "scheduleId": "mo1ls5km06uj",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1le5s6ugn3",
+      "date": "2026-04-20",
+      "materialId": "mo6lg9dgnl6j",
+      "completedAt": "2026-04-20T02:49:17.138Z"
+    },
+    {
+      "id": "mo6ljeu6nmn9",
+      "scheduleId": "mo1lslp83zzo",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lebs97d88",
+      "date": "2026-04-20",
+      "materialId": "mo6ioupmcofw",
+      "completedAt": "2026-04-20T02:49:20.862Z"
+    },
+    {
+      "id": "mo6othko0h09",
+      "scheduleId": "mo1lusopowqq",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lebs97d88",
+      "date": "2026-04-20",
+      "materialId": "mo6ip1t5f7u0",
+      "completedAt": "2026-04-20T04:21:09.816Z"
+    },
+    {
+      "id": "mo6otohanzef",
+      "scheduleId": "mo1lvkaktypl",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1le5s6ugn3",
+      "date": "2026-04-20",
+      "materialId": "mo6lgd92bmus",
+      "completedAt": "2026-04-20T04:21:18.766Z"
+    },
+    {
+      "id": "mo6otttjh5us",
+      "scheduleId": "mo1lv17m848u",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lefuxb226",
+      "date": "2026-04-20",
+      "materialId": "mo6j2ra1aq08",
+      "completedAt": "2026-04-20T04:21:25.687Z"
+    },
+    {
+      "id": "mo6p1q82t7ab",
+      "scheduleId": "mo1m09q3smxz",
+      "classId": "mo1ldk7lfj6o",
+      "subjectId": "mo1lnii5x9qz",
+      "date": "2026-04-20",
+      "materialId": null,
+      "completedAt": "2026-04-20T04:27:34.274Z",
+      "note": ""
+    },
+    {
+      "id": "mo6zlplvmtw7",
+      "scheduleId": "mo1lwl5mxnjs",
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lnmts0z52",
+      "date": "2026-04-20",
+      "materialId": null,
+      "completedAt": "2026-04-20T09:23:02.755Z"
+    },
+    {
+      "id": "mo86cc36hb0z",
+      "scheduleId": "mo1m2smdmtdw",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0v8p9g6z",
+      "date": "2026-04-21",
+      "materialId": null,
+      "completedAt": "2026-04-21T05:19:28.818Z"
+    },
+    {
+      "id": "mo86cfnlhvgn",
+      "scheduleId": "mo1m1yb9y9lb",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-04-21",
+      "materialId": null,
+      "completedAt": "2026-04-21T05:19:33.441Z"
+    },
+    {
+      "id": "mo86cjd9cb9d",
+      "scheduleId": "mo1m2hsv7obz",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-04-21",
+      "materialId": null,
+      "completedAt": "2026-04-21T05:19:38.253Z"
+    },
+    {
+      "id": "mo8kc2m7u5z5",
+      "scheduleId": "mo1m6bnoadpl",
+      "classId": "mo1ldyziq0p7",
+      "subjectId": "mo1lnii5x9qz",
+      "date": "2026-04-21",
+      "materialId": null,
+      "completedAt": "2026-04-21T11:51:11.167Z"
+    },
+    {
+      "id": "mo8kc65z8jo1",
+      "scheduleId": "mo1m6ny0j2zj",
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lnmts0z52",
+      "date": "2026-04-21",
+      "materialId": null,
+      "completedAt": "2026-04-21T11:51:15.767Z"
+    },
+    {
+      "id": "moat8qfbkxlf",
+      "scheduleId": "mo1m985dc5vm",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lgwps40lv",
+      "date": "2026-04-23",
+      "materialId": "moascehw6yh6",
+      "completedAt": "2026-04-23T01:36:04.295Z",
+      "note": "---REMINDER_DEPAN---\nNulis mufrodat nya"
+    },
+    {
+      "id": "moawcx9gq8m1",
+      "scheduleId": "mo1ma67w1gyi",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-04-23",
+      "materialId": "moarwku3hub2",
+      "completedAt": "2026-04-23T03:03:18.628Z",
+      "note": "---REMINDER_DEPAN---\nLanjut halaman 235"
+    },
+    {
+      "id": "mocahqxp18c7",
+      "scheduleId": "mo1mflinpmsz",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-04-24",
+      "materialId": null,
+      "completedAt": "2026-04-24T02:26:44.509Z",
+      "note": "---REMINDER_DEPAN---\nAgam, bima, hanif blm ngumpulin at takatsur"
+    },
+    {
+      "id": "modseqpl57zl",
+      "scheduleId": "mo1mhs5rgo61",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljf8p6cgf",
+      "date": "2026-04-25",
+      "materialId": null,
+      "completedAt": "2026-04-25T03:36:03.513Z"
+    },
+    {
+      "id": "modseu8y2v17",
+      "scheduleId": "mo26zwrv9d9n",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1ljmdmammy",
+      "date": "2026-04-25",
+      "materialId": null,
+      "completedAt": "2026-04-25T03:36:08.098Z"
+    },
+    {
+      "id": "mokte3dcl4pd",
+      "scheduleId": "mo1ma67w1gyi",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-04-30",
+      "materialId": "moarwku3hub2",
+      "completedAt": "2026-04-30T01:37:56.112Z"
+    },
+    {
+      "id": "mokz6sihrv3v",
+      "scheduleId": "mo1maf300hfy",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-04-30",
+      "materialId": "moarwku3hub2",
+      "completedAt": "2026-04-30T04:20:13.145Z"
+    },
+    {
+      "id": "mov2rnydlq6h",
+      "scheduleId": "mo1m985dc5vm",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1lgwps40lv",
+      "date": "2026-05-07",
+      "materialId": null,
+      "completedAt": "2026-05-07T05:58:07.621Z"
+    },
+    {
+      "id": "mov2rrgfe1je",
+      "scheduleId": "mo1ma67w1gyi",
+      "classId": "mo1ld3rknv5w",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-05-07",
+      "materialId": null,
+      "completedAt": "2026-05-07T05:58:12.159Z"
+    },
+    {
+      "id": "mov2rvt2743t",
+      "scheduleId": "mo1maf300hfy",
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-05-07",
+      "materialId": "moarwku3hub2",
+      "completedAt": "2026-05-07T05:58:17.798Z"
+    }
+  ],
+  "tasks": [],
+  "notes": [],
+  "lastBackup": "2026-05-28",
+  "reminderDismissed": null,
+  "holidays": [
+    "2026-05-01"
+  ],
+  "scheduleOverrides": [],
+  "examSchedules": [
+    {
+      "classId": "mo1ldx1mdyvv",
+      "subjectId": "mo1lnmts0z52",
+      "date": "2026-05-29",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "id": "mpowc6h94chi",
+      "createdAt": "2026-05-28T02:51:12.718Z"
+    },
+    {
+      "classId": "mo1ldyziq0p7",
+      "subjectId": "mo1lnii5x9qz",
+      "date": "2026-06-03",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "id": "mpowdnlnplm9",
+      "createdAt": "2026-05-28T02:52:21.563Z"
+    },
+    {
+      "classId": "mo1j63h11bgp",
+      "subjectId": "mo1lnmts0z52",
+      "date": "2026-05-29",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "id": "mpowhlamtdd5",
+      "createdAt": "2026-05-28T02:55:25.198Z"
+    },
+    {
+      "classId": "mo1ldk7lfj6o",
+      "subjectId": "mo1lnii5x9qz",
+      "date": "2026-06-05",
+      "startTime": "07:30",
+      "endTime": "08:30",
+      "id": "mpowiwyuo8b5",
+      "createdAt": "2026-05-28T02:56:26.982Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lebs97d88",
+      "date": "2026-05-29",
+      "startTime": "07:00",
+      "endTime": "08:00",
+      "id": "mpowmbdn51mv",
+      "createdAt": "2026-05-28T02:59:05.627Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lgwps40lv",
+      "date": "2026-05-29",
+      "startTime": "09:30",
+      "endTime": "10:30",
+      "id": "mpowo04681rl",
+      "createdAt": "2026-05-28T03:00:24.342Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1le5s6ugn3",
+      "date": "2026-05-30",
+      "startTime": "07:00",
+      "endTime": "08:00",
+      "id": "mpowokn2d87q",
+      "createdAt": "2026-05-28T03:00:50.942Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1ljf8p6cgf",
+      "date": "2026-05-30",
+      "startTime": "08:00",
+      "endTime": "09:00",
+      "id": "mpowqt9gk0i9",
+      "createdAt": "2026-05-28T03:02:35.428Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1lefuxb226",
+      "date": "2026-05-30",
+      "startTime": "09:30",
+      "endTime": "10:30",
+      "id": "mpowsh43u705",
+      "createdAt": "2026-05-28T03:03:52.995Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-06-02",
+      "startTime": "07:00",
+      "endTime": "08:00",
+      "id": "mpowt1pa6m5m",
+      "createdAt": "2026-05-28T03:04:19.678Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0pa13kz5",
+      "date": "2026-06-03",
+      "startTime": "08:30",
+      "endTime": "11:30",
+      "id": "mpowthu6sslm",
+      "createdAt": "2026-05-28T03:04:40.590Z"
+    },
+    {
+      "classId": "mo1ld0l80kkm",
+      "subjectId": "mo1m0v8p9g6z",
+      "date": "2026-06-05",
+      "startTime": "08:15",
+      "endTime": "11:15",
+      "id": "mpowu8k95is9",
+      "createdAt": "2026-05-28T03:05:15.225Z"
+    },
+    {
+      "classId": "mo1ld5mpqop0",
+      "subjectId": "mo1m4xbrcj0o",
+      "date": "2026-06-02",
+      "startTime": "07:00",
+      "endTime": "08:00",
+      "id": "mpv718b3ffao",
+      "createdAt": "2026-06-01T12:37:14.703Z"
+    }
+  ],
+  "academicYear": "2025/2026",
+  "corrections": [
+    {
+      "id": "mpr160khaf2o",
+      "subjectId": "mo1lebs97d88",
+      "classId": "mo1ld0l80kkm",
+      "examDate": "2026-05-29",
+      "status": "selesai",
+      "updatedAt": "2026-05-29T14:41:56.281Z"
+    },
+    {
+      "id": "mpschczqvvtg",
+      "subjectId": "mo1le5s6ugn3",
+      "classId": "mo1ld0l80kkm",
+      "examDate": "2026-05-30",
+      "status": "belum",
+      "updatedAt": "2026-05-30T12:46:31.312Z"
+    },
+    {
+      "id": "mpschevvze8c",
+      "subjectId": "mo1ljf8p6cgf",
+      "classId": "mo1ld0l80kkm",
+      "examDate": "2026-05-30",
+      "status": "selesai",
+      "updatedAt": "2026-05-30T12:46:29.700Z"
+    },
+    {
+      "id": "mpv4wsti1gnd",
+      "subjectId": "mo1lgwps40lv",
+      "classId": "mo1ld0l80kkm",
+      "examDate": "2026-05-29",
+      "status": "selesai",
+      "updatedAt": "2026-06-01T11:37:49.241Z"
+    }
+  ]
+}
