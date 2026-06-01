@@ -192,7 +192,8 @@ export function checkOverlap(classId: string, days: number[], startTime: string,
 function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: number, holidays: (string | { date: string; level?: string })[], subjectLevel?: string): { sessLeft: number; holidaysInPeriod: number } {
   let sessLeft = 0, holidaysInPeriod = 0;
   const base = new Date();
-  for (let d = 0; d < daysLeft; d++) {
+  const cappedDays = isNaN(daysLeft) ? 0 : Math.min(Math.max(0, daysLeft), 365);
+  for (let d = 0; d < cappedDays; d++) {
     const date = new Date(base);
     date.setDate(base.getDate() + d);
     const dayOfWeek = date.getDay();
@@ -1559,8 +1560,9 @@ function getAvailableTeachingSessionDates(data: AppData, scheds: Schedule[], sub
   const dates: string[] = [];
   const today = now();
   const overrides = data.scheduleOverrides || [];
+  const cappedMaxDays = isNaN(maxDays) ? 0 : Math.min(Math.max(0, maxDays), 365);
 
-  for (let d = 0; d <= maxDays; d++) {
+  for (let d = 0; d <= cappedMaxDays; d++) {
     const date = new Date(today);
     date.setDate(today.getDate() + d);
     const dateStr = dateKey(date);
@@ -1850,8 +1852,9 @@ function suggestAvailableDates(
 ): string[] {
   const suggested: string[] = [];
   const existingDays = existingScheds.flatMap(s => s.days);
+  const cappedDays = isNaN(daysLeft) ? 0 : Math.min(Math.max(0, daysLeft), 365);
 
-  for (let d = 1; d <= daysLeft && suggested.length < neededSessions; d++) {
+  for (let d = 1; d <= cappedDays && suggested.length < neededSessions; d++) {
     const date = new Date();
     date.setDate(date.getDate() + d);
     const dateStr = dateKey(date);
