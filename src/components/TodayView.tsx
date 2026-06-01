@@ -246,7 +246,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   if (getExamDayMode()) {
     return (
-      <div className="space-y-6 py-4 animate-slide-up">
+      <div className="space-y-6 py-4 animate-slide-up pb-28">
         {/* Header Card */}
         <div className="glass-panel rounded-[34px] overflow-hidden relative border-amber/20 p-6 shadow-xl shadow-amber/5">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--amber)/0.12),transparent_60%)] pointer-events-none" />
@@ -300,6 +300,123 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             Anda dapat menonaktifkan Mode Ujian kapan saja melalui tombol di atas atau melalui tab <strong>Ujian</strong> → <strong>Kelola</strong>.
           </div>
         </div>
+
+        {/* Agenda Ujian & Ngawas Hari Ini */}
+        {(todayExamItems.length > 0 || todayProctorSessions.length > 0) && (
+          <div className="space-y-3">
+            <div className="text-[12px] font-bold text-text3 uppercase tracking-wide px-1">Agenda Hari Ini</div>
+            <div className="space-y-3">
+              {todayExamItems.map((exam, i) => {
+                const isActive = (() => {
+                  const cur = currentMin();
+                  return cur >= timeToMin(exam.startTime) && cur < timeToMin(exam.endTime);
+                })();
+                return (
+                  <div key={`exam-${i}`} className={`bg-amber/5 border rounded-3xl p-4 transition-all ${isActive ? 'border-amber/50 ring-1 ring-amber/10' : 'border-border/60'}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
+                      {isActive && <span className="text-[9px] font-black text-amber animate-pulse">● Berlangsung</span>}
+                    </div>
+                    <div className="text-[15px] font-bold text-foreground leading-snug">{exam.subjectName}</div>
+                    <div className="text-[12px] text-text2 mt-1 flex flex-wrap gap-2">
+                      <span className="font-semibold text-text1">{fmt(exam.startTime)}–{fmt(exam.endTime)}</span>
+                      <span className="opacity-30">•</span>
+                      <span>Kelas: {exam.classes.map(c => c.className).join(', ')}</span>
+                      {exam.location && (
+                        <>
+                          <span className="opacity-30">•</span>
+                          <span>📍 {exam.location}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {todayProctorSessions.map((proctor, i) => {
+                const isActive = (() => {
+                  const cur = currentMin();
+                  return cur >= timeToMin(proctor.startTime) && cur < timeToMin(proctor.endTime);
+                })();
+                return (
+                  <div key={`proctor-${i}`} className={`bg-primary/5 border rounded-3xl p-4 transition-all ${isActive ? 'border-primary/50 ring-1 ring-primary/10' : 'border-border/60'}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
+                      {isActive && <span className="text-[9px] font-black text-primary animate-pulse">● Berlangsung</span>}
+                    </div>
+                    <div className="text-[15px] font-bold text-foreground leading-snug">{proctor.subjectName}</div>
+                    <div className="text-[12px] text-text2 mt-1 flex flex-wrap gap-2">
+                      <span className="font-semibold text-text1">{fmt(proctor.startTime)}–{fmt(proctor.endTime)}</span>
+                      {proctor.location && (
+                        <>
+                          <span className="opacity-30">•</span>
+                          <span>📍 {proctor.location}</span>
+                        </>
+                      )}
+                      {proctor.note && (
+                        <>
+                          <span className="opacity-30">•</span>
+                          <span className="italic">{proctor.note}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Agenda Ujian & Ngawas Besok */}
+        {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0) && (
+          <div className="mt-4">
+            <button
+              onClick={() => setAgendaBesokOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+            >
+              <span>
+                📅 Agenda Besok
+                <span className="ml-2 text-text3 font-normal">
+                  {[
+                    tomorrowExamItems.length > 0 && `${tomorrowExamItems.length} ujian`,
+                    tomorrowProctorSessions.length > 0 && `${tomorrowProctorSessions.length} ngawas`,
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <ChevronDown className={`h-3.5 w-3.5 text-text3 transition-transform ${agendaBesokOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {agendaBesokOpen && (
+              <div className="mt-2 space-y-2 animate-slide-up">
+                {tomorrowExamItems.map((exam, i) => (
+                  <div key={`tomorrow-exam-${i}`} className="bg-amber/5 border border-amber/20 rounded-2xl p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
+                        <div className="text-[11px] text-text2 mt-0.5">
+                          {fmt(exam.startTime)}–{fmt(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {tomorrowProctorSessions.map((p, i) => (
+                  <div key={`tomorrow-proctor-${i}`} className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
+                        <div className="text-[11px] text-text2 mt-0.5">
+                          {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -989,8 +1106,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div key={`exam-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
-                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmtExam(exam.startTime)}</div>
-                <div className="text-[9px] font-medium text-amber tabular-nums mt-0.5">{fmtExam(exam.endTime)}</div>
+                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(exam.startTime)}</div>
+                <div className="text-[9px] font-medium text-amber tabular-nums mt-0.5">{fmt(exam.endTime)}</div>
               </div>
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-amber shadow-[0_0_12px_hsl(40_80%_60%/0.5)]' : 'bg-amber/40'}`}>
                 {isActive && <div className="absolute inset-0 rounded-full border border-amber animate-ping opacity-50" />}
@@ -1030,8 +1147,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div key={`proctor-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
-                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmtExam(proctor.startTime)}</div>
-                <div className="text-[9px] font-medium text-primary tabular-nums mt-0.5">{fmtExam(proctor.endTime)}</div>
+                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(proctor.startTime)}</div>
+                <div className="text-[9px] font-medium text-primary tabular-nums mt-0.5">{fmt(proctor.endTime)}</div>
               </div>
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' : 'bg-primary/40'}`}>
                 {isActive && <div className="absolute inset-0 rounded-full border border-primary animate-ping opacity-50" />}
@@ -1049,7 +1166,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   </div>
                   <div className="text-[14px] font-bold text-foreground leading-snug">{proctor.subjectName}</div>
                   <div className="text-[11px] text-text2 mt-0.5">
-                    {fmtExam(proctor.startTime)}–{fmtExam(proctor.endTime)}
+                    {fmt(proctor.startTime)}–{fmt(proctor.endTime)}
                     {proctor.location && <span className="text-text3"> · 📍{proctor.location}</span>}
                     {proctor.note && <span className="text-text3"> · {proctor.note}</span>}
                   </div>
@@ -1087,7 +1204,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
                       <div className="text-[11px] text-text2 mt-0.5">
-                        {fmtExam(exam.startTime)}–{fmtExam(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
+                        {fmt(exam.startTime)}–{fmt(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
                       </div>
                     </div>
                   </div>
@@ -1100,7 +1217,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
                       <div className="text-[11px] text-text2 mt-0.5">
-                        {fmtExam(p.startTime)}–{fmtExam(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
+                        {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
                       </div>
                     </div>
                   </div>
