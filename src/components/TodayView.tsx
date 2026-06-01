@@ -1,17 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  getTodaySchedules, getActiveSession, getNextSession, getInsights,
-  markDone, skipSession, applyShortDayOverride, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
-  todayNum, DAYS_ID, getExamCountdowns, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
-  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, suggestDayReschedule, applySmartReschedule,
-  undoLastSession, dateKey, getTeachingPosition, getDailyPriorities, applySubjectDismissal,
+  getTodaySchedules, getActiveSession, getNextSession,
+  markDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
+  todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
+  getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
+  dateKey, getTeachingPosition, applySubjectDismissal,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import DailyBriefing from './DailyBriefing';
 import SmartReschedulerModal from './SmartReschedulerModal';
-import { Check, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
-import { getExamDayMode, setExamDayMode, getTodayExamItems, getTodayProctorSessions, getExamReminderSettings } from '@/lib/examData';
+import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
+import {
+  getExamDayMode, setExamDayMode,
+  getTodayExamItems, getTodayProctorSessions,
+  getTomorrowExamItems, getTomorrowProctorSessions,
+} from '@/lib/examData';
+import { getDailyBriefing } from '@/lib/briefing';
 import { requestNotifPermission } from '@/lib/notifications';
 
 interface TodayViewProps {
@@ -28,8 +32,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const items = getTodaySchedules();
   const active = getActiveSession(items);
   const next = getNextSession(items);
-  const insights = getInsights();
-  const dailyPriorities = getDailyPriorities();
   const { toast } = useToast();
 
   const [examModeBanner, setExamModeBanner] = useState(getExamDayMode());
@@ -88,8 +90,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
   
   const tasks = getTasks();
-  const [briefingOpen, setBriefingOpen] = useState(() => !getActiveSession(getTodaySchedules()));
-  const [endedBanner, setEndedBanner] = useState<string | null>(null); // scheduleId of ended class
+  const todayExamItems = getTodayExamItems();
+  const todayProctorSessions = getTodayProctorSessions();
+  const tomorrowExamItems = getTomorrowExamItems();
+  const tomorrowProctorSessions = getTomorrowProctorSessions();
+  const briefingItems = getDailyBriefing();
+  const hasUrgentBriefing = briefingItems.some(b => b.urgent && b.type !== 'semua-beres');
+  const showBackupBtn = shouldShowBackupReminder();
+
+  const [statusBarOpen, setStatusBarOpen] = useState(false);
+  const [agendaBesokOpen, setAgendaBesokOpen] = useState(false);
+  const [endedBanner, setEndedBanner] = useState<string | null>(null);
   const endedNotifiedRef = useRef<Set<string>>(new Set());
 
   // Tick every 30s to detect class ending
@@ -209,11 +220,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: 'Catatan disimpan' });
   };
 
-  const countdowns = getExamCountdowns();
-  const todayExamItems = getTodayExamItems();
-  const todayProctorSessions = getTodayProctorSessions();
-  const examReminderSettings = getExamReminderSettings();
-  const hasExamReminder = todayExamItems.length > 0 || todayProctorSessions.length > 0;
+
 
   const handleTurnOffExamMode = () => {
     setExamDayMode(false);
@@ -391,68 +398,70 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   }
 
   const doneCount = items.filter(x => x.done).length;
-  const showBackupBtn = shouldShowBackupReminder();
 
   return (
     <div>
-      {/* Daily Briefing — collapsible */}
-      <div className={`mb-3 border rounded-2xl overflow-hidden transition-all ${briefingOpen ? 'border-border2' : 'border-transparent'}`}>
+      {/* ── Compact Status Bar (replaces Briefing, Prioritas, Backup) ── */}
+      <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button
-          onClick={() => setBriefingOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface2/40 transition-colors"
+          onClick={() => setStatusBarOpen(o => !o)}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left"
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
-            🗂️ Briefing Harian
-          </span>
-          <span className={`text-text3 text-[14px] transition-transform duration-300 ${briefingOpen ? 'rotate-180' : ''}`}>⌄</span>
-        </button>
-        {briefingOpen && <div className="px-1 pb-1"><DailyBriefing /></div>}
-      </div>
-
-      {dailyPriorities.length > 0 && (
-        <div className="bg-surface/70 border border-border/70 rounded-3xl p-4 mb-4 animate-slide-up shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-primary">Prioritas Hari Ini</div>
-              <div className="text-[10px] text-text3 mt-0.5">Fokus tindakan sebelum buka detail jadwal</div>
-            </div>
-            {dailyPriorities.some(p => p.urgent) && (
-              <span className="text-[9px] font-black bg-red/10 text-red border border-red/20 px-2 py-1 rounded-full uppercase tracking-wide">Urgent</span>
+          {/* Counts */}
+          <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+            {items.length > 0 && (
+              <span className="text-[11px] font-bold text-text2">
+                📚 {doneCount}/{items.length} KBM
+              </span>
+            )}
+            {todayExamItems.length > 0 && (
+              <span className="text-[11px] font-bold text-amber">
+                📝 {todayExamItems.length} Ujian
+              </span>
+            )}
+            {todayProctorSessions.length > 0 && (
+              <span className="text-[11px] font-bold text-primary">
+                👁 {todayProctorSessions.length} Ngawas
+              </span>
+            )}
+            {showBackupBtn && (
+              <span className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 px-1.5 py-0.5 rounded-full">⚠️ Backup</span>
             )}
           </div>
-          <div className="space-y-2">
-            {dailyPriorities.map((priority, index) => (
-              <div key={`${priority.type}-${index}`} className={`flex items-start gap-3 rounded-2xl border px-3 py-2.5 ${
-                priority.urgent ? 'bg-red/10 border-red/20' : 'bg-surface2/50 border-border/50'
+          {hasUrgentBriefing && (
+            <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">!</span>
+          )}
+          <ChevronDown className={`h-3.5 w-3.5 text-text3 flex-shrink-0 transition-transform duration-200 ${statusBarOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {statusBarOpen && (
+          <div className="px-3.5 pb-3 space-y-1.5 border-t border-border2/40">
+            {briefingItems.filter(b => b.type !== 'semua-beres').map((item, i) => (
+              <div key={i} className={`flex items-start gap-2 px-2.5 py-2 rounded-xl border text-[11px] ${
+                item.urgent ? 'bg-amber/10 border-amber/20 text-foreground' : 'bg-surface2/50 border-border/40 text-text2'
               }`}>
-                <div className={`w-6 h-6 rounded-xl flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
-                  priority.urgent ? 'bg-red/10 text-red border border-red/20' : 'bg-primary/10 text-primary border border-primary/20'
-                }`}>
-                  {index + 1}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-bold text-foreground leading-snug">{priority.title}</div>
-                  <div className="text-[12px] text-text2 leading-snug mt-0.5">{priority.detail}</div>
+                <span className="flex-shrink-0">{item.emoji}</span>
+                <div className="min-w-0">
+                  <span className={`font-bold ${item.urgent ? 'text-amber' : 'text-text3'}`}>{item.label}: </span>
+                  <span className="leading-snug">{item.text}</span>
                 </div>
               </div>
             ))}
+            {briefingItems.every(b => b.type === 'semua-beres') && (
+              <div className="text-[11px] text-text3 px-2.5 py-2">✅ Tidak ada ujian mendekat atau koreksi pending.</div>
+            )}
+            {showBackupBtn && (
+              <div className="flex items-center justify-between bg-amber/10 border border-amber/25 rounded-xl px-2.5 py-2">
+                <span className="text-[11px] font-medium text-foreground/80">Sudah 7+ hari belum backup.</span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => { dismissBackupReminder(); onRefresh(); }} className="px-2 py-1 text-[10px] font-semibold text-text2 bg-surface rounded-lg">Nanti</button>
+                  <button onClick={() => { window.document.querySelector('.tab-data-btn')?.dispatchEvent(new MouseEvent('click')); dismissBackupReminder(); onRefresh(); }} className="px-2 py-1 text-[10px] font-bold text-amber-950 bg-amber rounded-lg">Backup</button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Backup Reminder Banner */}
-      {showBackupBtn && (
-        <div className="bg-amber/10 border border-amber/30 rounded-lg p-3 mb-[10px] flex items-center justify-between animate-slide-up">
-          <div className="flex items-center gap-2 max-w-[70%]">
-            <span className="text-lg">⚠️</span>
-            <span className="text-[11px] font-medium leading-snug">Sudah 7+ hari belum backup data Anda.</span>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => { dismissBackupReminder(); onRefresh(); }} className="px-2 py-1.5 text-[10px] font-semibold text-text2 bg-surface rounded shadow-sm">Nanti</button>
-            <button onClick={() => { window.document.querySelector('.tab-data-btn')?.dispatchEvent(new MouseEvent('click')); dismissBackupReminder(); onRefresh(); }} className="px-2 py-1.5 text-[10px] font-bold text-amber-950 bg-amber rounded shadow-sm">Backup</button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* In-app banner: kelas baru saja selesai dan belum ditandai */}
       {endedBanner && (() => {
@@ -970,7 +979,138 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         );
       })}
-      
+      {/* ── Ujian Hari Ini (unified timeline) ── */}
+      {todayExamItems.map((exam, i) => {
+        const isActive = (() => {
+          const cur = currentMin();
+          return cur >= timeToMin(exam.startTime) && cur < timeToMin(exam.endTime);
+        })();
+        return (
+          <div key={`exam-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
+            <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
+              <div className="flex flex-col items-center">
+                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmtExam(exam.startTime)}</div>
+                <div className="text-[9px] font-medium text-amber tabular-nums mt-0.5">{fmtExam(exam.endTime)}</div>
+              </div>
+              <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-amber shadow-[0_0_12px_hsl(40_80%_60%/0.5)]' : 'bg-amber/40'}`}>
+                {isActive && <div className="absolute inset-0 rounded-full border border-amber animate-ping opacity-50" />}
+              </div>
+              {(items.length > 0 || i < todayExamItems.length - 1 || todayProctorSessions.length > 0) && (
+                <div className="flex-1 w-[2px] bg-gradient-to-b from-amber/20 to-transparent min-h-[12px]" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 mb-4">
+              <div className={`bg-amber/5 border rounded-3xl p-3 flex flex-col justify-center transition-all min-h-[72px] relative shadow-sm ${isActive ? 'border-amber/50 ring-1 ring-amber/10' : 'border-amber/20'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
+                      {isActive && <span className="text-[9px] font-black text-amber animate-pulse">● Berlangsung</span>}
+                    </div>
+                    <div className="text-[14px] font-bold text-foreground leading-snug">{exam.subjectName}</div>
+                    <div className="text-[11px] text-text2 mt-0.5">
+                      {exam.classes.map(c => c.className).join(' • ')}
+                      {exam.location && <span className="text-text3"> · 📍{exam.location}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── Ngawas Hari Ini (unified timeline) ── */}
+      {todayProctorSessions.map((proctor, i) => {
+        const isActive = (() => {
+          const cur = currentMin();
+          return cur >= timeToMin(proctor.startTime) && cur < timeToMin(proctor.endTime);
+        })();
+        return (
+          <div key={`proctor-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
+            <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
+              <div className="flex flex-col items-center">
+                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmtExam(proctor.startTime)}</div>
+                <div className="text-[9px] font-medium text-primary tabular-nums mt-0.5">{fmtExam(proctor.endTime)}</div>
+              </div>
+              <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' : 'bg-primary/40'}`}>
+                {isActive && <div className="absolute inset-0 rounded-full border border-primary animate-ping opacity-50" />}
+              </div>
+              {i < todayProctorSessions.length - 1 && (
+                <div className="flex-1 w-[2px] bg-gradient-to-b from-primary/20 to-transparent min-h-[12px]" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 mb-4">
+              <div className={`bg-primary/5 border rounded-3xl p-3 flex flex-col justify-center transition-all min-h-[72px] relative shadow-sm ${isActive ? 'border-primary/50 ring-1 ring-primary/10' : 'border-primary/20'}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
+                    {isActive && <span className="text-[9px] font-black text-primary animate-pulse">● Berlangsung</span>}
+                  </div>
+                  <div className="text-[14px] font-bold text-foreground leading-snug">{proctor.subjectName}</div>
+                  <div className="text-[11px] text-text2 mt-0.5">
+                    {fmtExam(proctor.startTime)}–{fmtExam(proctor.endTime)}
+                    {proctor.location && <span className="text-text3"> · 📍{proctor.location}</span>}
+                    {proctor.note && <span className="text-text3"> · {proctor.note}</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── Agenda Besok (collapsible) ── */}
+      {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0) && (
+        <div className="mt-2 mb-3">
+          <button
+            onClick={() => setAgendaBesokOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+          >
+            <span>
+              📅 Agenda Besok
+              <span className="ml-2 text-text3 font-normal">
+                {[
+                  tomorrowExamItems.length > 0 && `${tomorrowExamItems.length} ujian`,
+                  tomorrowProctorSessions.length > 0 && `${tomorrowProctorSessions.length} ngawas`,
+                ].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <ChevronDown className={`h-3.5 w-3.5 text-text3 transition-transform ${agendaBesokOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {agendaBesokOpen && (
+            <div className="mt-2 space-y-2 animate-slide-up">
+              {tomorrowExamItems.map((exam, i) => (
+                <div key={`tomorrow-exam-${i}`} className="bg-amber/5 border border-amber/20 rounded-2xl p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
+                      <div className="text-[11px] text-text2 mt-0.5">
+                        {fmtExam(exam.startTime)}–{fmtExam(exam.endTime)} · {exam.classes.map(c => c.className).join(', ')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {tomorrowProctorSessions.map((p, i) => (
+                <div key={`tomorrow-proctor-${i}`} className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
+                      <div className="text-[11px] text-text2 mt-0.5">
+                        {fmtExam(p.startTime)}–{fmtExam(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Smart Rescheduler Modal */}
       <SmartReschedulerModal
         open={reschedulerOpen}

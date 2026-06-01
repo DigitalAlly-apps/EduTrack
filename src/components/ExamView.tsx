@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  getTodayExamItems, getTomorrowExamItems, getAllExamSubjects,
+  getAllExamSubjects,
   upsertCorrection, getExamDayMode, toggleExamDayMode,
   getExamSchedules, addExamSchedule, deleteExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
-  getTodayProctorSessions, getTomorrowProctorSessions, getProctorSessions, addProctorSession, deleteProctorSession,
+  getProctorSessions, addProctorSession, deleteProctorSession,
   getCorrectionQueue, getCorrectionStats,
   fmtDate, fmtDayLabel, dayLabelColor,
   STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
@@ -17,15 +17,9 @@ import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
-type ExamTab = 'today' | 'koreksi' | 'manage';
+type ExamTab = 'koreksi' | 'manage';
 
 function getInitialExamTab(): ExamTab {
-  const hasAgenda =
-    getTodayExamItems().length > 0 ||
-    getTomorrowExamItems().length > 0 ||
-    getTodayProctorSessions().length > 0 ||
-    getTomorrowProctorSessions().length > 0;
-  if (hasAgenda) return 'today';
   if (getCorrectionStats().pending > 0) return 'koreksi';
   return 'manage';
 }
@@ -66,15 +60,11 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     return () => clearInterval(id);
   }, [onRefresh]);
 
-  const todayItems = getTodayExamItems();
-  const tomorrowItems = getTomorrowExamItems();
   const allSubjects = getAllExamSubjects();
   const data = getData();
   const examSchedules = getExamSchedules();
   const past = allSubjects.filter(s => s.daysLeft < 0);
   const correctionStats = getCorrectionStats();
-  const todayProctor = getTodayProctorSessions();
-  const tomorrowProctor = getTomorrowProctorSessions();
   const allProctor = getProctorSessions().sort((a, b) => b.date.localeCompare(a.date));
   const pastProctor = allProctor.filter(s => s.date !== dateKey());
 
@@ -331,313 +321,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     );
   };
 
-  // ─── Tab: Agenda 2 Hari ───────────────────────────────────────────────────
-  const renderToday = () => {
-    const hasActiveProctor = todayProctor.some(s => {
-      const cur = currentMin();
-      return cur >= timeToMin(s.startTime) && cur < timeToMin(s.endTime);
-    });
-    const hasActiveExam = todayItems.some(i => i.isActive);
-    const allExamDone = todayItems.length > 0 && todayItems.every(i => i.isDone);
-    const hasAnythingToday = todayItems.length > 0 || todayProctor.length > 0;
-    const hasAnythingTomorrow = tomorrowItems.length > 0 || tomorrowProctor.length > 0;
-    const hasAnything = hasAnythingToday || hasAnythingTomorrow;
-
-    return (
-    <div className="space-y-3 animate-slide-up pb-20">
-
-      {/* ── Hero Summary Bar ── */}
-      {hasAnythingToday && (
-        <div className="grid grid-cols-2 gap-2">
-          {/* Ngawas */}
-          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
-            hasActiveProctor ? 'bg-amber/10 border-amber/40' :
-            todayProctor.length > 0 ? 'bg-surface border-border2' :
-            'bg-surface/40 border-border/30 opacity-40'
-          }`}>
-            {hasActiveProctor && <div className="absolute inset-0 bg-amber/5 animate-pulse" />}
-            <div className="relative">
-              <div className="text-base leading-none mb-1.5">👁</div>
-              <div className={`text-2xl font-black leading-none tabular-nums ${hasActiveProctor ? 'text-amber' : 'text-foreground'}`}>
-                {todayProctor.length}
-              </div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Ngawas</div>
-              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${hasActiveProctor ? 'text-amber animate-pulse' : 'text-transparent'}`}>
-                ● Aktif
-              </div>
-            </div>
-          </div>
-
-          {/* Ujian */}
-          <div className={`relative rounded-2xl border p-3 text-center overflow-hidden transition-all ${
-            hasActiveExam ? 'bg-amber/10 border-amber/40' :
-            allExamDone ? 'bg-green-dim/20 border-green-dim' :
-            todayItems.length > 0 ? 'bg-surface border-border2' :
-            'bg-surface/40 border-border/30 opacity-40'
-          }`}>
-            {hasActiveExam && <div className="absolute inset-0 bg-amber/5 animate-pulse" />}
-            <div className="relative">
-              <div className="text-base leading-none mb-1.5">📚</div>
-              <div className={`text-2xl font-black leading-none tabular-nums ${hasActiveExam ? 'text-amber' : allExamDone ? 'text-green' : 'text-foreground'}`}>
-                {todayItems.length}
-              </div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-text3 mt-1.5">Ujian</div>
-              <div className={`text-[8px] font-black uppercase tracking-wide mt-0.5 h-3 ${
-                hasActiveExam ? 'text-amber animate-pulse' : allExamDone ? 'text-green' : 'text-transparent'
-              }`}>
-                {hasActiveExam ? '● Aktif' : allExamDone ? '✓ Beres' : '·'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Empty State ── */}
-      {!hasAnything && (
-        <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
-          <div className="text-5xl mb-4">📭</div>
-          <div className="text-sm font-bold mb-1">Tidak ada agenda ujian 2 hari ke depan</div>
-          <div className="text-xs text-text3 mb-5">Tidak ada ujian mapelmu maupun jadwal ngawas hari ini dan besok.</div>
-          {correctionStats.pending > 0 && (
-            <button
-              onClick={() => setTab('koreksi')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red/10 border border-red/25 text-red text-xs font-bold transition-all active:scale-[0.97] hover:bg-red/15 mb-3 w-full justify-center"
-            >
-              ✏️ Ada {correctionStats.pending} koreksi pending
-            </button>
-          )}
-          <button
-            onClick={() => setTab('manage')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all active:scale-[0.97] hover:brightness-105"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Tambah Jadwal
-          </button>
-        </div>
-      )}
-
-      {/* ── SECTION: HARI INI ── */}
-      {hasAnythingToday && (
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-[11px] font-black uppercase tracking-widest text-foreground">📅 Hari Ini</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-border2 to-transparent" />
-        </div>
-      )}
-
-      {/* ── 1. NGAWAS ── */}
-      {todayProctor.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 px-1 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">👁 Ngawas</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-            <span className="text-[10px] text-text3 font-bold">{todayProctor.length} sesi</span>
-          </div>
-          <div className="space-y-2">
-            {todayProctor.map(s => {
-              const cur = currentMin();
-              const startMin = timeToMin(s.startTime);
-              const endMin = timeToMin(s.endTime);
-              const isToday = s.date === dateKey();
-              const isActive = isToday && cur >= startMin && cur < endMin;
-              const isDone = isToday && cur >= endMin;
-              return (
-                <div key={s.id} className={`rounded-2xl border p-4 transition-all ${
-                  isActive ? 'bg-amber/10 border-amber/35' :
-                  isDone ? 'bg-green-dim/15 border-green-dim/60' :
-                  'bg-surface border-border2'
-                }`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        {isActive && <span className="text-[9px] font-black bg-amber text-white px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Berlangsung</span>}
-                        {isDone && <span className="text-[9px] font-black bg-green/15 text-green border border-green/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
-                      </div>
-                      <div className="text-sm font-bold leading-snug">{s.subjectName}</div>
-                      <div className="text-xs text-text2 mt-0.5">
-                        {fmt(s.startTime)}–{fmt(s.endTime)}
-                        {s.location && <span className="text-text3"> · {s.location}</span>}
-                      </div>
-                      {s.note && <div className="text-[11px] text-text3 mt-1 italic">{s.note}</div>}
-                    </div>
-                    <button
-                      onClick={() => handleDeleteProctor(s.id)}
-                      className="w-7 h-7 rounded-xl bg-red/8 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/15 transition-all"
-                      aria-label="Hapus"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── 2. UJIAN MAPELKU ── */}
-      {todayItems.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 px-1 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">📚 Ujian Mapelku</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-            <span className="text-[10px] text-text3 font-bold">{todayItems.length} sesi</span>
-          </div>
-
-          {todayItems.length > 3 ? (
-            /* Compact list kalau banyak */
-            <div className="bg-surface border border-border2 rounded-2xl overflow-hidden divide-y divide-border2/50">
-              {todayItems.map(item => {
-                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
-                return (
-                  <div key={`${item.subjectId}-${item.classId}`} className={`flex items-center gap-3 px-4 py-3 transition-all ${
-                    state === 'active' ? 'bg-amber/8' : state === 'done' ? 'bg-green-dim/10' : ''
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      state === 'active' ? 'bg-amber shadow-[0_0_6px_hsl(40_80%_60%/0.7)]' :
-                      state === 'done' ? 'bg-green' : 'bg-border3'
-                    }`} />
-                    <div className="text-xs font-semibold tabular-nums text-text2 w-9 flex-shrink-0">{fmt(item.startTime)}</div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-bold">{item.className}</span>
-                      <span className="text-xs text-text3 ml-1.5">{item.subjectName}</span>
-                    </div>
-                    {state === 'active' && <span className="text-[9px] font-black text-amber animate-pulse">Aktif</span>}
-                    {state === 'done' && <span className="text-[9px] font-black text-green">✓</span>}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Timeline kalau ≤3 */
-            <div className="space-y-1.5">
-              {todayItems.map((item, i) => {
-                const state = item.isActive ? 'active' : item.isDone ? 'done' : '';
-                return (
-                  <div key={`${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3">
-                    {/* Spine */}
-                    <div className="flex flex-col items-center w-11 flex-shrink-0 pt-3.5 gap-1">
-                      <div className="text-[10px] font-bold text-text3 tabular-nums leading-none">{fmt(item.startTime)}</div>
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 transition-all relative ${
-                        state === 'active' ? 'bg-amber shadow-[0_0_10px_hsl(40_80%_60%/0.5)]' :
-                        state === 'done' ? 'bg-green' : 'bg-border3'
-                      }`}>
-                        {state === 'active' && <div className="absolute inset-0 rounded-full border-2 border-amber animate-ping opacity-40" />}
-                      </div>
-                      {i < todayItems.length - 1 && <div className="flex-1 w-px bg-gradient-to-b from-border2 to-transparent mt-1 min-h-4" />}
-                    </div>
-                    {/* Card */}
-                    <div className="flex-1 pb-1.5">
-                      <div className={`rounded-2xl border px-4 py-3 transition-all ${
-                        state === 'active' ? 'bg-amber/10 border-amber/35' :
-                        state === 'done' ? 'bg-green-dim/15 border-green-dim/60' :
-                        'bg-surface border-border2'
-                      }`}>
-                        <div className="text-sm font-bold leading-snug">{item.className}</div>
-                        <div className="text-xs text-text2 mt-0.5">
-                          {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
-                          {item.location && <span className="text-text3"> · {item.location}</span>}
-                        </div>
-                        {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
-                        {state === 'active' && <div className="text-[11px] text-amber font-bold mt-1.5 animate-pulse">⏱ Sedang berlangsung</div>}
-                        {state === 'done' && <div className="text-[11px] text-green font-bold mt-1.5">✓ Selesai</div>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── SECTION: BESOK ── */}
-      {hasAnythingTomorrow && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1 mt-1">
-            <span className="text-[11px] font-black uppercase tracking-widest text-text2">🌅 Besok</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-border2 to-transparent" />
-            <span className="text-[10px] text-text3 font-bold">
-              {tomorrowItems.length + tomorrowProctor.length} agenda
-            </span>
-          </div>
-
-          {/* Ngawas besok */}
-          {tomorrowProctor.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 px-1 mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-text3">👁 Ngawas</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-border2/50 to-transparent" />
-                <span className="text-[10px] text-text3 font-bold">{tomorrowProctor.length} sesi</span>
-              </div>
-              <div className="space-y-2">
-                {tomorrowProctor.map(s => (
-                  <div key={s.id} className="rounded-2xl border bg-surface/60 border-border2/70 p-3.5 opacity-80">
-                    <div className="text-sm font-bold leading-snug">{s.subjectName}</div>
-                    <div className="text-xs text-text2 mt-0.5">
-                      {fmt(s.startTime)}–{fmt(s.endTime)}
-                      {s.location && <span className="text-text3"> · {s.location}</span>}
-                    </div>
-                    {s.note && <div className="text-[11px] text-text3 mt-0.5 italic">{s.note}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Ujian besok */}
-          {tomorrowItems.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 px-1 mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-text3">📚 Ujian Mapelku</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-border2/50 to-transparent" />
-                <span className="text-[10px] text-text3 font-bold">{tomorrowItems.length} sesi</span>
-              </div>
-              {tomorrowItems.length > 3 ? (
-                <div className="bg-surface/60 border border-border2/70 rounded-2xl overflow-hidden divide-y divide-border2/40 opacity-80">
-                  {tomorrowItems.map(item => (
-                    <div key={`tmr-${item.subjectId}-${item.classId}`} className="flex items-center gap-3 px-4 py-3">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0 bg-border3" />
-                      <div className="text-xs font-semibold tabular-nums text-text2 w-9 flex-shrink-0">{fmt(item.startTime)}</div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-bold">{item.className}</span>
-                        <span className="text-xs text-text3 ml-1.5">{item.subjectName}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-1.5 opacity-80">
-                  {tomorrowItems.map((item, i) => (
-                    <div key={`tmr-${item.subjectId}-${item.classId}`} className="flex items-stretch gap-3">
-                      <div className="flex flex-col items-center w-11 flex-shrink-0 pt-3.5 gap-1">
-                        <div className="text-[10px] font-bold text-text3 tabular-nums leading-none">{fmt(item.startTime)}</div>
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 bg-border3" />
-                        {i < tomorrowItems.length - 1 && <div className="flex-1 w-px bg-gradient-to-b from-border2 to-transparent mt-1 min-h-4" />}
-                      </div>
-                      <div className="flex-1 pb-1.5">
-                        <div className="rounded-2xl border bg-surface/60 border-border2/70 px-4 py-3">
-                          <div className="text-sm font-bold leading-snug">{item.className}</div>
-                          <div className="text-xs text-text2 mt-0.5">
-                            {item.subjectName} · {fmt(item.startTime)}–{fmt(item.endTime)}
-                            {item.location && <span className="text-text3"> · {item.location}</span>}
-                          </div>
-                          {item.note && <div className="text-[11px] text-text3 mt-0.5 italic">{item.note}</div>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-
-
-    </div>
-    );
-  };
+  // ─── (Agenda 2 Hari dipindah ke TodayView) ──────────────────────────────
+  // renderToday removed — agenda hari ini & besok kini tampil di tab Hari Ini
 
   // ─── Tab: Koreksi ─────────────────────────────────────────────────────────
   const renderKoreksi = () => {
@@ -1141,7 +826,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
   // ─── Main shell ───────────────────────────────────────────────────────────
   const tabItems: { id: ExamTab; label: string; emoji: string; badge?: number }[] = [
-    { id: 'today', label: 'Agenda 2 Hari', emoji: '📅' },
     { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
     { id: 'manage', label: 'Kelola', emoji: '⚙️' },
   ];
@@ -1154,8 +838,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
             <div className="text-[11px] text-text3 truncate">
-              {todayProctor.length} ngawas · {todayItems.length} ujian hari ini · {tomorrowItems.length} besok
-              {correctionStats.pending > 0 && ` · ${correctionStats.pending} koreksi pending`}
+              {correctionStats.pending > 0 ? `${correctionStats.pending} koreksi pending` : 'Agenda & jadwal di tab Hari Ini'}
             </div>
           </div>
           <button
@@ -1168,7 +851,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-2 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
           {tabItems.map(t => (
             <button
               key={t.id}
@@ -1190,7 +873,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         </div>
       </div>
 
-      {tab === 'today' && renderToday()}
       {tab === 'koreksi' && renderKoreksi()}
       {tab === 'manage' && renderManage()}
     </div>
