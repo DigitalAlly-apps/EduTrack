@@ -4,7 +4,7 @@ import {
   markDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
-  dateKey, getTeachingPosition, applySubjectDismissal,
+  dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -94,6 +94,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const todayProctorSessions = getTodayProctorSessions();
   const tomorrowExamItems = getTomorrowExamItems();
   const tomorrowProctorSessions = getTomorrowProctorSessions();
+  const tomorrowKbmSchedules = getTomorrowKbmSchedules();
+  const insights = getInsights();
   const briefingItems = getDailyBriefing();
   const hasUrgentBriefing = briefingItems.some(b => b.urgent && b.type !== 'semua-beres');
   const showBackupBtn = shouldShowBackupReminder();
@@ -367,8 +369,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         )}
 
-        {/* Agenda Ujian & Ngawas Besok */}
-        {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0) && (
+        {/* Agenda Ujian & Ngawas/KBM Besok */}
+        {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0 || tomorrowKbmSchedules.length > 0) && (
           <div className="mt-4">
             <button
               onClick={() => setAgendaBesokOpen(o => !o)}
@@ -380,6 +382,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   {[
                     tomorrowExamItems.length > 0 && `${tomorrowExamItems.length} ujian`,
                     tomorrowProctorSessions.length > 0 && `${tomorrowProctorSessions.length} ngawas`,
+                    tomorrowKbmSchedules.length > 0 && `${tomorrowKbmSchedules.length} KBM`,
                   ].filter(Boolean).join(' · ')}
                 </span>
               </span>
@@ -408,6 +411,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
                         <div className="text-[11px] text-text2 mt-0.5">
                           {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {tomorrowKbmSchedules.map((sched, i) => (
+                  <div key={`tomorrow-kbm-${i}`} className="bg-teal/5 border border-teal/20 rounded-2xl p-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold leading-snug">{sched.className} — {sched.subjectName}</div>
+                        <div className="text-[11px] text-text2 mt-0.5">
+                          ⏰ {fmt(sched.startTime)}–{fmt(sched.endTime)}
+                          {sched.nextMat && <span className="text-text3 block mt-0.5">📖 Sesi ke-{Math.min(sched.materialsDone + 1, sched.totalMats)}: {sched.nextMat.name}</span>}
                         </div>
                       </div>
                     </div>
@@ -1178,7 +1195,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       })}
 
       {/* ── Agenda Besok (collapsible) ── */}
-      {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0) && (
+      {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0 || tomorrowKbmSchedules.length > 0) && (
         <div className="mt-2 mb-3">
           <button
             onClick={() => setAgendaBesokOpen(o => !o)}
@@ -1190,6 +1207,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {[
                   tomorrowExamItems.length > 0 && `${tomorrowExamItems.length} ujian`,
                   tomorrowProctorSessions.length > 0 && `${tomorrowProctorSessions.length} ngawas`,
+                  tomorrowKbmSchedules.length > 0 && `${tomorrowKbmSchedules.length} KBM`,
                 ].filter(Boolean).join(' · ')}
               </span>
             </span>
@@ -1218,6 +1236,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
                       <div className="text-[11px] text-text2 mt-0.5">
                         {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {tomorrowKbmSchedules.map((sched, i) => (
+                <div key={`tomorrow-kbm-${i}`} className="bg-teal/5 border border-teal/20 rounded-2xl p-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-bold leading-snug">{sched.className} — {sched.subjectName}</div>
+                      <div className="text-[11px] text-text2 mt-0.5">
+                        ⏰ {fmt(sched.startTime)}–{fmt(sched.endTime)}
+                        {sched.nextMat && <span className="text-text3 block mt-0.5">📖 Sesi ke-{Math.min(sched.materialsDone + 1, sched.totalMats)}: {sched.nextMat.name}</span>}
                       </div>
                     </div>
                   </div>

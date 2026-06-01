@@ -356,6 +356,75 @@ export function getTodaySchedules(): TodayScheduleItem[] {
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
+export function getTomorrowKbmSchedules(): TodayScheduleItem[] {
+  const data = getData();
+  const tomorrow = new Date(now());
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDay = tomorrow.getDay();
+  const tomorrowStr = dateKey(tomorrow);
+
+  // If tomorrow has any exam schedules, KBM is suspended
+  if (data.examSchedules?.some(s => s.date === tomorrowStr)) return [];
+
+  const buildItem = (s: Schedule, override?: NonNullable<AppData['scheduleOverrides']>[number]): TodayScheduleItem | null => {
+    const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
+    const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
+    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
+    const mats = getMaterialsFromData(data, s.subjectId, s.classId);
+    const { material } = getMaterialForSession(mats, prog.materialsDone);
+
+    const session = data.sessions.find(se => se.scheduleId === s.id && se.date === tomorrowStr);
+    const done = !!session;
+    if (override?.skipped) return null;
+
+    const effectiveStartTime = override ? override.startTime : s.startTime;
+    const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
+
+    const endMin = timeToMin(effectiveStartTime) + effectiveDuration;
+
+    return {
+      ...s,
+      duration: effectiveDuration,
+      startTime: effectiveStartTime,
+      className: cls.name,
+      subjectName: sub.name,
+      nextMat: material,
+      done,
+      active: false,
+      endTime: minToTime(endMin),
+      totalMats: getTotalSessionsNeeded(mats),
+      materialsDone: prog.materialsDone,
+      sessionId: session?.id,
+      note: session?.note,
+      skipped: session?.materialId === 'SKIPPED'
+    };
+  };
+
+  const regularItems = data.schedules
+    .filter(s => {
+      if (!s.days.includes(tomorrowDay)) return false;
+      const sub = data.subjects.find(x => x.id === s.subjectId);
+      if (isDateHolidayForSubject(tomorrowStr, sub?.level)) return false;
+      return true;
+    })
+    .map(s => {
+      const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === tomorrowStr);
+      return buildItem(s, override);
+    })
+    .filter(Boolean) as TodayScheduleItem[];
+
+  const extraItems = (data.scheduleOverrides || [])
+    .filter(o => o.date === tomorrowStr && o.isExtra && !o.skipped)
+    .map(o => {
+      const sched = data.schedules.find(s => s.id === o.scheduleId);
+      return sched ? buildItem(sched, o) : null;
+    })
+    .filter(Boolean) as TodayScheduleItem[];
+
+  return [...regularItems, ...extraItems]
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
 export type DailyPriority = {
   type: 'now' | 'next' | 'risk' | 'task' | 'reminder' | 'empty';
   title: string;
