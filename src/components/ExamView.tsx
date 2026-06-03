@@ -707,7 +707,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           {examMode && (
             <div className="mt-4 bg-amber/10 border border-amber/20 rounded-xl px-3 py-2 flex items-center gap-2">
               <span className="text-amber">⚡</span>
-              <span className="text-xs text-amber font-medium">Mode ini otomatis reset besok pagi.</span>
+              <span className="text-xs text-amber font-medium">Mode ini aktif sampai dinonaktifkan secara manual.</span>
             </div>
           )}
         </div>

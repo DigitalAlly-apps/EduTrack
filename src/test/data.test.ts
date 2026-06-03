@@ -461,6 +461,15 @@ describe('exam day mode', () => {
     localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: today, active: true }));
     expect(getTodaySchedules()).toEqual([]);
   });
+
+  it('stops today KBM schedules even if exam mode was set on a different date', () => {
+    saveData(baseData(new Date().getDay()));
+
+    expect(getTodaySchedules()).toHaveLength(1);
+
+    localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: '2020-01-01', active: true }));
+    expect(getTodaySchedules()).toEqual([]);
+  });
 });
 
 describe('exam reminder settings', () => {

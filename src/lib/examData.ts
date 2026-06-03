@@ -11,8 +11,8 @@ export function getExamDayMode(): boolean {
   try {
     const val = localStorage.getItem(EXAM_MODE_KEY);
     if (!val) return false;
-    const parsed: { date: string; active: boolean } = JSON.parse(val);
-    return parsed.date === dateKey() && parsed.active;
+    const parsed: { date?: string; active: boolean } = JSON.parse(val);
+    return !!parsed.active;
   } catch { return false; }
 }
 export function setExamDayMode(active: boolean): void {

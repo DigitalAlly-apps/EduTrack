@@ -264,7 +264,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             </h1>
             
             <p className="text-[13px] font-semibold text-text2 leading-relaxed max-w-sm mx-auto mb-6 px-2">
-              Kegiatan Belajar Mengajar (KBM) dan pelacakan jadwal harian dinonaktifkan sementara untuk hari ini.
+              Kegiatan Belajar Mengajar (KBM) dan pelacakan jadwal harian dinonaktifkan sementara.
             </p>
             
             <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-3">
