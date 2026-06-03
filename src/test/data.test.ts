@@ -470,6 +470,18 @@ describe('exam day mode', () => {
     localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: '2020-01-01', active: true }));
     expect(getTodaySchedules()).toEqual([]);
   });
+
+  it('stops tomorrow KBM schedules while exam mode is active', () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDay = tomorrow.getDay();
+    saveData(baseData(tomorrowDay));
+
+    expect(dataLib.getTomorrowKbmSchedules()).toHaveLength(1);
+
+    localStorage.setItem('edutrack_exam_mode', JSON.stringify({ date: '2020-01-01', active: true }));
+    expect(dataLib.getTomorrowKbmSchedules()).toEqual([]);
+  });
 });
 
 describe('exam reminder settings', () => {

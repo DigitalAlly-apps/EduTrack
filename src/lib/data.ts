@@ -358,6 +358,8 @@ export function getTodaySchedules(): TodayScheduleItem[] {
 }
 
 export function getTomorrowKbmSchedules(): TodayScheduleItem[] {
+  if (isExamDayModeActive()) return [];
+
   const data = getData();
   const tomorrow = new Date(now());
   tomorrow.setDate(tomorrow.getDate() + 1);
