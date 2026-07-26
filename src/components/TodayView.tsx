@@ -151,9 +151,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           requestAnimationFrame(tick);
           return prev;
         } else {
+          // Cek dulu apakah ini KBM terakhir yang belum selesai hari ini,
+          // sebelum markDone() bikin semuanya "done" dan getTodaySchedules() berubah.
+          const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
           markDone(id);
           onRefresh();
           toast({ title: '✓ Tersimpan' });
+          if (isLastItem) {
+            // Buka form catatan/reminder pertemuan depan otomatis,
+            // biar sempat diisi sebelum layar "Semua Beres!" muncul.
+            setExpandedNoteId(id);
+            setNoteDraft('');
+            setBelumKumpulDraft('');
+          }
           return null;
         }
       });
@@ -202,9 +212,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         const p = Math.min(100, ((Date.now() - start) / duration) * 100);
         setTlUndoProgress(p);
         if (p < 100) { requestAnimationFrame(tick); return prev; }
+        // Cek dulu apakah ini KBM terakhir yang belum selesai hari ini,
+        // sebelum markDone() bikin semuanya "done" dan getTodaySchedules() berubah.
+        const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
         markDone(id);
         onRefresh();
         toast({ title: '✓ Tersimpan' });
+        if (isLastItem) {
+          // Buka form catatan/reminder pertemuan depan otomatis,
+          // biar sempat diisi sebelum layar "Semua Beres!" muncul.
+          setExpandedNoteId(id);
+          setNoteDraft('');
+          setBelumKumpulDraft('');
+        }
         return null;
       });
     };
@@ -467,7 +487,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     );
   }
 
-  if (items.every(x => x.done)) {
+  if (items.every(x => x.done) && !expandedNoteId) {
     const doneItems = items.filter(x => !x.skipped);
     const skippedItems = items.filter(x => x.skipped);
     return (
