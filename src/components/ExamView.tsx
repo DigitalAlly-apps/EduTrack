@@ -42,6 +42,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [eDate, setEDate] = useState(dateKey());
   const [eClassId, setEClassId] = useState('');
   const [eSubjectId, setESubjectId] = useState('');
+  const [eType, setEType] = useState<'UTS' | 'UAS' | 'Umum'>('UTS');
   const [eStart, setEStart] = useState('');
   const [eEnd, setEEnd] = useState('');
   const [eLocation, setELocation] = useState('');
@@ -105,6 +106,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
       startTime: eStart, endTime: eEnd,
       location: eLocation.trim() || undefined,
       note: eNote.trim() || undefined,
+      examType: eType,
     });
     setEStart(''); setEEnd(''); setELocation(''); setENote('');
     onRefresh();
@@ -200,12 +202,21 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     const isActive = isToday && curMin >= startMin && curMin < endMin;
     const isDone = isToday && curMin >= endMin;
 
+    const examTypeBadge = s.examType
+      ? <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+          s.examType === 'UTS' ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+          : s.examType === 'UAS' ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+          : 'bg-surface3 border-border3 text-text2'
+        }`}>{s.examType}</span>
+      : null;
+
     return (
       <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
         isActive ? 'bg-amber/10 border-amber/30' : isDone ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            {examTypeBadge}
             {isActive && <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
             {isDone && <span className="text-[9px] font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
           </div>
@@ -460,9 +471,19 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
-                <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+                  <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tipe Ujian <span className="text-red">*</span></label>
+                  <select value={eType} onChange={e => setEType(e.target.value as any)} className="form-select-style text-xs h-10 w-full">
+                    <option value="UTS">UTS (Tengah Semester)</option>
+                    <option value="UAS">UAS (Akhir Semester)</option>
+                    <option value="Umum">Umum / Lainnya</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">

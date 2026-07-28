@@ -1,4 +1,4 @@
-import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, ExamPrepItem, PredictiveFinish } from './types';
+import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, ExamPrepItem, PredictiveFinish, Semester } from './types';
 
 const DB_KEY = 'pengajar_v4';
 const CORR_KEY = 'edutrack_corrections';
@@ -9,7 +9,7 @@ const AUTOSAVE_META_KEY = 'pengajar_autosave_meta';
 const DEFAULT_DATA: AppData = {
   teacherName: '', classes: [], subjects: [], materials: [], schedules: [],
   progress: [], sessions: [], tasks: [], notes: [], lastBackup: null, reminderDismissed: null, holidays: [], scheduleOverrides: [], examSchedules: [],
-  academicYear: '',
+  academicYear: '', semesters: [],
 };
 
 export type MaterialDetails = {
@@ -610,38 +610,65 @@ export function getNextScheduleForClass(classId: string, subjectId: string) {
 }
 
 export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): SubjectStatus {
-  const mats = getMaterials(sub.id, cls.id);
-  if (!mats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
+  const allMats = getMaterials(sub.id, cls.id);
+  if (!allMats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
   const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
-  
+
+  // ── Tentukan deadline & set materi berdasarkan fase UTS/UAS ──────────────────
+  let effectiveDeadline: string | null = null;
+  let phaseLabel = '';
+  let mats = allMats;
+
+  const sem = getSubjectSemester(sub, data);
+  if (sem) {
+    const phase = getCurrentExamPhase(sem);
+    if (phase === 'UTS') {
+      effectiveDeadline = sem.utsDate;
+      phaseLabel = ' [UTS]';
+      const utsMats = allMats.filter(m => m.examPeriod === 'UTS');
+      if (utsMats.length > 0) mats = utsMats;
+    } else if (phase === 'UAS') {
+      effectiveDeadline = sem.uasDate;
+      phaseLabel = ' [UAS]';
+      const uasMats = allMats.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
+      if (uasMats.length > 0) mats = uasMats;
+    } else {
+      // Sudah lewat UAS — gunakan semua materi, deadline UAS (sebagai referensi)
+      effectiveDeadline = sem.uasDate;
+    }
+  } else {
+    // Fallback: gunakan examDate lama
+    effectiveDeadline = sub.examDate ?? null;
+  }
+
   const totalSessions = getTotalSessionsNeeded(mats);
   const doneSessions = prog.materialsDone;
-  const remainingSessions = totalSessions - doneSessions;
-  const pct = Math.round((doneSessions / totalSessions) * 100);
+  const remainingSessions = Math.max(0, totalSessions - doneSessions);
+  const pct = totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 100;
 
   let status: 'on-track' | 'tight' | 'behind' = 'on-track', label = 'Sesuai jadwal', rec = 'Lanjutkan seperti biasa.';
   const nextSched = getNextScheduleForClass(cls.id, sub.id);
   const holidays = data.holidays ?? [];
-  if (sub.examDate) {
-    const daysLeft = daysUntilDateKey(sub.examDate);
+  if (effectiveDeadline) {
+    const daysLeft = daysUntilDateKey(effectiveDeadline);
     const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
     const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
     if (remainingSessions <= 0) {
-      status = 'on-track'; label = 'Selesai ✓'; rec = 'Semua materi sudah selesai!';
+      status = 'on-track'; label = `Selesai ✓${phaseLabel}`; rec = 'Semua materi sudah selesai!';
     } else if (sessLeft === 0) {
-      status = 'behind'; label = 'Perlu perhatian';
+      status = 'behind'; label = `Perlu perhatian${phaseLabel}`;
       rec = holidaysInPeriod > 0
         ? `Tidak ada sesi tersisa (${holidaysInPeriod} hari libur memangkas jadwal).`
         : 'Belum ada sesi terjadwal tersisa.';
     } else if (remainingSessions > sessLeft + 2) {
-      status = 'behind'; label = 'Perlu percepatan';
+      status = 'behind'; label = `Perlu percepatan${phaseLabel}`;
       const ratio = (remainingSessions / sessLeft).toFixed(1);
       rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Ideal: ${ratio}× per sesi.`;
     } else if (remainingSessions > sessLeft) {
-      status = 'tight'; label = 'Mepet target';
+      status = 'tight'; label = `Mepet target${phaseLabel}`;
       rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Jaga ritme.`;
     } else {
-      status = 'on-track'; label = 'Sesuai jadwal';
+      status = 'on-track'; label = `Sesuai jadwal${phaseLabel}`;
       rec = remainingSessions === sessLeft
         ? `Pas — ${sessLeft} sesi tersisa untuk ${remainingSessions} sesi materi. Jangan ada yang terlewat!`
         : 'Pertahankan ritme ini.';
@@ -650,6 +677,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   }
   return { status, label, pct, done: doneSessions, total: totalSessions, remaining: remainingSessions, sessLeft: 0, sessionsNeeded: remainingSessions, holidaysInPeriod: 0, rec, nextSched };
 }
+
 
 export function markDone(scheduleId: string, note?: string) {
   const data = getData();
@@ -669,6 +697,26 @@ export function markDone(scheduleId: string, note?: string) {
     prog.lastSession = todayStr; 
   } else {
     data.progress.push({ id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 1, lastSession: todayStr });
+  }
+  saveData(data);
+}
+
+export function unmarkDone(scheduleId: string) {
+  const data = getData();
+  const sched = data.schedules.find(s => s.id === scheduleId);
+  if (!sched) return;
+  const todayStr = dateKey();
+  const sessionIdx = data.sessions.findIndex(s => s.scheduleId === scheduleId && s.date === todayStr);
+  if (sessionIdx === -1) return;
+
+  const session = data.sessions[sessionIdx];
+  data.sessions.splice(sessionIdx, 1);
+
+  if (session.materialId !== 'SKIPPED') {
+    const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
+    if (prog && prog.materialsDone > 0) {
+      prog.materialsDone--;
+    }
   }
   saveData(data);
 }
@@ -950,8 +998,8 @@ export function updateClass(id: string, name: string) {
 export function setAcademicYear(year: string) {
   updateData(d => { d.academicYear = year.trim(); });
 }
-export function updateSubject(id: string, name: string, level: string, examDate: string) {
-  updateData(d => { const s = d.subjects.find(x => x.id === id); if (s) { s.name = name.trim(); s.level = level || ''; s.examDate = examDate || null; } });
+export function updateSubject(id: string, name: string, level: string, examDate: string, semesterId?: string) {
+  updateData(d => { const s = d.subjects.find(x => x.id === id); if (s) { s.name = name.trim(); s.level = level || ''; s.examDate = examDate || null; s.semesterId = semesterId || null; } });
 }
 export function bulkUpdateExamDateByLevel(level: string, examDate: string) {
   updateData(d => {
@@ -960,7 +1008,48 @@ export function bulkUpdateExamDateByLevel(level: string, examDate: string) {
     });
   });
 }
-export function updateMaterial(id: string, name: string, sessions?: number, details?: MaterialDetails) {
+
+// ── Semester CRUD ─────────────────────────────────────────────────────────────
+export function getSemesters(): Semester[] {
+  const data = getData();
+  return data.semesters ?? [];
+}
+export function addSemester(name: string, utsDate: string | null, uasDate: string | null): Semester {
+  const newSem: Semester = { id: genId(), name: name.trim(), utsDate: utsDate || null, uasDate: uasDate || null };
+  updateData(d => { if (!d.semesters) d.semesters = []; d.semesters.push(newSem); });
+  return newSem;
+}
+export function updateSemester(id: string, name: string, utsDate: string | null, uasDate: string | null) {
+  updateData(d => {
+    const s = (d.semesters ?? []).find(x => x.id === id);
+    if (s) { s.name = name.trim(); s.utsDate = utsDate || null; s.uasDate = uasDate || null; }
+  });
+}
+export function deleteSemester(id: string) {
+  updateData(d => {
+    d.semesters = (d.semesters ?? []).filter(x => x.id !== id);
+    // Hapus relasi mapel yang mengacu semester ini
+    d.subjects.forEach(s => { if (s.semesterId === id) s.semesterId = null; });
+  });
+}
+
+// ── Ambil semester aktif untuk sebuah mapel ───────────────────────────────────
+export function getSubjectSemester(sub: Subject, data: AppData): Semester | null {
+  if (!sub.semesterId) return null;
+  return (data.semesters ?? []).find(s => s.id === sub.semesterId) ?? null;
+}
+
+// ── Tentukan fase ujian saat ini (UTS / UAS / null) ───────────────────────────
+export type ExamPhase = 'UTS' | 'UAS' | null;
+export function getCurrentExamPhase(sem: Semester | null, todayKey?: string): ExamPhase {
+  if (!sem) return null;
+  const today = todayKey ?? dateKey();
+  if (sem.utsDate && today < sem.utsDate) return 'UTS';
+  if (sem.uasDate && today < sem.uasDate) return 'UAS';
+  return null; // sudah melewati UAS
+}
+
+export function updateMaterial(id: string, name: string, sessions?: number, details?: MaterialDetails, examPeriod?: 'UTS' | 'UAS' | null) {
   updateData(d => {
     const m = d.materials.find(x => x.id === id);
     if (m) {
@@ -971,6 +1060,7 @@ export function updateMaterial(id: string, name: string, sessions?: number, deta
         m.pageEnd = cleanOptionalText(details.pageEnd);
         m.note = cleanOptionalText(details.note);
       }
+      if (examPeriod !== undefined) m.examPeriod = examPeriod;
     }
   });
 }
@@ -989,7 +1079,7 @@ export function reorderMaterials(subjectId: string, orderedIds: string[], level?
     });
   });
 }
-export function bulkAddMaterials(subjectId: string, names: (string | MaterialDraft)[], sessions = 1, level?: string, classId?: string) {
+export function bulkAddMaterials(subjectId: string, names: (string | MaterialDraft)[], sessions = 1, level?: string, classId?: string, examPeriod?: 'UTS' | 'UAS' | null) {
   updateData(d => {
     // Hitung maxOrder hanya untuk scope yang sama (level atau classId)
     const scopedMats = d.materials.filter(m =>
@@ -1013,6 +1103,7 @@ export function bulkAddMaterials(subjectId: string, names: (string | MaterialDra
           pageStart: cleanOptionalText(draft.pageStart),
           pageEnd: cleanOptionalText(draft.pageEnd),
           note: cleanOptionalText(draft.note),
+          examPeriod: examPeriod ?? null,
         });
       }
     });

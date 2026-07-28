@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession,
-  markDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
+  markDone, unmarkDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules,
@@ -130,46 +130,30 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const pendingTasks = tasks.filter(t => t.status === 'pending');
 
   const handleHeroDone = useCallback((id: string) => {
-    if (pendingId === id) {
-      setPendingId(null);
-      setUndoProgress(0);
-      toast({ title: 'Aksi dibatalkan' });
-      return;
+    const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
+    markDone(id);
+    onRefresh();
+    toast({
+      title: '✓ KBM Selesai',
+      action: (
+        <button
+          onClick={() => {
+            unmarkDone(id);
+            onRefresh();
+            toast({ title: '↩️ Dibatalkan' });
+          }}
+          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
+        >
+          Urungkan
+        </button>
+      ) as any,
+    });
+    if (isLastItem) {
+      setExpandedNoteId(id);
+      setNoteDraft('');
+      setBelumKumpulDraft('');
     }
-    setPendingId(id);
-    setUndoProgress(0);
-    const start = Date.now();
-    const duration = 4000;
-    
-    const tick = () => {
-      setPendingId(prev => {
-        if (prev !== id) return prev; // cancelled
-        const now = Date.now();
-        const p = Math.min(100, ((now - start) / duration) * 100);
-        setUndoProgress(p);
-        if (p < 100) {
-          requestAnimationFrame(tick);
-          return prev;
-        } else {
-          // Cek dulu apakah ini KBM terakhir yang belum selesai hari ini,
-          // sebelum markDone() bikin semuanya "done" dan getTodaySchedules() berubah.
-          const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
-          markDone(id);
-          onRefresh();
-          toast({ title: '✓ Tersimpan' });
-          if (isLastItem) {
-            // Buka form catatan/reminder pertemuan depan otomatis,
-            // biar sempat diisi sebelum layar "Semua Beres!" muncul.
-            setExpandedNoteId(id);
-            setNoteDraft('');
-            setBelumKumpulDraft('');
-          }
-          return null;
-        }
-      });
-    };
-    requestAnimationFrame(tick);
-  }, [pendingId, onRefresh, toast]);
+  }, [onRefresh, toast]);
 
   const handleSkip = (id: string, className: string, subjectName: string, classId: string, subjectId: string) => {
     skipSession(id);
@@ -196,40 +180,30 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
 
   const handleTLDone = useCallback((id: string) => {
-    if (tlPendingId === id) {
-      setTlPendingId(null);
-      setTlUndoProgress(0);
-      toast({ title: 'Aksi dibatalkan' });
-      return;
+    const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
+    markDone(id);
+    onRefresh();
+    toast({
+      title: '✓ KBM Selesai',
+      action: (
+        <button
+          onClick={() => {
+            unmarkDone(id);
+            onRefresh();
+            toast({ title: '↩️ Dibatalkan' });
+          }}
+          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
+        >
+          Urungkan
+        </button>
+      ) as any,
+    });
+    if (isLastItem) {
+      setExpandedNoteId(id);
+      setNoteDraft('');
+      setBelumKumpulDraft('');
     }
-    setTlPendingId(id);
-    setTlUndoProgress(0);
-    const start = Date.now();
-    const duration = 4000;
-    const tick = () => {
-      setTlPendingId(prev => {
-        if (prev !== id) return prev;
-        const p = Math.min(100, ((Date.now() - start) / duration) * 100);
-        setTlUndoProgress(p);
-        if (p < 100) { requestAnimationFrame(tick); return prev; }
-        // Cek dulu apakah ini KBM terakhir yang belum selesai hari ini,
-        // sebelum markDone() bikin semuanya "done" dan getTodaySchedules() berubah.
-        const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
-        markDone(id);
-        onRefresh();
-        toast({ title: '✓ Tersimpan' });
-        if (isLastItem) {
-          // Buka form catatan/reminder pertemuan depan otomatis,
-          // biar sempat diisi sebelum layar "Semua Beres!" muncul.
-          setExpandedNoteId(id);
-          setNoteDraft('');
-          setBelumKumpulDraft('');
-        }
-        return null;
-      });
-    };
-    requestAnimationFrame(tick);
-  }, [tlPendingId, onRefresh, toast]);
+  }, [onRefresh, toast]);
 
   const handleSaveNote = (sessionId: string) => {
     const combinedNote = belumKumpulDraft.trim()
@@ -631,15 +605,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               </div>
             </div>
             <div className="flex gap-2 relative">
-              <button onClick={() => { handleHeroDone(endedBanner); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-all relative overflow-hidden flex items-center justify-center min-w-[80px]">
-                {pendingId === endedBanner ? (
-                  <>
-                    <div className="absolute left-0 top-0 bottom-0 bg-black/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
-                    <span className="relative z-10 flex items-center gap-1"><span className="text-[10px]">✕</span> Batal</span>
-                  </>
-                ) : (
-                  "✓ Selesai"
-                )}
+              <button onClick={() => { handleHeroDone(endedBanner); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-all flex items-center justify-center min-w-[80px]">
+                ✓ Selesai
               </button>
               <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors">✕ Tutup</button>
             </div>
@@ -739,20 +706,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                  <div className="flex gap-2 relative">
                    <button
                       onClick={() => handleHeroDone(active.id)}
-                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 relative overflow-hidden ${
-                        pendingId === active.id
-                          ? 'bg-surface3 text-text2 border border-border'
-                          : isOvertime 
-                           ? 'bg-red text-white' 
-                           : 'bg-primary text-primary-foreground'
+                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
+                        isOvertime 
+                          ? 'bg-red text-white' 
+                          : 'bg-primary text-primary-foreground'
                      }`}
                    >
-                      {pendingId === active.id ? (
-                        <>
-                          <div className="absolute left-0 top-0 bottom-0 bg-primary/20" style={{ width: `${undoProgress}%`, transition: 'width 0.1s linear' }} />
-                          <span className="relative z-10 flex items-center gap-2 text-sm"><X className="h-4 w-4" /> BATALKAN</span>
-                        </>
-                      ) : <><Check className="h-5 w-5" /> {isOvertime ? 'SELESAI' : 'SELESAI'}</>}
+                      <Check className="h-5 w-5" /> {isOvertime ? 'SELESAI' : 'SELESAI'}
                     </button>
                    {/* Skip — now opens confirmation sheet */}
                    <button
@@ -1064,16 +1024,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   ) : (
                     <button
                       onClick={() => handleTLDone(item.id)}
-                      className={`w-11 h-11 rounded-2xl border text-sm font-bold flex items-center justify-center transition-all relative overflow-hidden shadow-sm ${
-                        tlPendingId === item.id
-                          ? 'bg-surface3 border-border text-text2'
-                          : 'bg-primary/10 border-primary/20 text-primary hover:bg-primary hover:text-white hover:scale-105 active:scale-95'
-                      }`}
+                      className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95"
                     >
-                      {tlPendingId === item.id && (
-                        <div className="absolute inset-0 bg-primary/20" style={{ width: `${tlUndoProgress}%`, transition: 'width 0.1s linear' }} />
-                      )}
-                      <span className="relative z-10">{tlPendingId === item.id ? '✕' : '✓'}</span>
+                      <span>✓</span>
                     </button>
                   )}
                 </div>

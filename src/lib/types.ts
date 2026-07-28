@@ -4,11 +4,18 @@ export interface ClassItem {
   color: string;
   level?: string; // tingkatan kelas, cth: "3", "4", "7", "10"
 }
+export interface Semester {
+  id: string;
+  name: string;      // cth: "Semester 1 Ganjil 2025/2026"
+  utsDate: string | null;  // YYYY-MM-DD — batas UTS
+  uasDate: string | null;  // YYYY-MM-DD — batas UAS
+}
 export interface Subject {
   id: string;
   name: string;
   level?: string;
-  examDate: string | null;
+  examDate: string | null; // deprecated — digantikan oleh semester.uasDate
+  semesterId?: string | null; // relasi ke Semester
 }
 export interface Material {
   id: string;
@@ -21,6 +28,7 @@ export interface Material {
   pageStart?: string;
   pageEnd?: string;
   note?: string;
+  examPeriod?: 'UTS' | 'UAS' | null; // bab ini masuk ujian mana — null = belum ditentukan
 }
 export interface Schedule {
   id: string;
@@ -65,6 +73,7 @@ export interface ExamSchedule {
   location?: string;
   note?: string;
   createdAt: string;
+  examType?: 'UTS' | 'UAS' | 'Umum'; // jenis ujian
 }
 export interface AppData {
   teacherName: string;
@@ -82,6 +91,7 @@ export interface AppData {
   scheduleOverrides?: { date: string; scheduleId: string; startTime: string; durationOverride?: number; skipped?: boolean; isExtra?: boolean }[];
   examSchedules?: ExamSchedule[];
   academicYear?: string; // e.g., "2024/2025" or "2025 Semester Ganjil"
+  semesters?: Semester[]; // daftar semester (UTS & UAS per semester)
 }
 export interface TodayScheduleItem extends Schedule {
   className: string;
@@ -116,7 +126,7 @@ export interface Insight {
   text: string;
 }
 export type ViewType = 'today' | 'progress' | 'setup' | 'info' | 'exam';
-export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave';
+export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave' | 'semesters';
 
 export type PaceSuggestionType = 'add_sessions' | 'merge_sessions' | 'trim_materials' | 'no_issue';
 export interface PaceSuggestion {

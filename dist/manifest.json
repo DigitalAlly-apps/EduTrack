@@ -1,0 +1,33 @@
+{
+  "name": "EduTrack — Asisten Pengajar Digital",
+  "short_name": "EduTrack",
+  "description": "Asisten pengajar digital untuk melacak progres, jadwal, dan materi secara otomatis.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0D14",
+  "theme_color": "#6C63FF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Jadwal Hari Ini",
+      "short_name": "Hari Ini",
+      "description": "Buka jadwal hari ini langsung",
+      "url": "/?view=today",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

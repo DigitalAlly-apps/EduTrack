@@ -8,11 +8,12 @@ import {
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
   getAutoSaveMeta, restoreFromAutoSave,
+  getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
-import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Layers, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
 
 interface SetupViewProps {
   onRefresh: () => void;
@@ -31,6 +32,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
     { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: BookOpen, group: 'akademik' },
     { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: CalendarDays, group: 'akademik' },
     { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: SlidersHorizontal, group: 'akademik' },
+    { id: 'semesters', label: 'Semester & Ujian', desc: 'UTS & UAS per semester', icon: Layers, group: 'akademik' },
     { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: Palmtree, group: 'sistem' },
     { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: HeartPulse, group: 'sistem' },
     { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: Database, group: 'sistem' },
@@ -202,6 +204,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
           {tab === 'holidays' && <LiburTab onRefresh={refresh} />}
           {tab === 'data' && <DataTab onRefresh={refresh} />}
           {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
+          {tab === 'semesters' && <SemestersTab onRefresh={refresh} />}
         </div>
       )}
     </div>
@@ -333,6 +336,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
   const [pageStart, setPageStart] = useState(item.pageStart || '');
   const [pageEnd, setPageEnd] = useState(item.pageEnd || '');
   const [note, setNote] = useState(item.note || '');
+  const [examPeriod, setExamPeriod] = useState<'UTS' | 'UAS' | null>(item.examPeriod ?? null);
   const [delSheet, setDelSheet] = useState(false);
 
   if (editing) {
@@ -350,13 +354,28 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
             ))}
           </div>
         </div>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Ujian:</label>
+          <div className="flex gap-1">
+            {(['UTS', 'UAS', null] as const).map(p => (
+              <button key={p ?? 'none'} onClick={() => setExamPeriod(p)}
+                className={`px-2.5 h-7 rounded-md text-xs font-bold border transition-all ${
+                  examPeriod === p
+                    ? p === 'UTS' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                      : p === 'UAS' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                      : 'bg-surface2 border-border3 text-text2'
+                    : 'bg-surface border-border text-text3 hover:border-border3'
+                }`}>{p ?? '—'}</button>
+            ))}
+          </div>
+        </div>
         <div className="flex gap-2 mb-2">
           <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. mulai" />
           <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. akhir" />
         </div>
         <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[70px] mb-2 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal" />
         <div className="flex gap-2">
-          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
+          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }, examPeriod); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
           <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-md text-[13px] font-medium">Batal</button>
         </div>
       </div>
@@ -367,13 +386,21 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
     ? <span className="inline-block ml-1 bg-primary-dim text-primary text-[9px] font-bold px-[5px] py-[1px] rounded">{item.sessions}×</span>
     : null;
 
+  const periodBadge = item.examPeriod
+    ? <span className={`inline-block ml-1.5 text-[9px] font-bold px-[5px] py-[1px] rounded border ${
+        item.examPeriod === 'UTS'
+          ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+          : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+      }`}>{item.examPeriod}</span>
+    : null;
+
   return (
     <>
       <div ref={setNodeRef} style={style} className={`bg-surface border ${isDragging ? 'border-primary border-[2px] shadow-lg' : 'border-border'} rounded-2xl p-3 flex items-center justify-between mb-2`}>
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
-            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}</div>
+            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{periodBadge}</div>
             <div className="text-[11px] text-text2 mt-[2px] leading-snug">{item.meta}</div>
           </div>
         </div>
@@ -442,20 +469,22 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
   const [examDate, setExamDate] = useState('');
   const [level, setLevel] = useState('');
+  const [semesterId, setSemesterId] = useState('');
   const { toast } = useToast();
   const data = getData();
+  const semesters = getSemesters();
 
   const [bulkLevel, setBulkLevel] = useState('SD/MI');
   const [bulkDate, setBulkDate] = useState('');
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama mapel' });
-    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: examDate || null }));
-    setName(''); setLevel(''); setExamDate(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
+    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: examDate || null, semesterId: semesterId || null }));
+    setName(''); setLevel(''); setExamDate(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras: any) => {
     if(!newName.trim()) return;
-    updateSubject(id, newName, extras.level, extras.examDate); toast({ title: 'Mapel diperbarui' }); onRefresh();
+    updateSubject(id, newName, extras.level, extras.examDate, extras.semesterId); toast({ title: 'Mapel diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
     const strId = String(id);
@@ -492,13 +521,33 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal Ujian (Opsional)</label>
-              <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs h-[38px]" />
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Semester (Opsional)</label>
+              <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="form-select-style text-xs">
+                <option value="">Tanpa Semester</option>
+                {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
           </div>
+          {!semesterId && (
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1">
+                <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal Ujian (Fallback)</label>
+                <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs h-[38px]" />
+              </div>
+            </div>
+          )}
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Mapel</button>
         </FormField>
       </div>
+
+      {semesters.length === 0 && (
+        <div className="app-card-soft p-3 mb-4 border border-amber/30 bg-amber/5">
+          <p className="text-[12px] text-amber flex items-center gap-2">
+            <span>⚠️</span>
+            <span>Belum ada semester. Buat semester di tab <strong>Semester &amp; Ujian</strong> agar bisa pilih UTS/UAS.</span>
+          </p>
+        </div>
+      )}
 
       <div className="app-card-soft p-4 mb-5">
         <label className="block text-[11px] font-bold tracking-[0.7px] uppercase text-primary mb-2">Set Ujian per Jenjang</label>
@@ -516,17 +565,26 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="app-section-title mt-2 mb-2">Daftar Mapel</div>
       {data.subjects.map(s => {
         const jenjangLabel = s.level ? `[${s.level}] ` : '';
-        const ujianLabel = s.examDate ? `Ujian: ${s.examDate}` : 'Tidak ada ujian';
+        const sem = semesters.find(x => x.id === s.semesterId);
+        const semLabel = sem ? `📅 ${sem.name}` : (s.examDate ? `Ujian: ${s.examDate}` : 'Tanpa semester');
         return (
-          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${ujianLabel}`, extraVal: { level: s.level || '', examDate: s.examDate || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
-            <div className="flex gap-2 mb-2">
-              <select value={v.level} onChange={e=>setV({...v, level: e.target.value})} className="form-select-style flex-1 text-xs">
-                <option value="">Umum</option>
-                <option value="SD/MI">SD / MI</option>
-                <option value="SMP/MTs">SMP / MTs</option>
-                <option value="SMA/MA">SMA / MA</option>
-              </select>
-              <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style flex-1 text-xs h-[38px]" />
+          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, extraVal: { level: s.level || '', examDate: s.examDate || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
+            <div className="space-y-2 mb-2">
+              <div className="flex gap-2">
+                <select value={v.level} onChange={e=>setV({...v, level: e.target.value})} className="form-select-style flex-1 text-xs">
+                  <option value="">Umum</option>
+                  <option value="SD/MI">SD / MI</option>
+                  <option value="SMP/MTs">SMP / MTs</option>
+                  <option value="SMA/MA">SMA / MA</option>
+                </select>
+                <select value={v.semesterId||''} onChange={e=>setV({...v, semesterId: e.target.value})} className="form-select-style flex-1 text-xs">
+                  <option value="">Tanpa Semester</option>
+                  {semesters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </select>
+              </div>
+              {!v.semesterId && (
+                <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs h-[38px]" placeholder="Tanggal ujian fallback" />
+              )}
             </div>
           )} />
         );
@@ -1291,3 +1349,123 @@ function StorageInfo() {
     </div>
   );
 }
+
+function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
+  const [name, setName] = useState('');
+  const [utsDate, setUtsDate] = useState('');
+  const [uasDate, setUasDate] = useState('');
+  const { toast } = useToast();
+  const semesters = getSemesters();
+
+  const add = () => {
+    if (!name.trim()) return toast({ title: 'Masukkan nama semester' });
+    if (!utsDate && !uasDate) return toast({ title: 'Masukkan minimal satu tanggal ujian (UTS atau UAS)' });
+    addSemester(name, utsDate || null, uasDate || null);
+    setName(''); setUtsDate(''); setUasDate('');
+    toast({ title: 'Semester ditambahkan ✓' });
+    onRefresh();
+  };
+
+  const saveItem = (id: string, newName: string, extras?: any) => {
+    if (!newName.trim()) return;
+    updateSemester(id, newName, extras?.utsDate || null, extras?.uasDate || null);
+    toast({ title: 'Semester diperbarui ✓' });
+    onRefresh();
+  };
+
+  const del = (id: string) => {
+    deleteSemester(id);
+    toast({ title: 'Semester dihapus' });
+    onRefresh();
+  };
+
+  return (
+    <div>
+      <div className="app-card-soft p-4 mb-5 space-y-3">
+        <FormField label="Tambah Semester Baru" className="mb-0">
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="form-input-style mb-3"
+            placeholder="cth: Semester 1 (Ganjil) 2025/2026..."
+          />
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Batas UTS (Tengah Sem.)</label>
+              <input
+                type="date"
+                value={utsDate}
+                onChange={e => setUtsDate(e.target.value)}
+                className="form-input-style text-xs h-[38px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Batas UAS (Akhir Sem.)</label>
+              <input
+                type="date"
+                value={uasDate}
+                onChange={e => setUasDate(e.target.value)}
+                className="form-input-style text-xs h-[38px]"
+              />
+            </div>
+          </div>
+          <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">
+            ＋ Tambah Semester
+          </button>
+        </FormField>
+      </div>
+
+      <div className="app-section-title mt-2 mb-2">Daftar Semester</div>
+      {semesters.map(s => {
+        const utsStr = s.utsDate ? `UTS: ${s.utsDate}` : 'UTS: -';
+        const uasStr = s.uasDate ? `UAS: ${s.uasDate}` : 'UAS: -';
+        const meta = `${utsStr} · ${uasStr}`;
+        const phase = getCurrentExamPhase(s);
+        const phaseBadge = phase ? ` (${phase})` : '';
+
+        return (
+          <EditableItem
+            key={s.id}
+            item={{
+              id: s.id,
+              name: s.name + phaseBadge,
+              meta,
+              extraVal: { utsDate: s.utsDate || '', uasDate: s.uasDate || '' },
+              deleteWarning: 'Menghapus semester akan melepaskan keterkaitan semester pada mapel terkait.',
+            }}
+            onSave={(id, newName, extras) => saveItem(id, newName.replace(/\s\((UTS|UAS)\)$/, ''), extras)}
+            onDelete={del}
+            extraEditField={(v: any, setV: any) => (
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label className="block text-[9px] text-text2 mb-1">Batas UTS</label>
+                  <input
+                    type="date"
+                    value={v.utsDate || ''}
+                    onChange={e => setV({ ...v, utsDate: e.target.value })}
+                    className="form-input-style text-xs h-[38px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-text2 mb-1">Batas UAS</label>
+                  <input
+                    type="date"
+                    value={v.uasDate || ''}
+                    onChange={e => setV({ ...v, uasDate: e.target.value })}
+                    className="form-input-style text-xs h-[38px]"
+                  />
+                </div>
+              </div>
+            )}
+          />
+        );
+      })}
+      {!semesters.length && (
+        <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">
+          Belum ada semester ditambahkan.
+        </div>
+      )}
+    </div>
+  );
+}
+

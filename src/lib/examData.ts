@@ -127,6 +127,7 @@ export function getTomorrowExamItems(): ExamWatchItem[] {
         isDone: false,
         daysLeft: 1,
         correction,
+        examType: s.examType,
       };
     })
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
@@ -212,6 +213,7 @@ export interface ExamWatchItem {
   isDone: boolean;       // sudah selesai hari ini (past endTime)
   daysLeft: number;      // 0 = hari ini, positif = akan datang, negatif = sudah lewat
   correction: ExamCorrection | null;
+  examType?: 'UTS' | 'UAS' | 'Umum'; // jenis ujian
 }
 
 // ── Corrections CRUD ──────────────────────────────────────────────────────────
@@ -260,6 +262,7 @@ export function getTodayExamItems(): ExamWatchItem[] {
         isDone: curMin >= endMin,
         daysLeft: 0,
         correction,
+        examType: s.examType,
       };
     })
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
@@ -320,6 +323,7 @@ export interface ExamSubjectItem {
   subjectName: string;
   examDate: string;
   daysLeft: number;
+  examType?: 'UTS' | 'UAS' | 'Umum'; // jenis ujian dari jadwal pertama
   classes: {
     classId: string;
     className: string;
@@ -344,12 +348,13 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
       const cls = data.classes.find(c => c.id === schedule.classId);
       const examDt = dateFromKey(schedule.date);
       const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
-      const key = `${schedule.subjectId}:${schedule.date}`;
+      const key = `${schedule.subjectId}:${schedule.date}:${schedule.examType ?? 'Umum'}`;
       const item = grouped.get(key) || {
         subjectId: schedule.subjectId,
         subjectName: sub?.name || '?',
         examDate: schedule.date,
         daysLeft,
+        examType: schedule.examType ?? 'Umum',
         classes: [],
       };
 
