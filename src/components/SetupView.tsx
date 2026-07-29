@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData, dateKey, dateFromKey,
-  exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, estimateStorageSize, pruneOldSessions,
+  exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, bulkSetExamPeriodByOrderRange, estimateStorageSize, pruneOldSessions,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
   getAutoSaveMeta, restoreFromAutoSave,
   getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester,
@@ -606,6 +606,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkSessions, setBulkSessions] = useState(1);
+  const [rangeFrom, setRangeFrom] = useState('1');
+  const [rangeTo, setRangeTo] = useState('');
+  const [rangePeriod, setRangePeriod] = useState<'UTS' | 'UAS' | null>('UTS');
   const { toast } = useToast();
   const data = getData();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
@@ -633,10 +636,28 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     }
   };
 
-  const saveItem = (id: string, newName: string, newSessions?: number, details?: { pageStart?: string; pageEnd?: string; note?: string }) => {
-    if(newName.trim()) updateMaterial(id, newName, newSessions, details); toast({ title: 'Tersimpan' }); onRefresh();
+  const saveItem = (id: string, newName: string, newSessions?: number, details?: { pageStart?: string; pageEnd?: string; note?: string }, examPeriod?: 'UTS' | 'UAS' | null) => {
+    if(newName.trim()) updateMaterial(id, newName, newSessions, details, examPeriod !== undefined ? examPeriod : undefined); toast({ title: 'Tersimpan' }); onRefresh();
   };
   const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
+
+  const applyRange = () => {
+    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10) || mats.length;
+    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
+    const actualTo = Math.min(to, mats.length);
+    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
+    // Convert 1-based UI index to order values (which may not be contiguous after reorder)
+    const targetMats = mats.slice(from - 1, actualTo);
+    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
+    const minOrder = Math.min(...targetMats.map(m => m.order));
+    const maxOrder = Math.max(...targetMats.map(m => m.order));
+    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod);
+    const label = rangePeriod ?? '—';
+    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${label}` });
+    onRefresh();
+  };
 
   // Ambil materi untuk kelas ini
   const mats = (() => {
@@ -699,7 +720,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
           {bulkMode ? (
             <>
-              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | banyak latihan soal\nBab 2 - Geometri | 3x | hal 13-28 | ulang konsep dasar\n\nFormat lama tetap bisa: satu baris = satu materi"} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
+              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | UTS\nBab 2 - Geometri | 3x | hal 13-28 | UTS\nBab 3 - Statistik | 2x | hal 29-40 | UAS\n\nTips: Tambahkan | UTS atau | UAS di akhir baris untuk langsung mengikat materi ke ujian."} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
               <div className="flex items-center gap-2 mb-3">
                 <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
                 <div className="flex gap-1">
@@ -743,6 +764,59 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             <span className="app-section-title px-0">Daftar Materi ({mats.length})</span>
             {mats.length > 1 && <span className="text-[10px] text-text2">Tahan &amp; geser untuk urutkan</span>}
           </div>
+
+          {mats.length > 0 && (
+            <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Set Rentang Bab ke Ujian</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-text2">Bab</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={mats.length}
+                  value={rangeFrom}
+                  onChange={e => setRangeFrom(e.target.value)}
+                  className="form-input-style w-14 text-center h-8 text-xs p-1"
+                />
+                <span className="text-xs text-text2">s/d</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={mats.length}
+                  value={rangeTo}
+                  placeholder={String(mats.length)}
+                  onChange={e => setRangeTo(e.target.value)}
+                  className="form-input-style w-14 text-center h-8 text-xs p-1"
+                />
+                <div className="flex gap-1 ml-auto">
+                  {(['UTS', 'UAS', null] as const).map(p => (
+                    <button
+                      key={p ?? 'none'}
+                      onClick={() => setRangePeriod(p)}
+                      className={`px-2.5 h-8 rounded-md text-xs font-bold border transition-all ${
+                        rangePeriod === p
+                          ? p === 'UTS'
+                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                            : p === 'UAS'
+                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                            : 'bg-surface2 border-border3 text-text2'
+                          : 'bg-surface border-border text-text3 hover:border-border3'
+                      }`}
+                    >
+                      {p ?? '—'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={applyRange}
+                  className="w-full mt-1.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold transition-all hover:brightness-105 active:scale-95"
+                >
+                  Terapkan ke Rentang Bab
+                </button>
+              </div>
+            </div>
+          )}
+
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={mats.map(m=>m.id)} strategy={verticalListSortingStrategy}>
               {mats.map((m, i) => {

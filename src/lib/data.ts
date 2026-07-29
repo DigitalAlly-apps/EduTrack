@@ -51,18 +51,34 @@ function parsePageRange(value: string | undefined): MaterialDetails {
 }
 
 export function parseMaterialDraftLine(line: string, defaultSessions = 1): MaterialDraft | null {
-  const parts = line.split('|').map(part => part.trim());
-  const name = parts[0]?.trim();
+  const allParts = line.split('|').map(part => part.trim());
+  const name = allParts[0]?.trim();
   if (!name) return null;
 
-  if (parts.length === 1) return { name, sessions: defaultSessions };
+  let examPeriod: 'UTS' | 'UAS' | null = null;
+  const nonExamParts: string[] = [name];
 
-  const pageDetails = parsePageRange(parts[2]);
+  for (let i = 1; i < allParts.length; i++) {
+    const p = allParts[i];
+    const upper = p.toUpperCase();
+    if (upper === 'UTS' || upper === 'UAS') {
+      examPeriod = upper as 'UTS' | 'UAS';
+    } else {
+      nonExamParts.push(p);
+    }
+  }
+
+  if (nonExamParts.length === 1) {
+    return { name, sessions: defaultSessions, examPeriod };
+  }
+
+  const pageDetails = parsePageRange(nonExamParts[2]);
   return {
     name,
-    sessions: parseSessionCount(parts[1], defaultSessions),
+    sessions: parseSessionCount(nonExamParts[1], defaultSessions),
     ...pageDetails,
-    note: cleanOptionalText(parts[3]),
+    note: cleanOptionalText(nonExamParts.slice(3).join(' | ')),
+    examPeriod,
   };
 }
 
@@ -1103,8 +1119,29 @@ export function bulkAddMaterials(subjectId: string, names: (string | MaterialDra
           pageStart: cleanOptionalText(draft.pageStart),
           pageEnd: cleanOptionalText(draft.pageEnd),
           note: cleanOptionalText(draft.note),
-          examPeriod: examPeriod ?? null,
+          examPeriod: draft.examPeriod ?? examPeriod ?? null,
         });
+      }
+    });
+  });
+}
+
+export function bulkSetExamPeriodByOrderRange(
+  subjectId: string,
+  classId: string | undefined,
+  startOrder: number,
+  endOrder: number,
+  examPeriod: 'UTS' | 'UAS' | null
+) {
+  updateData(d => {
+    d.materials.forEach(m => {
+      if (
+        m.subjectId === subjectId &&
+        (classId ? m.classId === classId : m.classId === undefined) &&
+        m.order >= startOrder &&
+        m.order <= endOrder
+      ) {
+        m.examPeriod = examPeriod;
       }
     });
   });

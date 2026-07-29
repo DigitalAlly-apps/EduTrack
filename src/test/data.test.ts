@@ -123,11 +123,12 @@ describe('materials scoping', () => {
       pageStart: '1',
       pageEnd: '12',
       note: 'banyak latihan soal',
+      examPeriod: null,
     });
 
     expect(parseMaterialDraftLines('Bab 2 - Pecahan\nBab 3 - Persen | 3 pertemuan | halaman 13 | ulang konsep', 2)).toEqual([
-      { name: 'Bab 2 - Pecahan', sessions: 2 },
-      { name: 'Bab 3 - Persen', sessions: 3, pageStart: '13', note: 'ulang konsep' },
+      { name: 'Bab 2 - Pecahan', sessions: 2, examPeriod: null },
+      { name: 'Bab 3 - Persen', sessions: 3, pageStart: '13', note: 'ulang konsep', examPeriod: null },
     ]);
   });
 
@@ -562,3 +563,135 @@ describe('backup and import', () => {
     expect(predictiveFinishes).toBeDefined();
   });
 });
+
+import { bulkSetExamPeriodByOrderRange } from '@/lib/data';
+
+describe('exam period bulk assignment', () => {
+  it('parseMaterialDraftLine — detects UTS tag at end of line', () => {
+    const result = parseMaterialDraftLine('Bab 1 - Aljabar | 2x | hal 1-12 | UTS');
+    expect(result).toMatchObject({
+      name: 'Bab 1 - Aljabar',
+      sessions: 2,
+      pageStart: '1',
+      pageEnd: '12',
+      examPeriod: 'UTS',
+    });
+    expect(result?.note).toBeUndefined();
+  });
+
+  it('parseMaterialDraftLine — detects UAS tag with no pages/sessions', () => {
+    const result = parseMaterialDraftLine('Bab 5 - Statistik | UAS');
+    expect(result).toMatchObject({
+      name: 'Bab 5 - Statistik',
+      sessions: 1,
+      examPeriod: 'UAS',
+    });
+  });
+
+  it('parseMaterialDraftLine — UTS tag in middle position, note after', () => {
+    const result = parseMaterialDraftLine('Bab 3 | 3x | UTS | hal 20-35 | banyak latihan');
+    expect(result).toMatchObject({
+      name: 'Bab 3',
+      sessions: 3,
+      pageStart: '20',
+      pageEnd: '35',
+      note: 'banyak latihan',
+      examPeriod: 'UTS',
+    });
+  });
+
+  it('parseMaterialDraftLine — no exam tag produces null examPeriod', () => {
+    const result = parseMaterialDraftLine('Bab 2 - Geometri | 2x | hal 13-25');
+    expect(result).toMatchObject({
+      name: 'Bab 2 - Geometri',
+      sessions: 2,
+      pageStart: '13',
+      pageEnd: '25',
+      examPeriod: null,
+    });
+  });
+
+  it('parseMaterialDraftLine — backward compat: no UTS/UAS tag keeps existing format', () => {
+    const result = parseMaterialDraftLine('Bab 1 - Bilangan Bulat | 2x | hal 1-12 | banyak latihan soal', 1);
+    expect(result).toEqual({
+      name: 'Bab 1 - Bilangan Bulat',
+      sessions: 2,
+      pageStart: '1',
+      pageEnd: '12',
+      note: 'banyak latihan soal',
+      examPeriod: null,
+    });
+  });
+
+  it('bulkAddMaterials — persists examPeriod from MaterialDraft', () => {
+    const data = baseData();
+    data.materials = [];
+    saveData(data);
+
+    bulkAddMaterials('s1', [
+      { name: 'Bab 1', sessions: 2, examPeriod: 'UTS' },
+      { name: 'Bab 2', sessions: 1, examPeriod: 'UTS' },
+      { name: 'Bab 3', sessions: 2, examPeriod: 'UAS' },
+    ], 1, undefined, 'c1');
+
+    const mats = getMaterials('s1', 'c1');
+    expect(mats).toHaveLength(3);
+    expect(mats[0]).toMatchObject({ name: 'Bab 1', examPeriod: 'UTS' });
+    expect(mats[1]).toMatchObject({ name: 'Bab 2', examPeriod: 'UTS' });
+    expect(mats[2]).toMatchObject({ name: 'Bab 3', examPeriod: 'UAS' });
+  });
+
+  it('bulkSetExamPeriodByOrderRange — sets UTS on bab 1-4 and UAS on bab 5-6', () => {
+    const data = baseData();
+    data.materials = [
+      { id: 'b1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 1 },
+      { id: 'b2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 1 },
+      { id: 'b3', subjectId: 's1', classId: 'c1', name: 'Bab 3', order: 3, sessions: 1 },
+      { id: 'b4', subjectId: 's1', classId: 'c1', name: 'Bab 4', order: 4, sessions: 1 },
+      { id: 'b5', subjectId: 's1', classId: 'c1', name: 'Bab 5', order: 5, sessions: 1 },
+      { id: 'b6', subjectId: 's1', classId: 'c1', name: 'Bab 6', order: 6, sessions: 1 },
+    ];
+    saveData(data);
+
+    bulkSetExamPeriodByOrderRange('s1', 'c1', 1, 4, 'UTS');
+    bulkSetExamPeriodByOrderRange('s1', 'c1', 5, 6, 'UAS');
+
+    const mats = getMaterials('s1', 'c1');
+    expect(mats[0]).toMatchObject({ name: 'Bab 1', examPeriod: 'UTS' });
+    expect(mats[1]).toMatchObject({ name: 'Bab 2', examPeriod: 'UTS' });
+    expect(mats[2]).toMatchObject({ name: 'Bab 3', examPeriod: 'UTS' });
+    expect(mats[3]).toMatchObject({ name: 'Bab 4', examPeriod: 'UTS' });
+    expect(mats[4]).toMatchObject({ name: 'Bab 5', examPeriod: 'UAS' });
+    expect(mats[5]).toMatchObject({ name: 'Bab 6', examPeriod: 'UAS' });
+  });
+
+  it('bulkSetExamPeriodByOrderRange — can clear exam period back to null', () => {
+    const data = baseData();
+    data.materials = [
+      { id: 'b1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 1, examPeriod: 'UTS' },
+      { id: 'b2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 1, examPeriod: 'UTS' },
+    ];
+    saveData(data);
+
+    bulkSetExamPeriodByOrderRange('s1', 'c1', 1, 2, null);
+
+    const mats = getMaterials('s1', 'c1');
+    expect(mats[0].examPeriod).toBeNull();
+    expect(mats[1].examPeriod).toBeNull();
+  });
+
+  it('bulkSetExamPeriodByOrderRange — does not affect other subjects or classes', () => {
+    const data = baseData();
+    data.materials = [
+      { id: 'b1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 1 },
+      { id: 'b2', subjectId: 's1', classId: 'c2', name: 'Bab 1 (c2)', order: 1, sessions: 1 },
+    ];
+    saveData(data);
+
+    bulkSetExamPeriodByOrderRange('s1', 'c1', 1, 1, 'UTS');
+
+    expect(getMaterials('s1', 'c1')[0].examPeriod).toBe('UTS');
+    expect(getMaterials('s1', 'c2')[0].examPeriod).toBeUndefined(); // not touched
+  });
+});
+
