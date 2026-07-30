@@ -1049,6 +1049,13 @@ export function deleteSemester(id: string) {
   });
 }
 
+export function linkSubjectToSemester(subjectId: string, semesterId: string | null) {
+  updateData(d => {
+    const s = d.subjects.find(x => x.id === subjectId);
+    if (s) s.semesterId = semesterId || null;
+  });
+}
+
 // ── Ambil semester aktif untuk sebuah mapel ───────────────────────────────────
 export function getSubjectSemester(sub: Subject, data: AppData): Semester | null {
   if (!sub.semesterId) return null;

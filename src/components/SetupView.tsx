@@ -8,12 +8,12 @@ import {
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, bulkSetExamPeriodByOrderRange, estimateStorageSize, pruneOldSessions,
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
   getAutoSaveMeta, restoreFromAutoSave,
-  getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester,
+  getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester, linkSubjectToSemester,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
-import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Layers, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Layers, Link2, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
 
 interface SetupViewProps {
   onRefresh: () => void;
@@ -23,16 +23,22 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
   const data = getData();
   const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
   // Default to classes if first time, otherwise show menu
-  const [tab, setTab] = useState<SetupTab | null>(showGettingStarted ? 'classes' : null);
+  const [tab, setTabRaw] = useState<SetupTab | null>(showGettingStarted ? 'classes' : null);
   const [, forceUpdate] = useState(0);
+  const setTab = (t: SetupTab | null) => { setTabRaw(t); };
+  // Expose setTab globally so child tabs can navigate (e.g. "→ Buat Semester Sekarang")
+  useEffect(() => {
+    (document as any).__eduSetTab = setTab;
+    return () => { delete (document as any).__eduSetTab; };
+  });
   const refresh = () => { forceUpdate(n => n + 1); onRefresh(); };
 
   const tabs: { id: SetupTab; label: string; desc: string; icon: ElementType; group: string }[] = [
     { id: 'classes', label: 'Daftar Kelas', desc: 'Atur rombongan belajar', icon: GraduationCap, group: 'akademik' },
     { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: BookOpen, group: 'akademik' },
+    { id: 'semesters', label: 'Semester & Ujian', desc: 'Batas UTS & UAS + hubungkan mapel', icon: Layers, group: 'akademik' },
     { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: CalendarDays, group: 'akademik' },
     { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: SlidersHorizontal, group: 'akademik' },
-    { id: 'semesters', label: 'Semester & Ujian', desc: 'UTS & UAS per semester', icon: Layers, group: 'akademik' },
     { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: Palmtree, group: 'sistem' },
     { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: HeartPulse, group: 'sistem' },
     { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: Database, group: 'sistem' },
@@ -51,38 +57,25 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
             <div className="flex-1 min-w-0">
               <div className="text-[15px] font-bold text-foreground mb-1">Selamat Datang di EduTrack!</div>
               <div className="text-[13px] text-text2 leading-relaxed">
-                Mari kita atur data dasar dulu sebelum mulai mengajar. Ikuti langkah-langkah berikut:
+                Ikuti urutan langkah ini agar semua fitur berjalan dengan benar:
               </div>
-              <div className="mt-3 space-y-2">
-                <div className="flex items-start gap-2.5">
-                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">1</span>
-                  <div>
-                    <div className="text-[13px] font-semibold text-foreground">Tambahkan Kelas</div>
-                    <div className="text-[12px] text-text2">Misal: 10A, 10B, 11 IPA (tab <strong>Kelas</strong>)</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">2</span>
-                  <div>
-                    <div className="text-[13px] font-semibold text-foreground">Tambahkan Mapel</div>
-                    <div className="text-[12px] text-text2">Misal: Matematika, Fisika (tab <strong>Mapel</strong>)</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5">3</span>
-                  <div>
-                    <div className="text-[13px] font-semibold text-foreground">Atur Jadwal & Materi</div>
-                    <div className="text-[12px] text-text2">Setelah data dasar selesai, buka tab <strong>Jadwal</strong> dan <strong>Materi</strong></div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-primary/20">
-                <button
-                  onClick={() => setTab('classes')}
-                  className="text-[11px] font-bold text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-lg border border-primary/20 transition-colors"
-                >
-                  Mulai Mengatur Sekarang →
-                </button>
+              <div className="mt-3 space-y-2.5">
+                {[
+                  { step: '1', title: 'Tambah Kelas', desc: 'Misal: 10A, 10B, 11 IPA', tab: 'classes' as SetupTab },
+                  { step: '2', title: 'Tambah Mapel', desc: 'Misal: Matematika, Fisika', tab: 'subjects' as SetupTab },
+                  { step: '3', title: 'Buat Semester & Tanggal Ujian', desc: 'Set kapan UTS dan UAS, lalu hubungkan ke mapel', tab: 'semesters' as SetupTab },
+                  { step: '4', title: 'Atur Jadwal Mingguan', desc: 'Kelas mana, hari apa, jam berapa', tab: 'schedules' as SetupTab },
+                  { step: '5', title: 'Input Materi per Kelas', desc: 'Daftar bab/materi dan tandai UTS/UAS-nya', tab: 'materials' as SetupTab },
+                ].map(({ step, title, desc, tab: t }) => (
+                  <button key={step} onClick={() => setTab(t)} className="w-full flex items-start gap-2.5 text-left hover:bg-primary/5 rounded-xl p-1.5 -mx-1.5 transition-colors group">
+                    <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{step}</span>
+                    <div>
+                      <div className="text-[13px] font-semibold text-foreground leading-tight">{title}</div>
+                      <div className="text-[11px] text-text2 mt-0.5">{desc}</div>
+                    </div>
+                    <span className="ml-auto text-text3 text-base opacity-0 group-hover:opacity-100 transition-opacity self-center">›</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -314,7 +307,7 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
       <div className="app-list-item flex items-center justify-between mb-2 relative group">
         <div className="flex-1 min-w-0 pr-3">
           <div className="text-sm font-medium leading-snug">{item.name}</div>
-          {item.meta && <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>}
+          <div className={`text-[11px] mt-[4px] font-medium ${item.metaColor || 'text-text2'}`}>{item.meta}</div>
         </div>
         <div className="flex gap-[6px] items-center flex-shrink-0">
           <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9 hover:text-primary" aria-label="Edit item"><Pencil className="h-4 w-4" /></button>
@@ -505,8 +498,22 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
     setBulkDate(''); toast({ title: `Tanggal ujian untuk ${bulkLevel} disimpan` }); onRefresh();
   };
 
+  const [showAdvancedAdd, setShowAdvancedAdd] = useState(false);
+
   return (
     <div>
+      {/* Banner: belum ada semester */}
+      {semesters.length === 0 && (
+        <div className="app-card-soft p-3 mb-4 border border-amber/30 bg-amber/5">
+          <p className="text-[12px] text-amber flex items-start gap-2">
+            <span className="mt-0.5">⚠️</span>
+            <span>Belum ada semester. Buat semester dulu agar mapel bisa dihubungkan ke UTS/UAS.<br />
+              <button onClick={() => { (document as any).__eduSetTab?.('semesters'); }} className="mt-1 inline-block font-bold underline underline-offset-2">→ Buat Semester Sekarang</button>
+            </span>
+          </p>
+        </div>
+      )}
+
       <div className="app-card-soft p-4 mb-4">
         <FormField label="Tambah Mata Pelajaran" className="mb-0">
           <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
@@ -521,54 +528,40 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Semester (Opsional)</label>
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Hubungkan ke Semester</label>
               <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="form-select-style text-xs">
-                <option value="">Tanpa Semester</option>
+                <option value="">Pilih semester...</option>
                 {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
           </div>
-          {!semesterId && (
-            <div className="flex gap-2 mb-3">
-              <div className="flex-1">
-                <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal Ujian (Fallback)</label>
+          {/* Advanced: tanggal ujian fallback (hanya jika tidak pakai semester) */}
+          <div className="mb-3">
+            <button onClick={() => setShowAdvancedAdd(v => !v)} className="text-[10px] text-text3 hover:text-text2 flex items-center gap-1 transition-colors">
+              <span>{showAdvancedAdd ? '▾' : '▸'}</span> Atur tanggal ujian manual (lanjutan)
+            </button>
+            {showAdvancedAdd && (
+              <div className="mt-2 p-3 bg-surface2 border border-border2 rounded-xl">
+                <label className="block text-[10px] text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
                 <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs h-[38px]" />
               </div>
-            </div>
-          )}
+            )}
+          </div>
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Mapel</button>
         </FormField>
       </div>
 
-      {semesters.length === 0 && (
-        <div className="app-card-soft p-3 mb-4 border border-amber/30 bg-amber/5">
-          <p className="text-[12px] text-amber flex items-center gap-2">
-            <span>⚠️</span>
-            <span>Belum ada semester. Buat semester di tab <strong>Semester &amp; Ujian</strong> agar bisa pilih UTS/UAS.</span>
-          </p>
-        </div>
-      )}
-
-      <div className="app-card-soft p-4 mb-5">
-        <label className="block text-[11px] font-bold tracking-[0.7px] uppercase text-primary mb-2">Set Ujian per Jenjang</label>
-        <div className="flex gap-2">
-           <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style flex-1 text-xs">
-             <option value="SD/MI">SD / MI</option>
-             <option value="SMP/MTs">SMP / MTs</option>
-             <option value="SMA/MA">SMA / MA</option>
-           </select>
-           <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} className="form-input-style flex-1 text-xs h-[38px]" />
-        </div>
-        <button onClick={applyBulkExamDate} className="w-full mt-2 py-2 rounded-lg bg-primary-dim text-primary border border-primary-border text-[12px] font-bold">Terapkan ke Semua</button>
-      </div>
-
-      <div className="app-section-title mt-2 mb-2">Daftar Mapel</div>
+      <div className="app-section-title mt-2 mb-2">Daftar Mapel ({data.subjects.length})</div>
       {data.subjects.map(s => {
         const jenjangLabel = s.level ? `[${s.level}] ` : '';
         const sem = semesters.find(x => x.id === s.semesterId);
-        const semLabel = sem ? `📅 ${sem.name}` : (s.examDate ? `Ujian: ${s.examDate}` : 'Tanpa semester');
+        const phase = sem ? getCurrentExamPhase(sem) : null;
+        const semLabel = sem
+          ? `📅 ${sem.name}${phase ? ` · ${phase} aktif` : ''}`
+          : (s.examDate ? `📌 Ujian: ${s.examDate}` : '⚠️ Belum ada semester');
+        const semColor = sem ? '' : s.examDate ? '' : 'text-amber';
         return (
-          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, extraVal: { level: s.level || '', examDate: s.examDate || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
+          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', examDate: s.examDate || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
             <div className="space-y-2 mb-2">
               <div className="flex gap-2">
                 <select value={v.level} onChange={e=>setV({...v, level: e.target.value})} className="form-select-style flex-1 text-xs">
@@ -583,13 +576,33 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
                 </select>
               </div>
               {!v.semesterId && (
-                <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs h-[38px]" placeholder="Tanggal ujian fallback" />
+                <div>
+                  <label className="block text-[10px] text-text3 mb-1">Tanggal ujian manual (fallback)</label>
+                  <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs h-[38px]" />
+                </div>
               )}
             </div>
           )} />
         );
       })}
       {!data.subjects.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada mapel</div>}
+
+      {/* Bulk update tanggal ujian per jenjang — fitur lanjutan */}
+      {data.subjects.length > 0 && (
+        <div className="app-card-soft p-4 mt-5 border border-border/60">
+          <label className="block text-[11px] font-bold tracking-[0.7px] uppercase text-text2 mb-1">Bulk: Set Tanggal Ujian per Jenjang</label>
+          <p className="text-[11px] text-text3 mb-2">Override tanggal ujian untuk semua mapel di jenjang yang sama sekaligus.</p>
+          <div className="flex gap-2">
+             <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style flex-1 text-xs">
+               <option value="SD/MI">SD / MI</option>
+               <option value="SMP/MTs">SMP / MTs</option>
+               <option value="SMA/MA">SMA / MA</option>
+             </select>
+             <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} className="form-input-style flex-1 text-xs h-[38px]" />
+          </div>
+          <button onClick={applyBulkExamDate} className="w-full mt-2 py-2 rounded-lg bg-surface2 text-text2 border border-border2 text-[12px] font-bold hover:bg-surface3 transition-colors">Terapkan ke Semua</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -681,34 +694,56 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     }
   };
 
+  const selectedSubject = data.subjects.find(s => s.id === subId);
+  const selectedSemesters = getSemesters();
+  const subjectSemester = selectedSubject?.semesterId
+    ? selectedSemesters.find(s => s.id === selectedSubject.semesterId) ?? null
+    : null;
+
   return (
     <div>
+      {/* Konteks penjelasan examPeriod */}
+      <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
+        <p className="text-[11px] text-text2 leading-relaxed">
+          <span className="font-bold text-foreground">ℹ️ Cara kerja Materi & Ujian:</span><br />
+          Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Tandai setiap bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span> untuk mengelompokkan cakupan ujiannya. Ini berbeda dengan <em>tanggal</em> UTS/UAS yang diatur di tab Semester.
+        </p>
+      </div>
+
       <div className="app-card-soft p-4 mb-4 space-y-3">
-        <FormField label="Pilih Mata Pelajaran" className="mb-0">
-          <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary">
-            <option value="">Pilih mata pelajaran...</option>
-            {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </FormField>
-
-        {hasNoSchedule && (
-          <p className="text-[11px] text-amber bg-amber/10 border border-amber/20 rounded-lg px-3 py-2">
-            ℹ️ Belum ada jadwal untuk mapel ini. Materi akan tersimpan tapi baru aktif setelah jadwal ditambahkan.
-          </p>
-        )}
-
-        {subId && classesForSubject.length > 0 && (
-          <FormField label="Pilih Kelas" className="mb-0">
-            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary">
-              <option value="">Pilih kelas...</option>
-              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name} {classesWithSchedule.find(x => x.id === c.id) ? '' : '(belum ada jadwal)'}</option>)}
+        <div className="grid grid-cols-2 gap-2">
+          <FormField label="Mata Pelajaran" className="mb-0">
+            <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary text-xs">
+              <option value="">Pilih mapel...</option>
+              {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </FormField>
-        )}
-        {subId && classesForSubject.length === 0 && (
-          <p className="text-[11px] text-text3 bg-surface2 border border-border2 rounded-lg px-3 py-2">
-            Tambahkan kelas di tab Kelas terlebih dahulu.
-          </p>
+          <FormField label="Kelas" className="mb-0">
+            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} disabled={!subId || classesForSubject.length === 0} className="form-select-style border-primary text-xs disabled:opacity-50">
+              <option value="">{!subId ? '← Pilih mapel dulu' : classesForSubject.length === 0 ? 'Belum ada kelas' : 'Pilih kelas...'}</option>
+              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}{classesWithSchedule.find(x => x.id === c.id) ? '' : ' ⚠️'}</option>)}
+            </select>
+          </FormField>
+        </div>
+
+        {/* Info panel setelah mapel & kelas dipilih */}
+        {subId && classId && (
+          <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-[11px] text-text2 space-y-0.5">
+            <div className="font-bold text-foreground text-[12px]">
+              📚 {selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}
+            </div>
+            {subjectSemester ? (
+              <div>Semester: <span className="font-medium text-foreground">{subjectSemester.name}</span>
+                {subjectSemester.utsDate && <span className="ml-2 text-blue-400">UTS: {subjectSemester.utsDate}</span>}
+                {subjectSemester.uasDate && <span className="ml-2 text-purple-400">UAS: {subjectSemester.uasDate}</span>}
+              </div>
+            ) : (
+              <div className="text-amber">⚠️ Mapel ini belum dihubungkan ke semester. <button onClick={() => (document as any).__eduSetTab?.('semesters')} className="underline font-semibold">Atur di Semester →</button></div>
+            )}
+            {hasNoSchedule && (
+              <div className="text-amber">⚠️ Belum ada jadwal untuk mapel ini — materi tersimpan tapi belum aktif. <button onClick={() => (document as any).__eduSetTab?.('schedules')} className="underline font-semibold">Buat Jadwal →</button></div>
+            )}
+          </div>
         )}
       </div>
 
@@ -1428,8 +1463,10 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
   const [utsDate, setUtsDate] = useState('');
   const [uasDate, setUasDate] = useState('');
+  const [linkingId, setLinkingId] = useState<string | null>(null);
   const { toast } = useToast();
   const semesters = getSemesters();
+  const data = getData();
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama semester' });
@@ -1453,8 +1490,26 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
     onRefresh();
   };
 
+  const toggleLink = (subjectId: string, semesterId: string) => {
+    const sub = data.subjects.find(s => s.id === subjectId);
+    if (!sub) return;
+    const isLinked = sub.semesterId === semesterId;
+    linkSubjectToSemester(subjectId, isLinked ? null : semesterId);
+    toast({ title: isLinked ? 'Mapel dilepas dari semester' : 'Mapel dihubungkan ke semester ✓' });
+    onRefresh();
+  };
+
   return (
     <div>
+      {/* Penjelasan konsep */}
+      <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
+        <p className="text-[11px] text-text2 leading-relaxed">
+          <span className="font-bold text-foreground">ℹ️ Semester & Ujian:</span><br />
+          Buat semester (mis. <em>Smt 1 Ganjil 2025/2026</em>), tentukan kapan UTS dan UAS berlangsung, lalu <strong>hubungkan mapel</strong> ke semester ini. Sistem akan otomatis tahu batas materi UTS dan UAS untuk setiap mapel.
+        </p>
+      </div>
+
+      {/* Form tambah semester */}
       <div className="app-card-soft p-4 mb-5 space-y-3">
         <FormField label="Tambah Semester Baru" className="mb-0">
           <input
@@ -1465,7 +1520,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
           />
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div>
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Batas UTS (Tengah Sem.)</label>
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal UTS</label>
               <input
                 type="date"
                 value={utsDate}
@@ -1474,7 +1529,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Batas UAS (Akhir Sem.)</label>
+              <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal UAS</label>
               <input
                 type="date"
                 value={uasDate}
@@ -1491,52 +1546,102 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
 
       <div className="app-section-title mt-2 mb-2">Daftar Semester</div>
       {semesters.map(s => {
-        const utsStr = s.utsDate ? `UTS: ${s.utsDate}` : 'UTS: -';
-        const uasStr = s.uasDate ? `UAS: ${s.uasDate}` : 'UAS: -';
-        const meta = `${utsStr} · ${uasStr}`;
+        const linkedSubjects = data.subjects.filter(sub => sub.semesterId === s.id);
+        const unlinkedSubjects = data.subjects.filter(sub => sub.semesterId !== s.id);
         const phase = getCurrentExamPhase(s);
-        const phaseBadge = phase ? ` (${phase})` : '';
+        const isLinking = linkingId === s.id;
 
         return (
-          <EditableItem
-            key={s.id}
-            item={{
-              id: s.id,
-              name: s.name + phaseBadge,
-              meta,
-              extraVal: { utsDate: s.utsDate || '', uasDate: s.uasDate || '' },
-              deleteWarning: 'Menghapus semester akan melepaskan keterkaitan semester pada mapel terkait.',
-            }}
-            onSave={(id, newName, extras) => saveItem(id, newName.replace(/\s\((UTS|UAS)\)$/, ''), extras)}
-            onDelete={del}
-            extraEditField={(v: any, setV: any) => (
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                  <label className="block text-[9px] text-text2 mb-1">Batas UTS</label>
-                  <input
-                    type="date"
-                    value={v.utsDate || ''}
-                    onChange={e => setV({ ...v, utsDate: e.target.value })}
-                    className="form-input-style text-xs h-[38px]"
-                  />
+          <div key={s.id} className="mb-4">
+            <EditableItem
+              item={{
+                id: s.id,
+                name: s.name,
+                meta: [
+                  s.utsDate ? `UTS: ${s.utsDate}` : 'UTS: belum diset',
+                  s.uasDate ? `UAS: ${s.uasDate}` : 'UAS: belum diset',
+                  phase ? `• ${phase} aktif` : '',
+                ].filter(Boolean).join(' · '),
+                extraVal: { utsDate: s.utsDate || '', uasDate: s.uasDate || '' },
+                deleteWarning: 'Menghapus semester akan melepaskan keterkaitan semester pada mapel terkait.',
+              }}
+              onSave={(id, newName, extras) => saveItem(id, newName, extras)}
+              onDelete={del}
+              extraEditField={(v: any, setV: any) => (
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-[9px] text-text2 mb-1">Tanggal UTS</label>
+                    <input type="date" value={v.utsDate || ''} onChange={e => setV({ ...v, utsDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] text-text2 mb-1">Tanggal UAS</label>
+                    <input type="date" value={v.uasDate || ''} onChange={e => setV({ ...v, uasDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] text-text2 mb-1">Batas UAS</label>
-                  <input
-                    type="date"
-                    value={v.uasDate || ''}
-                    onChange={e => setV({ ...v, uasDate: e.target.value })}
-                    className="form-input-style text-xs h-[38px]"
-                  />
+              )}
+            />
+
+            {/* Panel mapel terhubung */}
+            <div className="ml-2 border-l-2 border-primary/20 pl-3 mb-2">
+              {/* Mapel yang sudah terhubung */}
+              {linkedSubjects.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {linkedSubjects.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => toggleLink(sub.id, s.id)}
+                      className="flex items-center gap-1 bg-primary/10 border border-primary/25 text-primary text-[11px] font-semibold px-2 py-1 rounded-lg hover:bg-red/10 hover:border-red/25 hover:text-red transition-colors group"
+                      title="Klik untuk lepas dari semester ini"
+                    >
+                      <span>{sub.name}</span>
+                      <X className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
                 </div>
-              </div>
-            )}
-          />
+              ) : (
+                <p className="text-[11px] text-text3 mb-2">Belum ada mapel yang terhubung ke semester ini.</p>
+              )}
+
+              {/* Tombol hubungkan mapel */}
+              {data.subjects.length > 0 && (
+                <button
+                  onClick={() => setLinkingId(isLinking ? null : s.id)}
+                  className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                    isLinking
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-surface2 text-text2 border-border2 hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  <Link2 className="h-3 w-3" />
+                  {isLinking ? 'Selesai Menghubungkan' : '+ Hubungkan Mapel'}
+                </button>
+              )}
+
+              {/* Picker mapel yang belum terhubung */}
+              {isLinking && unlinkedSubjects.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5 animate-in fade-in">
+                  {unlinkedSubjects.map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => toggleLink(sub.id, s.id)}
+                      className="flex items-center gap-1 bg-surface2 border border-border2 text-text2 text-[11px] font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+                    >
+                      + {sub.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isLinking && unlinkedSubjects.length === 0 && (
+                <p className="text-[11px] text-text3 mt-1">Semua mapel sudah terhubung ke semester ini.</p>
+              )}
+            </div>
+          </div>
         );
       })}
+
       {!semesters.length && (
         <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">
-          Belum ada semester ditambahkan.
+          Belum ada semester ditambahkan. Buat semester pertama di atas.
         </div>
       )}
     </div>
