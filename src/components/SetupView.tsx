@@ -336,15 +336,25 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
     return (
       <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px]">
         <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 h-10" autoFocus />
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
-          <div className="flex gap-1">
-            {[1,2,3,4,5].map(n => (
+          <div className="flex items-center gap-1 flex-wrap">
+            {[1, 2, 3, 4, 5].map(n => (
               <button key={n} onClick={() => setSessVal(n)}
                 className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
                   sessVal === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
                 }`}>{n}×</button>
             ))}
+            <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+              <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+              <input
+                type="number"
+                min="1"
+                value={sessVal || ''}
+                onChange={e => setSessVal(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 mb-2">
@@ -756,30 +766,50 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           {bulkMode ? (
             <>
               <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | UTS\nBab 2 - Geometri | 3x | hal 13-28 | UTS\nBab 3 - Statistik | 2x | hal 29-40 | UAS\n\nTips: Tambahkan | UTS atau | UAS di akhir baris untuk langsung mengikat materi ke ujian."} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
-                <div className="flex gap-1">
-                  {[1,2,3,4,5].map(n => (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setBulkSessions(n)}
                       className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
                         bulkSessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
                       }`}>{n}×</button>
                   ))}
+                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+                    <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={bulkSessions || ''}
+                      onChange={e => setBulkSessions(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
+                    />
+                  </div>
                 </div>
               </div>
             </>
           ) : (
             <>
               <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} className="form-input-style mb-2" placeholder="cth: Bab 1 — Persamaan Linear" />
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
-                <div className="flex gap-1">
-                  {[1,2,3,4,5].map(n => (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setSessions(n)}
                       className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
                         sessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
                       }`}>{n}×</button>
                   ))}
+                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+                    <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={sessions || ''}
+                      onChange={e => setSessions(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 mb-2">
