@@ -1742,19 +1742,39 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
   const results: PredictiveFinish[] = [];
 
   data.subjects.forEach(sub => {
-    if (!sub.examDate) return; // Only subjects with exam date
+    const sem = getSubjectSemester(sub, data);
 
     data.classes.forEach(cls => {
       const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (scheds.length === 0) return;
 
-      const mats = getMaterials(sub.id, cls.id);
+      let mats = getMaterials(sub.id, cls.id);
       if (!mats.length) return;
+
+      let effectiveDeadline: string | null = null;
+      if (sem) {
+        const phase = getCurrentExamPhase(sem);
+        if (phase === 'UTS') {
+          effectiveDeadline = sem.utsDate;
+          const utsMats = mats.filter(m => m.examPeriod === 'UTS');
+          if (utsMats.length > 0) mats = utsMats;
+        } else if (phase === 'UAS') {
+          effectiveDeadline = sem.uasDate;
+          const uasMats = mats.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
+          if (uasMats.length > 0) mats = uasMats;
+        } else {
+          effectiveDeadline = sem.uasDate;
+        }
+      } else {
+        effectiveDeadline = sub.examDate ?? null;
+      }
+
+      if (!effectiveDeadline) return;
 
       const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
       const totalSessNeeded = getTotalSessionsNeeded(mats);
       const remainingSess = Math.max(0, totalSessNeeded - prog.materialsDone);
-      const daysToExam = daysUntilDateKey(sub.examDate);
+      const daysToExam = daysUntilDateKey(effectiveDeadline);
 
       let predictedFinishDate: string | null = null;
       let pace: 'ahead' | 'on-track' | 'behind' = 'on-track';
@@ -1762,7 +1782,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       if (remainingSess <= 0) {
         predictedFinishDate = dateKey(new Date());
-        daysDifference = Math.ceil((dateFromKey(sub.examDate).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
+        daysDifference = Math.ceil((dateFromKey(effectiveDeadline).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
         pace = getPaceFromFinish(daysDifference, remainingSess, remainingSess);
       } else {
         const scanDays = Math.max(daysToExam + 370, 370);
@@ -1770,8 +1790,8 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
         if (availableDates.length === 0) return;
 
         predictedFinishDate = availableDates[Math.min(remainingSess, availableDates.length) - 1] || availableDates[availableDates.length - 1];
-        daysDifference = Math.ceil((dateFromKey(sub.examDate).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
-        const availableBeforeExam = availableDates.filter(date => date < sub.examDate!).length;
+        daysDifference = Math.ceil((dateFromKey(effectiveDeadline).getTime() - dateFromKey(predictedFinishDate).getTime()) / 864e5);
+        const availableBeforeExam = availableDates.filter(date => date < effectiveDeadline!).length;
         pace = getPaceFromFinish(daysDifference, availableBeforeExam, remainingSess);
       }
 
@@ -1779,7 +1799,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
         classId: cls.id,
         subjectId: sub.id,
         predictedFinishDate,
-        examDate: sub.examDate,
+        examDate: effectiveDeadline,
         daysDifference,
         pace,
       });
@@ -1798,20 +1818,42 @@ export function getExamPrepItems(): ExamPrepItem[] {
   const prepWindowDays = 14; // H-14
 
   data.subjects.forEach(sub => {
-    if (!sub.examDate) return;
-
-    const daysToExam = Math.ceil((dateFromKey(sub.examDate).getTime() - today.getTime()) / 864e5);
-    if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
+    const sem = getSubjectSemester(sub, data);
 
     data.classes.forEach(cls => {
       const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (scheds.length === 0) return;
 
-      const mats = getMaterials(sub.id, cls.id);
+      let mats = getMaterials(sub.id, cls.id);
+      if (!mats.length) return;
+
+      let effectiveDeadline: string | null = null;
+      if (sem) {
+        const phase = getCurrentExamPhase(sem);
+        if (phase === 'UTS') {
+          effectiveDeadline = sem.utsDate;
+          const utsMats = mats.filter(m => m.examPeriod === 'UTS');
+          if (utsMats.length > 0) mats = utsMats;
+        } else if (phase === 'UAS') {
+          effectiveDeadline = sem.uasDate;
+          const uasMats = mats.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
+          if (uasMats.length > 0) mats = uasMats;
+        } else {
+          effectiveDeadline = sem.uasDate;
+        }
+      } else {
+        effectiveDeadline = sub.examDate ?? null;
+      }
+
+      if (!effectiveDeadline) return;
+
+      const daysToExam = Math.ceil((dateFromKey(effectiveDeadline).getTime() - today.getTime()) / 864e5);
+      if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
+
       const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
       const totalSess = getTotalSessionsNeeded(mats);
-      const remainingSess = totalSess - prog.materialsDone;
-      const progressPct = Math.round((prog.materialsDone / totalSess) * 100);
+      const remainingSess = Math.max(0, totalSess - prog.materialsDone);
+      const progressPct = totalSess > 0 ? Math.round((prog.materialsDone / totalSess) * 100) : 100;
 
       const holidays = data.holidays ?? [];
       const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
@@ -1833,11 +1875,9 @@ export function getExamPrepItems(): ExamPrepItem[] {
           `📅 Tambah ${deficit} sesi extra`,
           `📚 Fokus ke materi inti (trim jika perlu)`,
         ];
-      } else if (remainingSess > sessLeft * 0.8) {
+      } else if (remainingSess === sessLeft) {
         status = 'warning';
         recommendedActions = [
-          `⏰ Mepet target! ${remainingSess} sesi dalam ${daysToExam} hari`,
-          `📌 Prioritaskan materi yang belum selesai`,
           `🔁 Review secara rutin`,
         ];
       } else {
