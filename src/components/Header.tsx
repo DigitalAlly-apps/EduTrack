@@ -8,13 +8,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { SupabaseUser } from '@/lib/supabase';
 
 interface HeaderProps {
   onToggleTheme: () => void;
   theme: string;
+  syncStatus?: 'idle' | 'connected' | 'syncing' | 'offline';
+  user?: SupabaseUser | null;
+  onOpenSync?: () => void;
 }
 
-export default function Header({ onToggleTheme, theme }: HeaderProps) {
+export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user, onOpenSync }: HeaderProps) {
   const data = getData();
   const rawName = data.teacherName || 'Guru';
   // Hapus gelar akademik (S.H, M.Pd, S.Pd, dll) untuk header
@@ -61,6 +65,21 @@ export default function Header({ onToggleTheme, theme }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-2 relative z-10">
+          <button
+            onClick={onOpenSync}
+            className={`app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm transition-all ${
+              syncStatus === 'connected' ? 'border-green/40 bg-green/10 text-green' : ''
+            }`}
+            title={user ? `Sync aktif (${user.email})` : 'Sinkronisasi Multi-Device'}
+          >
+            <span className="text-base leading-none">
+              {syncStatus === 'syncing' ? '🔄' : syncStatus === 'connected' ? '☁️' : '☁️'}
+            </span>
+            <span className="text-[11px] font-bold tracking-wider hidden sm:inline">
+              {syncStatus === 'connected' ? 'Sync' : 'Sync'}
+            </span>
+          </button>
+
           <Dialog>
             <DialogTrigger asChild>
               <button className="app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm" aria-label="Buka panduan EduTrack">

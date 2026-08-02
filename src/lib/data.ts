@@ -105,6 +105,12 @@ export function getData(): AppData {
   } catch { return structuredClone(DEFAULT_DATA); }
 }
 
+let onDataSavedCallback: ((d: AppData) => void) | null = null;
+
+export function setOnDataSaved(cb: ((d: AppData) => void) | null) {
+  onDataSavedCallback = cb;
+}
+
 export function saveData(d: AppData) {
   const serialized = JSON.stringify(d);
   localStorage.setItem(DB_KEY, serialized);
@@ -118,6 +124,9 @@ export function saveData(d: AppData) {
     }));
   } catch {
     // Jika storage penuh, abaikan autosave (data utama sudah tersimpan)
+  }
+  if (onDataSavedCallback) {
+    try { onDataSavedCallback(d); } catch (e) { console.warn('Cloud sync error on save:', e); }
   }
 }
 

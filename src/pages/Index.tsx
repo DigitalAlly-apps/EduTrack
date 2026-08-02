@@ -5,7 +5,11 @@ import { ViewType } from '@/lib/types';
 import { getData, loadDemo, pruneOldSessions, snapshotBeforeUnload, now } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
-import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun } from 'lucide-react';
+import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
+import { supabase, type SupabaseUser } from '@/lib/supabase';
+import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime } from '@/lib/supabaseSync';
+import SyncModal from '@/components/SyncModal';
+import { useToast } from '@/hooks/use-toast';
 
 const TodayView = lazy(() => import('@/components/TodayView'));
 const ProgressView = lazy(() => import('@/components/ProgressView'));
@@ -45,8 +49,62 @@ function AppInner() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || 'dark');
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'connected' | 'syncing' | 'offline'>('idle');
+  const { toast } = useToast();
 
+  const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
+
+  // Init Supabase Auth & Realtime Sync
+  useEffect(() => {
+    const setupSync = async (u: SupabaseUser) => {
+      setUser(u);
+      setSyncStatus('syncing');
+      try {
+        const hasCloudData = await pullCloudToLocal(u.id);
+        if (!hasCloudData) {
+          await pushLocalToCloud(u.id);
+        }
+        refresh();
+        initCloudSync(u.id, () => {
+          refresh();
+          toast({ title: '⚡ Data tersinkron dari perangkat lain' });
+        });
+        setSyncStatus('connected');
+      } catch (e) {
+        console.warn('Sync setup error:', e);
+        setSyncStatus('offline');
+      }
+    };
+
+    // Initial check
+    getCurrentUser().then(u => {
+      if (u) setupSync(u);
+    });
+
+    // Auth listener for login/logout/OAuth redirect
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const u: SupabaseUser = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name ?? session.user.user_metadata?.name,
+          avatarUrl: session.user.user_metadata?.avatar_url,
+        };
+        setupSync(u);
+      } else {
+        setUser(null);
+        setSyncStatus('idle');
+        unsubscribeRealtime();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [refresh, toast]);
 
   useEffect(() => {
     if (view !== 'today') return;
@@ -82,9 +140,6 @@ function AppInner() {
       window.removeEventListener('set-tab', handler);
     };
   }, []);
-
-
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
   const handleViewChange = (v: ViewType) => {
     setView(v);
@@ -136,6 +191,28 @@ function AppInner() {
             </div>
           </div>
 
+          {/* Cloud Sync Desktop Button */}
+          <button
+            onClick={() => setSyncModalOpen(true)}
+            className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all text-left ${
+              syncStatus === 'connected'
+                ? 'bg-green/10 border-green/30 text-foreground'
+                : 'bg-surface2/60 border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-lg flex-shrink-0">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
+              <div className="min-w-0">
+                <div className="text-[12px] font-bold leading-tight truncate">
+                  {syncStatus === 'connected' ? 'Multi-Device Sync' : 'Hubungkan Sync'}
+                </div>
+                <div className="text-[10px] text-text3 truncate">
+                  {user ? user.email : 'Masuk dengan Google'}
+                </div>
+              </div>
+            </div>
+          </button>
+
           {/* Nav Menu */}
           <nav className="space-y-1.5">
             <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-2 mb-2">Navigasi Utama</div>
@@ -180,7 +257,13 @@ function AppInner() {
       <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden relative z-10">
         {/* Mobile Header (Hidden on lg:) */}
         <div className="lg:hidden">
-          <Header onToggleTheme={toggleTheme} theme={theme} />
+          <Header
+            onToggleTheme={toggleTheme}
+            theme={theme}
+            syncStatus={syncStatus}
+            user={user}
+            onOpenSync={() => setSyncModalOpen(true)}
+          />
         </div>
 
         {/* Content view container */}
@@ -209,6 +292,14 @@ function AppInner() {
         )}
 
         <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onRefresh={refresh} />
+        <SyncModal
+          open={syncModalOpen}
+          onClose={() => setSyncModalOpen(false)}
+          onRefresh={refresh}
+          syncStatus={syncStatus}
+          user={user}
+          onUserChange={setUser}
+        />
       </Suspense>
     </div>
   );
