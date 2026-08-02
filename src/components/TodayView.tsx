@@ -529,7 +529,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   return (
     <div>
-      {/* ── Compact Status Bar (replaces Briefing, Prioritas, Backup) ── */}
+      {/* ── Desktop: 2-column layout (hero + timeline side by side) ── */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
+        {/* LEFT COLUMN: Status bar + Hero card */}
+        <div>
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button
           onClick={() => setStatusBarOpen(o => !o)}
@@ -614,6 +617,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         );
       })()}
 
+        </div>
+
+        {/* RIGHT COLUMN: KBM Timeline */}
+        <div>
       {/* Unified Hero Area: Active Session, Upcoming, or Exams */}
       {(() => {
         const hasExams = todayExamItems.length > 0;
@@ -1273,6 +1280,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           )}
         </div>
       )}
+
+        </div>
+      </div>
+      {/* End desktop grid */}
 
       {/* Smart Rescheduler Modal */}
       <SmartReschedulerModal

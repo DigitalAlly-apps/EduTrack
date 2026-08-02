@@ -117,60 +117,62 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
       {/* Main Content Area */}
       {tab === null ? (
         // ─── SETTINGS MENU LIST ───
-        <div className="space-y-4 animate-slide-up pb-10">
-          <div>
-            <div className="app-section-title mb-2">Akademik & Jadwal</div>
-            <div className="app-card overflow-hidden">
-              {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => {
-                const Icon = t.icon;
-                return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
-                    idx !== arr.length - 1 ? 'border-b border-border/50' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
-                      <Icon className="h-5 w-5" />
+        <div className="animate-slide-up pb-10">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
+            <div>
+              <div className="app-section-title mb-2">Akademik &amp; Jadwal</div>
+              <div className="app-card overflow-hidden">
+                {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => {
+                  const Icon = t.icon;
+                  return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                      idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
+                        <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                      <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
-                    </div>
-                  </div>
-                  <span className="text-text3 text-lg opacity-50">›</span>
-                </button>
-              );})}
+                    <span className="text-text3 text-lg opacity-50">›</span>
+                  </button>
+                );})}
+              </div>
             </div>
-          </div>
-          
-          <div>
-            <div className="app-section-title mb-2">Sistem & Lainnya</div>
-            <div className="app-card overflow-hidden">
-              {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => {
-                const Icon = t.icon;
-                return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
-                    idx !== arr.length - 1 ? 'border-b border-border/50' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner">
-                      <Icon className="h-5 w-5" />
+
+            <div>
+              <div className="app-section-title mb-2">Sistem &amp; Lainnya</div>
+              <div className="app-card overflow-hidden">
+                {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => {
+                  const Icon = t.icon;
+                  return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                      idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
+                        <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                      <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
-                    </div>
-                  </div>
-                  <span className="text-text3 text-lg opacity-50">›</span>
-                </button>
-              );})}
+                    <span className="text-text3 text-lg opacity-50">›</span>
+                  </button>
+                );})}
+              </div>
             </div>
           </div>
         </div>

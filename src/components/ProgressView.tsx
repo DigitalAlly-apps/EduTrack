@@ -382,7 +382,7 @@ const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
       </div>
 
       {isExpanded && (
-        <div className="flex flex-col gap-2.5 mt-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
           {group.cards.map((card: CardData) => (
             <SubjectCard key={`${card.clsId}-${card.subId}`} card={card} />
           ))}

@@ -263,7 +263,7 @@ function AppInner() {
       </aside>
 
       {/* ── MAIN CONTENT & MOBILE LAYOUT CONTAINER ── */}
-      <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden relative z-10">
+      <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden relative z-10 bg-background">
         {/* Mobile Header (Hidden on lg:) */}
         <div className="lg:hidden">
           <Header
@@ -275,15 +275,64 @@ function AppInner() {
           />
         </div>
 
+        {/* Desktop Top Navbar (Visible only on lg:) */}
+        <header className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-border/50 bg-surface/40 backdrop-blur-xl flex-shrink-0 relative z-20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xl shadow-inner flex-shrink-0">
+              {view === 'today' && '📅'}
+              {view === 'progress' && '📈'}
+              {view === 'exam' && '📋'}
+              {view === 'setup' && '⚙️'}
+              {view === 'info' && 'ℹ️'}
+            </div>
+            <div>
+              <h1 className="font-display font-black text-xl text-foreground tracking-tight leading-tight">
+                {view === 'today' && 'Jurnal KBM Hari Ini'}
+                {view === 'progress' && 'Capaian & Progres Pembelajaran'}
+                {view === 'exam' && 'Jadwal & Pengawasan Ujian'}
+                {view === 'setup' && 'Pengaturan Kelas & Materi'}
+                {view === 'info' && 'Pusat Informasi & Panduan'}
+              </h1>
+              <p className="text-[11px] text-text3 font-semibold mt-0.5">
+                {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSyncModalOpen(true)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all ${
+                syncStatus === 'connected'
+                  ? 'bg-green/10 border-green/30 text-green hover:bg-green/15'
+                  : 'bg-surface2/60 border-border text-text2 hover:border-primary/40'
+              }`}
+            >
+              <span className="text-base">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
+              <span>{syncStatus === 'connected' ? (user?.email || 'Tersambung') : 'Hubungkan Sync'}</span>
+            </button>
+
+            <button
+              onClick={toggleTheme}
+              className="w-10 h-10 rounded-2xl bg-surface2 border border-border flex items-center justify-center text-text2 hover:text-foreground transition-all shadow-sm"
+              title="Ganti Tema"
+            >
+              {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+          </div>
+        </header>
+
         {/* Content view container */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[136px] lg:pb-6 lg:px-8 scrollbar-thin relative z-0">
-          <Suspense fallback={<ViewFallback />}>
-            {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
-            {view === 'progress' && <ProgressView key={refreshKey} />}
-            {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
-            {view === 'setup'    && <SetupView onRefresh={refresh} />}
-            {view === 'info'     && <InfoView />}
-          </Suspense>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[136px] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin relative z-0">
+          <div className="max-w-7xl mx-auto w-full">
+            <Suspense fallback={<ViewFallback />}>
+              {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
+              {view === 'progress' && <ProgressView key={refreshKey} />}
+              {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
+              {view === 'setup'    && <SetupView onRefresh={refresh} />}
+              {view === 'info'     && <InfoView />}
+            </Suspense>
+          </div>
         </div>
 
         {/* Mobile Bottom Navigation (Hidden on lg:) */}
