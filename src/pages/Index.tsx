@@ -158,7 +158,7 @@ function AppInner() {
 
   // ── Main App Shell ─────────────────────────────────────────────────────────
   return (
-    <div className="app-frame max-w-[430px] mx-auto h-dvh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70 lg:max-w-6xl lg:mx-auto lg:h-[92vh] lg:my-[4vh] lg:grid lg:grid-cols-[280px_1fr] lg:rounded-[36px] lg:border lg:border-border/70">
+    <div className="app-frame max-w-[430px] mx-auto h-dvh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70 lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[280px_1fr]">
       <div className="absolute inset-x-6 top-0 h-24 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="absolute -right-10 top-32 h-40 w-40 rounded-full bg-teal/10 blur-3xl pointer-events-none" />
 
