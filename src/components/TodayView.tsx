@@ -4,7 +4,7 @@ import {
   markDone, unmarkDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
-  dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules,
+  dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -929,6 +929,30 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         const teachingPosition = !item.done ? getTeachingPosition(item.classId, item.subjectId) : null;
         const itemMaterial = teachingPosition?.material;
         const itemPageLabel = getMaterialPageLabel(itemMaterial);
+
+        const remainingSessionsInBab = teachingPosition && itemMaterial 
+          ? Math.max(0, teachingPosition.totalSessionsInMaterial - teachingPosition.sessionIndex)
+          : 0;
+
+        let nextSessionPageInfo = '';
+        if (!item.done && teachingPosition && itemMaterial) {
+          const { sessionIndex, totalSessionsInMaterial } = teachingPosition;
+          if (sessionIndex < totalSessionsInMaterial) {
+            const nextSessNum = sessionIndex + 1;
+            nextSessionPageInfo = `Pertemuan berikut: Sesi ${nextSessNum}/${totalSessionsInMaterial} ${itemPageLabel ? `(${itemPageLabel})` : 'bab ini'}`;
+          } else {
+            const mats = getMaterials(item.subjectId, item.classId);
+            const currIdx = mats.findIndex(m => m.id === itemMaterial.id);
+            const nextMat = currIdx !== -1 && currIdx + 1 < mats.length ? mats[currIdx + 1] : null;
+            if (nextMat) {
+              const nextMatPage = getMaterialPageLabel(nextMat);
+              nextSessionPageInfo = `Pertemuan berikut: Bab "${nextMat.name}" ${nextMatPage ? `(${nextMatPage})` : ''}`;
+            } else {
+              nextSessionPageInfo = `Pertemuan berikut: Semua bab tuntas 🎉`;
+            }
+          }
+        }
+
         return (
           <div
             key={item.id}
@@ -994,9 +1018,26 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       <span className="basis-full min-w-0 text-text3/80 leading-snug break-words line-clamp-2">📖 {itemMaterial.name}</span>
                     )}
                   </div>
-                  {!item.done && (itemPageLabel || itemMaterial?.note) && (
-                    <div className="text-[11px] text-text3 mt-1 leading-snug line-clamp-2">
-                      {[itemPageLabel, itemMaterial?.note ? `Catatan: ${itemMaterial.note}` : ''].filter(Boolean).join(' • ')}
+                  {!item.done && (
+                    <div className="text-[11px] text-text3 mt-1 leading-snug space-y-0.5">
+                      {(itemPageLabel || itemMaterial?.note) && (
+                        <div className="line-clamp-2">
+                          {[
+                            itemPageLabel ? `📄 ${teachingPosition?.sessionIndex && teachingPosition.sessionIndex > 1 ? 'Lanjut' : 'Mulai'} ${itemPageLabel}` : '',
+                            itemMaterial?.note ? `Catatan: ${itemMaterial.note}` : ''
+                          ].filter(Boolean).join(' • ')}
+                        </div>
+                      )}
+                      {teachingPosition && !teachingPosition.isComplete && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] pt-0.5">
+                          <span className={remainingSessionsInBab === 0 ? 'text-green font-bold' : 'text-amber font-medium'}>
+                            {remainingSessionsInBab === 0 ? '⭐ Pertemuan terakhir bab ini' : `⏳ Sisa ${remainingSessionsInBab} pertemuan bab ini`}
+                          </span>
+                          {nextSessionPageInfo && (
+                            <span className="text-text3/80">· {nextSessionPageInfo}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

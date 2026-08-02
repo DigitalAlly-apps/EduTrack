@@ -356,7 +356,7 @@ function ProgressTab({ predictiveFinishes, examPrepItems }: {
 
 // ─── ClassGroup — Handles its own state so parent isn't re-rendered ───────────
 const ClassGroup = memo(function ClassGroup({ group }: { group: GroupData }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="animate-slide-up app-card p-3">
