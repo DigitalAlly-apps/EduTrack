@@ -7,7 +7,7 @@ import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
 import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
 import { supabase, type SupabaseUser } from '@/lib/supabase';
-import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime } from '@/lib/supabaseSync';
+import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime, REMOTE_SYNC_EVENT } from '@/lib/supabaseSync';
 import SyncModal from '@/components/SyncModal';
 import { useToast } from '@/hooks/use-toast';
 
@@ -66,12 +66,13 @@ function AppInner() {
         const hasCloudData = await pullCloudToLocal(u.id);
         if (!hasCloudData) {
           await pushLocalToCloud(u.id);
-        }
-        refresh();
-        initCloudSync(u.id, () => {
+        } else {
+          // Data cloud berhasil di-pull, refresh komponen sekali
           refresh();
-          toast({ title: '⚡ Data tersinkron dari perangkat lain' });
-        });
+        }
+        // initCloudSync sekarang tidak butuh callback —
+        // update remote diterima via REMOTE_SYNC_EVENT (tanpa re-mount)
+        initCloudSync(u.id);
         setSyncStatus('connected');
       } catch (e) {
         console.warn('Sync setup error:', e);
@@ -101,8 +102,16 @@ function AppInner() {
       }
     });
 
+    // ✅ Terima notifikasi sync dari perangkat lain — HANYA tampilkan toast,
+    // TIDAK re-mount komponen, sehingga layar tidak kedip
+    const handleRemoteSync = () => {
+      toast({ title: '⚡ Tersinkron dari perangkat lain', duration: 2000 });
+    };
+    window.addEventListener(REMOTE_SYNC_EVENT, handleRemoteSync);
+
     return () => {
       authListener.subscription.unsubscribe();
+      window.removeEventListener(REMOTE_SYNC_EVENT, handleRemoteSync);
     };
   }, [refresh, toast]);
 

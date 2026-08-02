@@ -1,10 +1,19 @@
 import { supabase, type SupabaseUser } from './supabase';
-import { getData, saveData, setOnDataSaved } from './data';
+import { getData, saveData, saveDataLocalOnly, setOnDataSaved } from './data';
 import type { AppData } from './types';
 
 const SYNC_TABLE = 'app_sync';
 let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let currentUserId: string | null = null;
+
+// ── Custom event untuk notifikasi ringan ke UI (tanpa re-mount komponen) ──────
+// Dispatch event ini saat ada update dari perangkat lain.
+// Komponen yang perlu refresh data bisa subscribe ke event ini tanpa re-mount.
+export const REMOTE_SYNC_EVENT = 'edutrack-remote-sync';
+
+function dispatchRemoteSync() {
+  window.dispatchEvent(new CustomEvent(REMOTE_SYNC_EVENT));
+}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -61,21 +70,26 @@ export async function pullCloudToLocal(userId: string): Promise<boolean> {
   if (!data) return false; // No cloud data yet — first time login
 
   const cloudData = data.data as AppData;
-  saveData(cloudData);
+  // Gunakan saveDataLocalOnly: hanya simpan ke localStorage,
+  // TIDAK trigger onDataSavedCallback agar tidak push balik ke cloud
+  saveDataLocalOnly(cloudData);
   return true;
 }
 
 // ── Realtime Subscription ─────────────────────────────────────────────────────
 
-export function initCloudSync(userId: string, onRemoteUpdate: (data: AppData) => void) {
+export function initCloudSync(userId: string) {
   currentUserId = userId;
+
+  // Setiap kali user lokal save data → push ke cloud
   setOnDataSaved((appData) => {
     syncDataToCloud(userId, appData);
   });
-  subscribeRealtime(userId, onRemoteUpdate);
+
+  subscribeRealtime(userId);
 }
 
-export function subscribeRealtime(userId: string, onRemoteUpdate: (data: AppData) => void) {
+export function subscribeRealtime(userId: string) {
   unsubscribeRealtime();
   currentUserId = userId;
 
@@ -87,8 +101,10 @@ export function subscribeRealtime(userId: string, onRemoteUpdate: (data: AppData
       (payload) => {
         const remoteData = (payload.new as { data: AppData }).data;
         if (remoteData) {
-          saveData(remoteData);
-          onRemoteUpdate(remoteData);
+          // ✅ saveDataLocalOnly: simpan tanpa trigger cloud sync (cegah loop)
+          saveDataLocalOnly(remoteData);
+          // ✅ dispatch event ringan — komponen refresh data tanpa re-mount
+          dispatchRemoteSync();
         }
       }
     )
@@ -121,7 +137,6 @@ export async function syncDataToCloud(userId: string, appData: AppData) {
 export function shouldUseCloudData(localData: AppData, cloudData: AppData): boolean {
   const localSessions = localData.sessions?.length ?? 0;
   const cloudSessions = cloudData.sessions?.length ?? 0;
-  // Cloud lebih baru jika punya lebih banyak sesi, atau lastBackup lebih baru
   if (cloudData.lastBackup && localData.lastBackup) {
     return cloudData.lastBackup > localData.lastBackup;
   }

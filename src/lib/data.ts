@@ -111,6 +111,21 @@ export function setOnDataSaved(cb: ((d: AppData) => void) | null) {
   onDataSavedCallback = cb;
 }
 
+// Simpan ke localStorage TANPA trigger cloud sync (untuk menerima update dari cloud,
+// mencegah infinite loop: cloud → local → cloud → local → ...)
+export function saveDataLocalOnly(d: AppData) {
+  const serialized = JSON.stringify(d);
+  localStorage.setItem(DB_KEY, serialized);
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, serialized);
+    localStorage.setItem(AUTOSAVE_META_KEY, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      classes: d.classes.length,
+      sessions: d.sessions.length,
+    }));
+  } catch { /* ignore */ }
+}
+
 export function saveData(d: AppData) {
   const serialized = JSON.stringify(d);
   localStorage.setItem(DB_KEY, serialized);

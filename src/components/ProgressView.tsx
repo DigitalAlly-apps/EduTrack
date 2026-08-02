@@ -403,6 +403,11 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const sessionsAvailable = st.sessLeft ?? 0;
   const sessionsNeeded = st.sessionsNeeded ?? st.remaining;
   const sessionDeficit = Math.max(0, sessionsNeeded - sessionsAvailable);
+  // Pertemuan bonus: terjadi ketika ujian mundur sehingga ada slot jadwal lebih
+  // dari yang dibutuhkan silabus. Hanya relevan jika ada info jadwal (sessLeft ada)
+  const bonusSessions = (st.sessLeft !== undefined && st.sessLeft !== null && sessionsNeeded > 0)
+    ? Math.max(0, sessionsAvailable - sessionsNeeded)
+    : 0;
   const totalProgressText = totalSessAll > 0
     ? `Selesai ${Math.min(totalSessDone, totalSessAll)} dari ${totalSessAll} pertemuan total`
     : 'Belum ada pertemuan terdaftar';
@@ -485,6 +490,21 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
             </div>
           </div>
 
+          {/* Banner Pertemuan Bonus — muncul saat ujian mundur */}
+          {bonusSessions > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-2xl bg-green/10 border border-green/25 px-3 py-2.5">
+              <span className="text-base flex-shrink-0 mt-0.5">🎉</span>
+              <div className="min-w-0">
+                <div className="text-[12px] font-black text-green leading-tight">
+                  {bonusSessions} Pertemuan Bonus Tersedia!
+                </div>
+                <div className="text-[11px] text-text2 mt-0.5 leading-snug">
+                  Waktu ujian mundur — ada {bonusSessions} sesi ekstra. Manfaatkan untuk pengayaan atau latihan soal.
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 text-[12px] text-text2 flex-wrap font-medium">
             {st.daysLeft !== undefined && (
               <>
@@ -555,10 +575,35 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                <div className="mt-2 text-[11px] text-text2 leading-snug">
                  {sessionDeficit > 0
                    ? `Materi masih butuh ${sessionsNeeded} sesi, tapi jadwal tersisa hanya ${sessionsAvailable}. Perlu tambah ${sessionDeficit} sesi atau ringkas materi.`
+                   : bonusSessions > 0
+                   ? `Semua ${sessionsNeeded} sesi materi bisa selesai tepat waktu. Masih ada ${bonusSessions} pertemuan bonus tersisa setelah materi selesai.`
                    : `Jadwal masih cukup untuk menyelesaikan ${sessionsNeeded} sesi materi.`}
                </div>
              </div>
            )}
+
+           {/* Panel Pertemuan Bonus di expanded view — di luar daysLeft block */}
+           {bonusSessions > 0 && (
+             <div className="mb-4 flex items-start gap-3 rounded-xl bg-green/10 border border-green/25 p-3">
+               <div className="w-9 h-9 rounded-xl bg-green/15 border border-green/25 flex items-center justify-center text-lg flex-shrink-0">
+                 🎉
+               </div>
+               <div className="min-w-0">
+                 <div className="text-[13px] font-black text-green leading-tight">
+                   {bonusSessions} Pertemuan Bonus
+                 </div>
+                 <div className="text-[11px] text-text2 mt-1 leading-snug">
+                   Ujian mapel ini mundur sehingga ada <span className="font-bold text-foreground">{bonusSessions} sesi ekstra</span> di luar kebutuhan silabus ({sessionsNeeded} sesi). Gunakan untuk:
+                 </div>
+                 <div className="mt-1.5 flex flex-wrap gap-1.5">
+                   {['📚 Pengayaan materi', '✏️ Latihan soal', '🔁 Review bab sebelumnya', '📝 Simulasi ujian'].map(tip => (
+                     <span key={tip} className="text-[10px] font-semibold text-green bg-green/10 border border-green/20 px-2 py-0.5 rounded-full">{tip}</span>
+                   ))}
+                 </div>
+               </div>
+             </div>
+           )}
+
            <div className="mb-3 text-[10px] font-bold text-text3 uppercase tracking-wider">Daftar Materi</div>
 
           <div className="space-y-[3px]">
