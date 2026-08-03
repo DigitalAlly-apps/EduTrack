@@ -901,49 +901,59 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
 
-      {/* Timeline */}
-      <div className="flex items-center justify-between mt-4 mb-3 sticky top-0 z-30 glass-panel py-3 px-3 rounded-3xl gap-3">
-        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-          <div className="app-section-title px-0 whitespace-nowrap">Jadwal Hari Ini</div>
-           {!active && items.length > 0 && !items.every(x => x.done) && (
-             <div className="flex gap-2 flex-wrap">
-                <button 
-                  onClick={() => setEarlyDismissSheet(true)}
-                   className="text-[10px] font-bold text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 transition-colors hover:bg-blue-500/20 whitespace-nowrap flex items-center gap-1"
-                >
-                  <Home className="h-3 w-3" /> Pulang Awal
-                </button>
-                <button 
-                  onClick={() => {
-                    const firstSubject = items.find(i => !i.done)?.subjectId || items[0]?.subjectId || '';
-                    setSubjectDismissSubjectId(firstSubject);
-                    setSubjectDismissClassId('');
-                    setSubjectDismissSheet(true);
-                  }}
-                   className="text-[10px] font-bold text-teal px-2.5 py-1 rounded-full border border-teal/30 bg-teal/10 transition-colors hover:bg-teal/20 whitespace-nowrap flex items-center gap-1"
-                >
-                  <SkipForward className="h-3 w-3" /> Liburkan Mapel
-                </button>
-                <button
-                 onClick={() => {
-                    const today = dateKey();
-                   setReschedulerDate(today);
-                   setReschedulerOpen(true);
-                 }}
-                  className="text-[10px] font-bold text-amber-600 px-2.5 py-1 rounded-full border border-amber-600/30 bg-amber-600/10 transition-colors hover:bg-amber-600/20 whitespace-nowrap flex items-center gap-1"
-                >
-                  <HeartPulse className="h-3 w-3" /> Izin/Cuti
-                </button>
-             </div>
-           )}
+      {/* Fixed Quick Actions Dock Container (Pulang Awal, Liburkan Mapel, Izin/Cuti) */}
+      <div className="sticky top-0 z-30 bg-surface/85 backdrop-blur-xl border border-border/70 shadow-lg shadow-black/5 rounded-2xl p-2 mb-3.5 transition-all">
+        <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-0.5 px-0.5">
+          <button
+            onClick={() => setEarlyDismissSheet(true)}
+            className="flex-1 min-w-[105px] text-[11px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+            title="Diliburkan setelah jam tertentu"
+          >
+            <Home className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">Pulang Awal</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const firstSubject = items.find(i => !i.done)?.subjectId || items[0]?.subjectId || '';
+              setSubjectDismissSubjectId(firstSubject);
+              setSubjectDismissClassId('');
+              setSubjectDismissSheet(true);
+            }}
+            className="flex-1 min-w-[110px] text-[11px] font-bold text-teal bg-teal/10 border border-teal/25 px-3 py-2 rounded-xl transition-all hover:bg-teal/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+            title="Diliburkan mapel tertentu saja"
+          >
+            <SkipForward className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">Libur Mapel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const today = dateKey();
+              setReschedulerDate(today);
+              setReschedulerOpen(true);
+            }}
+            className="flex-1 min-w-[100px] text-[11px] font-bold text-amber-600 bg-amber-600/10 border border-amber-600/25 px-3 py-2 rounded-xl transition-all hover:bg-amber-600/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+            title="Input izin mengajar atau cuti"
+          >
+            <HeartPulse className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">Izin / Cuti</span>
+          </button>
         </div>
+      </div>
+
+      {/* Timeline Header Title */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="app-section-title px-0 text-foreground font-black text-base">Jadwal Hari Ini</div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {active && (
             <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_hsl(var(--primary)/0.2)]">
               ● {Math.max(0, timeToMin(active.endTime) - currentMin())} mnt tersisa
             </span>
           )}
-          <div className="text-[11px] text-text3 font-bold px-2.5 py-1 bg-surface border border-border rounded-full whitespace-nowrap">{doneCount}/{items.length}</div>
+          <div className="text-[11px] text-text3 font-bold px-2.5 py-1 bg-surface border border-border rounded-full whitespace-nowrap">
+            {doneCount}/{items.length} Selesai
+          </div>
         </div>
       </div>
 
