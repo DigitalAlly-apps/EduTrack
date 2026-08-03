@@ -901,9 +901,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
 
-      {/* Fixed Quick Actions Dock Container (Pulang Awal, Liburkan Mapel, Izin/Cuti) */}
-      <div className="sticky top-0 z-30 bg-surface/85 backdrop-blur-xl border border-border/70 shadow-lg shadow-black/5 rounded-2xl p-2 mb-3.5 transition-all">
-        <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-none py-0.5 px-0.5">
+      {/* Static Quick Actions Panel Container (Pulang Awal, Libur Mapel, Izin/Cuti) */}
+      <div className="bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setEarlyDismissSheet(true)}
             className="flex-1 min-w-[105px] text-[11px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
