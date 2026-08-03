@@ -695,3 +695,51 @@ describe('exam period bulk assignment', () => {
   });
 });
 
+import { getLastPageReached, getNextStartPage, markDone, updateSessionNote } from '@/lib/data';
+
+describe('lastPageReached feature', () => {
+  it('getLastPageReached — returns null when no session has lastPageReached', () => {
+    saveData(baseData());
+    expect(getLastPageReached('c1', 's1')).toBeNull();
+  });
+
+  it('markDone — correctly saves lastPageReached to session', () => {
+    saveData(baseData());
+    markDone('sc1', 'Catatan test', '10');
+
+    expect(getLastPageReached('c1', 's1')).toBe('10');
+  });
+
+  it('getNextStartPage — correctly increments numeric page strings', () => {
+    expect(getNextStartPage('10')).toEqual({ nextPage: '11', isNumeric: true });
+    expect(getNextStartPage(' 45 ')).toEqual({ nextPage: '46', isNumeric: true });
+    expect(getNextStartPage('0')).toEqual({ nextPage: '1', isNumeric: true });
+  });
+
+  it('getNextStartPage — handles non-numeric strings safely', () => {
+    expect(getNextStartPage('A-15')).toEqual({ nextPage: 'A-15', isNumeric: false });
+    expect(getNextStartPage('hal 12')).toEqual({ nextPage: 'hal 12', isNumeric: false });
+  });
+
+  it('updateSessionNote — updates lastPageReached for existing session', () => {
+    saveData(baseData());
+    markDone('sc1', 'Awal', '10');
+
+    const session = getData().sessions.find(s => s.scheduleId === 'sc1')!;
+    updateSessionNote(session.id, 'Edit catatan', '15');
+
+    expect(getLastPageReached('c1', 's1')).toBe('15');
+  });
+
+  it('getLastPageReached — ignores SKIPPED sessions and returns the latest non-skipped lastPageReached', () => {
+    const data = baseData();
+    data.sessions = [
+      { id: 'sess1', scheduleId: 'sc1', classId: 'c1', subjectId: 's1', date: '2026-01-01', materialId: 'm1', completedAt: '2026-01-01T08:00:00.000Z', lastPageReached: '10' },
+      { id: 'sess2', scheduleId: 'sc1', classId: 'c1', subjectId: 's1', date: '2026-01-08', materialId: 'SKIPPED', completedAt: '2026-01-08T08:00:00.000Z', lastPageReached: '99' },
+    ];
+    saveData(data);
+
+    expect(getLastPageReached('c1', 's1')).toBe('10');
+  });
+});
+

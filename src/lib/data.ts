@@ -719,7 +719,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 }
 
 
-export function markDone(scheduleId: string, note?: string) {
+export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return;
@@ -730,7 +730,9 @@ export function markDone(scheduleId: string, note?: string) {
   const mats = getMaterials(sched.subjectId, sched.classId);
   const { material } = getMaterialForSession(mats, prog ? prog.materialsDone : 0);
   
-  data.sessions.push({ id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: material?.id || null, completedAt: now().toISOString(), note });
+  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: material?.id || null, completedAt: now().toISOString(), note };
+  if (lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
+  data.sessions.push(session);
   
   if (prog) { 
     prog.materialsDone = Math.min(prog.materialsDone + 1, getTotalSessionsNeeded(mats));
@@ -771,7 +773,6 @@ export function skipSession(scheduleId: string) {
   saveData(data);
 }
 
-/** Undo/koreksi: hapus sesi terakhir (non-skipped) dan turunkan materialsDone 1 */
 export function undoLastSession(classId: string, subjectId: string): boolean {
   const data = getData();
   // Cari sesi terakhir yang bukan SKIPPED
@@ -784,6 +785,31 @@ export function undoLastSession(classId: string, subjectId: string): boolean {
   if (prog && prog.materialsDone > 0) prog.materialsDone--;
   saveData(data);
   return true;
+}
+
+/**
+ * Ambil halaman terakhir yang diajarkan untuk pasangan kelas+mapel.
+ * Mengembalikan string halaman (mis. "10") atau null jika belum pernah diisi.
+ */
+export function getLastPageReached(classId: string, subjectId: string, data?: AppData): string | null {
+  const d = data ?? getData();
+  const lastSess = d.sessions
+    .filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId !== 'SKIPPED' && s.lastPageReached)
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  return lastSess?.lastPageReached ?? null;
+}
+
+/**
+ * Hitung halaman mulai berikutnya.
+ * Jika lastPage adalah angka murni, kembalikan +1.
+ * Jika bukan angka, kembalikan null (tampilkan lastPage apa adanya).
+ */
+export function getNextStartPage(lastPageReached: string): { nextPage: string; isNumeric: boolean } {
+  const num = parseInt(lastPageReached, 10);
+  if (!isNaN(num) && String(num) === lastPageReached.trim()) {
+    return { nextPage: String(num + 1), isNumeric: true };
+  }
+  return { nextPage: lastPageReached, isNumeric: false };
 }
 
 export function postponeSchedule(scheduleId: string, diffMinutes: number) {
@@ -1324,8 +1350,15 @@ export function deleteTask(id: string) {
 }
 
 // ── Session Journaling ──────────────────────────────────────────────────────
-export function updateSessionNote(sessionId: string, note: string) {
-  updateData(d => { const s = d.sessions.find(x => x.id === sessionId); if (s) s.note = note.trim(); });
+export function updateSessionNote(sessionId: string, note: string, lastPageReached?: string) {
+  updateData(d => {
+    const s = d.sessions.find(x => x.id === sessionId);
+    if (!s) return;
+    s.note = note.trim();
+    if (lastPageReached !== undefined) {
+      s.lastPageReached = lastPageReached.trim() || undefined;
+    }
+  });
 }
 
 export function applyTeacherLeave(dateStr: string, reason: string, resolutions: { scheduleId: string; action: 'deliver' | 'skip'; note?: string }[]) {

@@ -54,6 +54,7 @@ export interface Session {
   materialId: string | null;
   completedAt: string;
   note?: string;
+  lastPageReached?: string; // halaman terakhir yang diajarkan di sesi ini
 }
 export interface TeacherTask {
   id: string;

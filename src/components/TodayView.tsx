@@ -5,6 +5,7 @@ import {
   todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
+  getLastPageReached, getNextStartPage,
 } from '@/lib/data';
 import { TodayScheduleItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -66,6 +67,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [skipConfirm, setSkipConfirm] = useState<TodayScheduleItem | null>(null);
   const [liveNoteOpen, setLiveNoteOpen] = useState(false);
   const [liveNoteDraft, setLiveNoteDraft] = useState('');
+  // Tracker halaman terakhir: di-input setelah sesi selesai
+  const [lastPageDraft, setLastPageDraft] = useState(''); // untuk expanded note section (timeline)
+  const [lastPageHero, setLastPageHero] = useState('');   // untuk hero card quick input
 
   // Helpers for reminder pertemuan depan
   const REMINDER_PREFIX = '\n---REMINDER_DEPAN---\n';
@@ -209,9 +213,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     const combinedNote = belumKumpulDraft.trim()
       ? `${noteDraft}${REMINDER_PREFIX}${belumKumpulDraft.trim()}`
       : noteDraft;
-    updateSessionNote(sessionId, combinedNote);
+    updateSessionNote(sessionId, combinedNote, lastPageDraft || undefined);
     setExpandedNoteId(null);
     setBelumKumpulDraft('');
+    setLastPageDraft('');
     onRefresh();
     toast({ title: 'Catatan disimpan' });
   };
@@ -704,6 +709,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
                     {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
+                    {/* Info halaman dari sesi sebelumnya */}
+                    {(() => {
+                      const lastPage = getLastPageReached(active.classId, active.subjectId);
+                      if (!lastPage) return null;
+                      const { nextPage } = getNextStartPage(lastPage);
+                      return (
+                        <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
+                          <span className="text-[11px]">📄</span>
+                          <span className="text-[12px] font-bold text-primary">Mulai hal. {nextPage}</span>
+                          <span className="text-[10px] text-text3">· lanjut dari hal. {lastPage}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1045,6 +1063,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           )}
                         </div>
                       )}
+                      {/* Badge halaman terakhir dari sesi sebelumnya */}
+                      {(() => {
+                        const lastPage = getLastPageReached(item.classId, item.subjectId);
+                        if (!lastPage) return null;
+                        const { nextPage } = getNextStartPage(lastPage);
+                        return (
+                          <div className="inline-flex items-center gap-1 mt-0.5 bg-primary/8 border border-primary/20 rounded-full px-2 py-0.5 w-fit">
+                            <span className="text-[10px]">📄</span>
+                            <span className="text-[11px] font-bold text-primary">Mulai hal. {nextPage}</span>
+                            <span className="text-[10px] text-text3">(lanjut dari hal. {lastPage})</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -1092,7 +1123,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             )}
               
               {/* Expandable Note Section */}
-              {item.done && expandedNoteId === item.id && item.sessionId && (
+              {item.done && expandedNoteId === item.id && item.sessionId && (() => {
+                // Pre-fill lastPageDraft dari data session yang sudah ada
+                const sessionData = getData().sessions.find(s => s.id === item.sessionId);
+                const existingLastPage = sessionData?.lastPageReached ?? '';
+                return (
                 <div className="mt-1 bg-surface2 border border-border2 rounded-xl p-3 animate-slide-up origin-top">
                   <div className="text-[10px] font-semibold text-text3 uppercase tracking-[0.5px] mb-2">Jurnal Sesi / Catatan</div>
                   <textarea
@@ -1103,6 +1138,25 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[50px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
                   />
                   
+                  {/* Input halaman terakhir */}
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <span className="text-base flex-shrink-0">📄</span>
+                    <span className="text-[11px] font-bold text-primary flex-shrink-0">Sampai halaman:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={lastPageDraft || existingLastPage}
+                      onChange={e => setLastPageDraft(e.target.value)}
+                      placeholder="mis. 10"
+                      className="w-24 bg-surface border border-primary/30 rounded-lg px-2.5 py-1 text-[13px] font-bold text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
+                    />
+                    {(lastPageDraft || existingLastPage) && (
+                      <span className="text-[11px] text-green font-semibold">
+                        → minggu depan mulai hal. {getNextStartPage(lastPageDraft || existingLastPage).nextPage}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Reminder Pertemuan Depan */}
                   <div className="mt-2.5">
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -1129,9 +1183,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </button>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
+
         );
       })}
       {/* ── Ujian Hari Ini (unified timeline) ── */}
