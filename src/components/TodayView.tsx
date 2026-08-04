@@ -504,8 +504,39 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {doneItems.length === 0 && <span className="text-[11px] text-text3 italic">Tidak ada materi baru</span>}
               </div>
             </div>
+
+            {/* Ringkasan catatan per sesi */}
+            <div className="pt-3 border-t border-border/50">
+              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Catatan Sesi:</div>
+              <div className="space-y-2">
+                {items.filter(it => !it.skipped).map((it, i) => {
+                  const { mainNote, reminder } = extractReminder(it.note);
+                  const sessionData = getData().sessions.find(s => s.id === it.sessionId);
+                  const lastPage = sessionData?.lastPageReached;
+                  const hasReminder = reminder.trim().length > 0;
+                  const hasNote = mainNote.trim().length > 0;
+                  const notePreview = [
+                    lastPage ? `📄 s/d hal. ${lastPage}` : '',
+                    hasNote ? `"${mainNote.length > 45 ? mainNote.slice(0, 45) + '…' : mainNote}"` : ''
+                  ].filter(Boolean).join(' · ');
+                  return (
+                    <div key={i} className="flex items-start gap-2 text-[11px]">
+                      <span className="flex-shrink-0 font-bold text-text2 w-[56px] truncate">{it.className}</span>
+                      <span className="text-text3 flex-shrink-0">—</span>
+                      <span className="text-foreground/70 flex-1 min-w-0 leading-snug">
+                        {notePreview || <span className="italic text-text3">(tidak ada catatan)</span>}
+                      </span>
+                      {hasReminder && (
+                        <span className="flex-shrink-0 text-[9px] bg-amber/15 text-amber border border-amber/25 rounded-full px-1.5 py-0.5 font-bold">📌</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
+
 
         <div className="flex gap-2">
           <button 
@@ -1088,6 +1119,50 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       })()}
                     </div>
                   )}
+
+                  {/* ── Preview catatan sesi yang sudah selesai ── */}
+                  {item.done && !item.skipped && (() => {
+                    const sessionData = getData().sessions.find(s => s.id === item.sessionId);
+                    const { mainNote, reminder } = extractReminder(item.note);
+                    const lastPage = sessionData?.lastPageReached;
+                    const hasReminder = reminder.trim().length > 0;
+                    const hasNote = mainNote.trim().length > 0;
+                    if (!hasNote && !hasReminder && !lastPage) {
+                      return (
+                        <button
+                          onClick={() => {
+                            setExpandedNoteId(item.id);
+                            setNoteDraft('');
+                            setBelumKumpulDraft('');
+                          }}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-text3 border border-dashed border-border2 rounded-full px-2.5 py-0.5 hover:border-green/40 hover:text-green transition-colors"
+                        >
+                          <span>+</span> Tambah catatan
+                        </button>
+                      );
+                    }
+                    return (
+                      <div className="mt-1.5 space-y-1">
+                        {(lastPage || hasNote) && (
+                          <div className="flex items-start gap-1.5 text-[11px] text-text2 leading-snug flex-wrap">
+                            {lastPage && (
+                              <span className="font-bold text-primary flex-shrink-0">📄 s/d hal. {lastPage}</span>
+                            )}
+                            {lastPage && hasNote && <span className="text-border3 flex-shrink-0">·</span>}
+                            {hasNote && (
+                              <span className="text-text3 line-clamp-1">&ldquo;{mainNote.length > 55 ? mainNote.slice(0, 55) + '…' : mainNote}&rdquo;</span>
+                            )}
+                          </div>
+                        )}
+                        {hasReminder && (
+                          <div className="inline-flex items-center gap-1 bg-amber/10 border border-amber/25 rounded-full px-2 py-0.5">
+                            <span className="text-[10px]">📌</span>
+                            <span className="text-[10px] font-semibold text-amber">Ada reminder pertemuan depan</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex-shrink-0">
@@ -1169,17 +1244,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
                   {/* Reminder Pertemuan Depan */}
                   <div className="mt-2.5">
-                    <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-sm">📌</span>
                       <span className="text-[10px] font-bold text-amber uppercase tracking-wider">Reminder Pertemuan Depan</span>
                     </div>
+                    <p className="text-[10px] text-text3 mb-1.5 leading-snug">Otomatis muncul di awal kelas ini minggu depan — mis. "Fulan belum kumpul soal", "Bahas PR hal. 15".</p>
                     <textarea
                       value={belumKumpulDraft}
                       onChange={e => setBelumKumpulDraft(e.target.value)}
-                      placeholder="Contoh: Lanjut Bab 3 hal 45, Ahmad belum kumpul, Budi perlu remedial..."
+                      placeholder="mis. Fulan belum kumpul soal, lanjut hal. 46 minggu depan..."
                       className="w-full bg-surface border border-amber/30 rounded-md p-2 text-[13px] min-h-[55px] resize-none focus:border-amber focus:outline-none placeholder:text-text3"
                     />
                   </div>
+
 
                   <div className="flex justify-end gap-2 mt-2.5">
                     <button onClick={() => {
