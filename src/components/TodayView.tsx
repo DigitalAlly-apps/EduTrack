@@ -1035,11 +1035,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                ) : (
                  <div className="flex flex-col items-center">
                    <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(item.startTime)}</div>
+                   <div className={`text-[9px] font-medium tabular-nums mt-0.5 ${item.active ? 'text-primary font-bold' : 'text-text3'}`}>{fmt(item.endTime)}</div>
                    {!item.active && !item.done && (
-                     <div className="text-[9px] font-medium text-teal tabular-nums mt-0.5">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
+                     <div className="text-[9px] font-medium text-teal tabular-nums">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
                    )}
                  </div>
                )}
+
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] transition-all duration-500 relative ${
                 state === 'active' ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' :
                 state === 'done' ? (item.skipped ? 'bg-text3' : 'bg-green') : 'bg-border3'
