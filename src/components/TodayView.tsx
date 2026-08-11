@@ -520,7 +520,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   const isEditing = expandedNoteId === it.id;
                   const notePreview = [
                     lastPage ? `📄 s/d hal. ${lastPage}` : '',
-                    hasNote ? `"${mainNote.length > 45 ? mainNote.slice(0, 45) + '…' : mainNote}"` : ''
+                    hasNote ? `"${mainNote.length > 45 ? mainNote.slice(0, 45) + '…' : mainNote}"` : '',
+                    hasReminder ? `📌 ${reminder.length > 45 ? reminder.slice(0, 45) + '…' : reminder}` : '',
                   ].filter(Boolean).join(' · ');
                   return (
                     <div key={i} className="rounded-xl border border-border/50 bg-surface/35 p-2.5">
