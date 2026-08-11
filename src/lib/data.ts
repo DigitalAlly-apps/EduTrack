@@ -12,6 +12,38 @@ const DEFAULT_DATA: AppData = {
   academicYear: '', semesters: [],
 };
 
+const REMINDER_MARKERS = ['---REMINDER_DEPAN---', '---BELUM_KUMPUL---'] as const;
+
+/** Pisahkan jurnal sesi dari reminder yang akan muncul pada pertemuan berikutnya. */
+export function splitSessionNote(note?: string) {
+  const source = note?.trim();
+  if (!source) return { mainNote: '', reminder: '' };
+
+  const match = REMINDER_MARKERS
+    .map(marker => ({ marker, index: source.indexOf(marker) }))
+    .filter((candidate): candidate is { marker: typeof REMINDER_MARKERS[number]; index: number } => candidate.index >= 0)
+    .sort((a, b) => a.index - b.index)[0];
+
+  if (!match) return { mainNote: source, reminder: '' };
+
+  return {
+    mainNote: source.slice(0, match.index).trimEnd(),
+    reminder: source.slice(match.index + match.marker.length).replace(/^\r?\n/, '').trim(),
+  };
+}
+
+/** Gabungkan jurnal dan reminder dalam format yang tetap kompatibel dengan data lama. */
+export function composeSessionNote(mainNote: string, reminder: string) {
+  const cleanNote = mainNote.trim();
+  const cleanReminder = reminder.trim();
+  if (!cleanReminder) return cleanNote;
+
+  const marker = '---REMINDER_DEPAN---';
+  return cleanNote
+    ? `${cleanNote}\n${marker}\n${cleanReminder}`
+    : `${marker}\n${cleanReminder}`;
+}
+
 export type MaterialDetails = {
   pageStart?: string;
   pageEnd?: string;
@@ -481,13 +513,7 @@ function getMaterialPageLabel(material?: Material | null) {
 }
 
 function getReminderFromNote(note?: string) {
-  if (!note) return '';
-  const prefixes = ['\n---REMINDER_DEPAN---\n', '\n---BELUM_KUMPUL---\n'];
-  for (const prefix of prefixes) {
-    const idx = note.indexOf(prefix);
-    if (idx !== -1) return note.slice(idx + prefix.length).trim();
-  }
-  return '';
+  return splitSessionNote(note).reminder;
 }
 
 export function getDailyPriorities(data: AppData = getData()): DailyPriority[] {

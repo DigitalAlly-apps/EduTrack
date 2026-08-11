@@ -7,6 +7,7 @@ import {
   applySubjectDismissal,
   applyTeacherLeave,
   bulkAddMaterials,
+  composeSessionNote,
   dateKey,
   exportJSON,
   getData,
@@ -21,7 +22,9 @@ import {
   parseMaterialDraftLines,
   saveData,
   skipSession,
+  splitSessionNote,
   updateMaterial,
+  updateSessionNote,
 } from '@/lib/data';
 import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
 import { AppData } from '@/lib/types';
@@ -177,6 +180,43 @@ describe('session actions', () => {
     expect(afterSkip.sessions).toHaveLength(2);
     expect(afterSkip.sessions.find(s => s.scheduleId === 'sc2')?.materialId).toBe('SKIPPED');
     expect(afterSkip.progress[0].materialsDone).toBe(1);
+  });
+});
+
+describe('session reminder notes', () => {
+  it('keeps a reminder even when the session has no general note', () => {
+    const combined = composeSessionNote('', 'Fulan belum mengumpulkan soal.');
+
+    expect(combined).toBe('---REMINDER_DEPAN---\nFulan belum mengumpulkan soal.');
+    expect(splitSessionNote(combined)).toEqual({
+      mainNote: '',
+      reminder: 'Fulan belum mengumpulkan soal.',
+    });
+  });
+
+  it('updates and clears reminders without leaving the internal marker behind', () => {
+    saveData(baseData());
+    markDone('sc1');
+    const sessionId = getData().sessions[0].id;
+
+    updateSessionNote(sessionId, composeSessionNote('Latihan pecahan', 'Bahas PR halaman 15.'));
+    expect(splitSessionNote(getData().sessions[0].note)).toEqual({
+      mainNote: 'Latihan pecahan',
+      reminder: 'Bahas PR halaman 15.',
+    });
+
+    updateSessionNote(sessionId, composeSessionNote('Latihan pecahan', ''));
+    expect(splitSessionNote(getData().sessions[0].note)).toEqual({
+      mainNote: 'Latihan pecahan',
+      reminder: '',
+    });
+  });
+
+  it('reads reminders saved with the old marker', () => {
+    expect(splitSessionNote('Catatan lama\n---BELUM_KUMPUL---\nMinta tugas susulan.')).toEqual({
+      mainNote: 'Catatan lama',
+      reminder: 'Minta tugas susulan.',
+    });
   });
 });
 
@@ -742,4 +782,3 @@ describe('lastPageReached feature', () => {
     expect(getLastPageReached('c1', 's1')).toBe('10');
   });
 });
-
