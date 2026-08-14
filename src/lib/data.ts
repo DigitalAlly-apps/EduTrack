@@ -3,8 +3,6 @@ import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem,
 const DB_KEY = 'pengajar_v4';
 const CORR_KEY = 'edutrack_corrections';
 const EXAM_MODE_KEY = 'edutrack_exam_mode';
-const AUTOSAVE_KEY = 'pengajar_autosave';
-const AUTOSAVE_META_KEY = 'pengajar_autosave_meta';
 
 const DEFAULT_DATA: AppData = {
   teacherName: '', classes: [], subjects: [], materials: [], schedules: [],
@@ -148,30 +146,11 @@ export function setOnDataSaved(cb: ((d: AppData) => void) | null) {
 export function saveDataLocalOnly(d: AppData) {
   const serialized = JSON.stringify(d);
   localStorage.setItem(DB_KEY, serialized);
-  try {
-    localStorage.setItem(AUTOSAVE_KEY, serialized);
-    localStorage.setItem(AUTOSAVE_META_KEY, JSON.stringify({
-      savedAt: new Date().toISOString(),
-      classes: d.classes.length,
-      sessions: d.sessions.length,
-    }));
-  } catch { /* ignore */ }
 }
 
 export function saveData(d: AppData) {
   const serialized = JSON.stringify(d);
   localStorage.setItem(DB_KEY, serialized);
-  // Auto-snapshot: simpan salinan terakhir sebagai safety net
-  try {
-    localStorage.setItem(AUTOSAVE_KEY, serialized);
-    localStorage.setItem(AUTOSAVE_META_KEY, JSON.stringify({
-      savedAt: new Date().toISOString(),
-      classes: d.classes.length,
-      sessions: d.sessions.length,
-    }));
-  } catch {
-    // Jika storage penuh, abaikan autosave (data utama sudah tersimpan)
-  }
   if (onDataSavedCallback) {
     try { onDataSavedCallback(d); } catch (e) { console.warn('Cloud sync error on save:', e); }
   }
@@ -1260,67 +1239,6 @@ export function dismissBackupReminder() {
 }
 export function markBackupDone() {
   updateData(d => { d.lastBackup = dateKey(); d.reminderDismissed = null; });
-}
-
-// ── Auto-save / Restore ──────────────────────────────────────────────────────
-export interface AutoSaveMeta {
-  savedAt: string;
-  classes: number;
-  sessions: number;
-}
-
-export function getAutoSaveMeta(): AutoSaveMeta | null {
-  try {
-    const raw = localStorage.getItem(AUTOSAVE_META_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AutoSaveMeta;
-  } catch { return null; }
-}
-
-/**
- * Cek apakah ada auto-save yang lebih baru dari data utama.
- * Berguna untuk mendeteksi data yang mungkin hilang.
- */
-export function hasNewerAutoSave(): boolean {
-  try {
-    const meta = getAutoSaveMeta();
-    if (!meta) return false;
-    const mainRaw = localStorage.getItem(DB_KEY);
-    if (!mainRaw) return true; // data utama hilang, ada autosave
-    const main = JSON.parse(mainRaw) as AppData;
-    // Jika autosave punya lebih banyak sesi, kemungkinan data utama lebih lama
-    return (meta.sessions > (main.sessions?.length ?? 0)) ||
-           (meta.classes > (main.classes?.length ?? 0));
-  } catch { return false; }
-}
-
-export function restoreFromAutoSave(): boolean {
-  try {
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return false;
-    // Restore ke key utama tanpa menulis ulang autosave
-    localStorage.setItem(DB_KEY, raw);
-    return true;
-  } catch { return false; }
-}
-
-/**
- * Buat snapshot manual untuk beforeunload — tidak download file,
- * hanya memastikan autosave key ter-update dengan data terkini.
- */
-export function snapshotBeforeUnload(): void {
-  try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (!raw) return;
-    localStorage.setItem(AUTOSAVE_KEY, raw);
-    localStorage.setItem(AUTOSAVE_META_KEY, JSON.stringify({
-      savedAt: new Date().toISOString(),
-      classes: JSON.parse(raw).classes?.length ?? 0,
-      sessions: JSON.parse(raw).sessions?.length ?? 0,
-    }));
-  } catch { /* abaikan */ }
 }
 
 // ── Holiday helpers ─────────────────────────────────────────────────────────

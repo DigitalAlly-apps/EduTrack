@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession,
   markDone, unmarkDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
-  todayNum, DAYS_ID, shouldShowBackupReminder, dismissBackupReminder, isTodayHolidayGlobal,
+  todayNum, DAYS_ID, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
@@ -92,13 +92,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const insights = getInsights();
   const briefingItems = getDailyBriefing();
   const hasUrgentBriefing = briefingItems.some(b => b.urgent && b.type !== 'semua-beres');
-  const showBackupBtn = shouldShowBackupReminder();
 
   const [statusBarOpen, setStatusBarOpen] = useState(false);
   const [agendaBesokOpen, setAgendaBesokOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [adminActionsOpen, setAdminActionsOpen] = useState(false);
   const [showKbmDuringExam, setShowKbmDuringExam] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // Setelah semua sesi selesai, guru tetap bisa kembali ke timeline untuk
   // melengkapi jurnal/reminder tanpa membatalkan centang sesi.
   const [showCompletedSchedule, setShowCompletedSchedule] = useState(false);
@@ -730,9 +731,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 👁 {todayProctorSessions.length} Ngawas
               </span>
             )}
-            {showBackupBtn && (
-              <span className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 px-1.5 py-0.5 rounded-full">⚠️ Backup</span>
-            )}
           </div>
           {hasUrgentBriefing && (
             <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">!</span>
@@ -755,15 +753,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             ))}
             {briefingItems.every(b => b.type === 'semua-beres') && (
               <div className="text-[11px] text-text3 px-2.5 py-2">✅ Tidak ada ujian mendekat atau koreksi pending.</div>
-            )}
-            {showBackupBtn && (
-              <div className="flex items-center justify-between bg-amber/10 border border-amber/25 rounded-xl px-2.5 py-2">
-                <span className="text-[11px] font-medium text-foreground/80">Sudah 7+ hari belum backup.</span>
-                <div className="flex gap-1.5">
-                  <button onClick={() => { dismissBackupReminder(); onRefresh(); }} className="px-2 py-1 text-[10px] font-semibold text-text2 bg-surface rounded-lg">Nanti</button>
-                  <button onClick={() => { window.document.querySelector('.tab-data-btn')?.dispatchEvent(new MouseEvent('click')); dismissBackupReminder(); onRefresh(); }} className="px-2 py-1 text-[10px] font-bold text-amber-950 bg-amber rounded-lg">Backup</button>
-                </div>
-              </div>
             )}
           </div>
         )}
@@ -1027,23 +1016,58 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
 
-      {/* Insights */}
-      {insights.map((ins, i) => (
-        <div
-          key={i}
-          className={`rounded-lg p-3 flex items-start gap-[10px] mb-2 animate-slide-up-delay-2 ${
-            ins.type === 'warn'
-              ? 'bg-[hsl(45_93%_56%/0.05)] border border-[hsl(45_93%_56%/0.14)]'
-              : 'bg-[hsl(199_89%_60%/0.05)] border border-[hsl(199_89%_60%/0.12)]'
-          }`}
-        >
-          <div className="text-[15px] flex-shrink-0 mt-[1px]">{ins.type === 'warn' ? '💡' : '📌'}</div>
-          <div>
-            <div className="text-[9px] font-bold tracking-[0.7px] uppercase text-text3 mb-[2px]">{ins.directive}</div>
-            <div className="text-[13px] text-text2 leading-relaxed" dangerouslySetInnerHTML={{ __html: ins.text }} />
+      {/* Suggestions and warnings are available, without taking over the daily flow. */}
+      {(() => {
+        const attention = insights.filter(ins => ins.type === 'warn');
+        const suggestions = insights.filter(ins => ins.type === 'tip');
+        const renderInsights = (list: typeof insights) => list.map((ins, i) => (
+          <div
+            key={i}
+            className={`rounded-lg p-3 flex items-start gap-[10px] ${
+              ins.type === 'warn'
+                ? 'bg-[hsl(45_93%_56%/0.05)] border border-[hsl(45_93%_56%/0.14)]'
+                : 'bg-[hsl(199_89%_60%/0.05)] border border-[hsl(199_89%_60%/0.12)]'
+            }`}
+          >
+            <div className="text-[15px] flex-shrink-0 mt-[1px]">{ins.type === 'warn' ? '💡' : '📌'}</div>
+            <div>
+              <div className="text-[9px] font-bold tracking-[0.7px] uppercase text-text3 mb-[2px]">{ins.directive}</div>
+              <div className="text-[13px] text-text2 leading-relaxed" dangerouslySetInnerHTML={{ __html: ins.text }} />
+            </div>
           </div>
-        </div>
-      ))}
+        ));
+
+        return (
+          <div className="space-y-2 mb-4 animate-slide-up-delay-2">
+            {attention.length > 0 && (
+              <div className="rounded-xl border border-amber/20 bg-amber/5 overflow-hidden">
+                <button
+                  onClick={() => setAttentionOpen(open => !open)}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left"
+                  aria-expanded={attentionOpen}
+                >
+                  <span className="text-[11px] font-bold text-amber">💡 Perlu diperhatikan ({attention.length})</span>
+                  <ChevronDown className={`h-4 w-4 text-amber transition-transform ${attentionOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {attentionOpen && <div className="space-y-2 border-t border-amber/15 p-2.5 animate-slide-up">{renderInsights(attention)}</div>}
+              </div>
+            )}
+            {suggestions.length > 0 && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
+                <button
+                  onClick={() => setSuggestionsOpen(open => !open)}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left"
+                  aria-expanded={suggestionsOpen}
+                >
+                  <span className="text-[11px] font-bold text-primary">📌 Disarankan hari ini ({suggestions.length})</span>
+                  <ChevronDown className={`h-4 w-4 text-primary transition-transform ${suggestionsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {suggestionsOpen && <div className="space-y-2 border-t border-primary/15 p-2.5 animate-slide-up">{renderInsights(suggestions)}</div>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Task Inbox */}
       {pendingTasks.length > 0 && (

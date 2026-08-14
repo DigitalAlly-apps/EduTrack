@@ -41,7 +41,7 @@ const guides: Guide[] = [
   },
   {
     id: 'g4', icon: '💾', title: 'Cara Backup & Restore Data', steps: [
-      { t: 'Export JSON (backup utama)', d: 'Di tab Kelola → Data → <strong>💾 Backup Full</strong>. Lakukan setidaknya setelap 7 hari. Sistem akan mengingatkan otomatis.' },
+      { t: 'Export JSON (backup utama)', d: 'Di tab Pengaturan → Data → <strong>💾 Backup Full</strong>. Lakukan secara berkala sesuai kebutuhan.' },
       { t: 'Export CSV', d: 'Untuk melihat riwayat sesi mengajar di spreadsheet. Bisa dibuka di Excel atau Google Sheets.' },
       { t: 'Restore / Import JSON', d: 'Pilih <strong>📂 Upload JSON</strong> dan pilih file backup Anda. Semua data akan dikembalikan seperti semula.' },
     ], tip: 'Data tersimpan di localStorage browser. Jika ganti browser atau hapus cache, data bisa hilang. Selalu backup JSON!'

@@ -2,7 +2,7 @@ import { Suspense, lazy, useState, useCallback, useEffect } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { ViewType } from '@/lib/types';
-import { getData, loadDemo, pruneOldSessions, snapshotBeforeUnload, now } from '@/lib/data';
+import { getData, loadDemo, pruneOldSessions, now } from '@/lib/data';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
 import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
@@ -124,13 +124,6 @@ function AppInner() {
     initNotifications();
     pruneOldSessions();
   }, [view]);
-
-  // Snapshot data ke autosave saat tab/browser mau ditutup
-  useEffect(() => {
-    const handleBeforeUnload = () => snapshotBeforeUnload();
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
 
   useEffect(() => {
     document.documentElement.className = theme === 'light' ? 'light' : '';
