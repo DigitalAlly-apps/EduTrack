@@ -27,7 +27,7 @@ const desktopNavItems: { id: AppView; icon: React.ElementType; label: string; de
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Jurnal KBM harian' },
   { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Capaian & kalender' },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Jadwal & pengawasan' },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola',    desc: 'Kelas & materi' },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Pengaturan', desc: 'Kelas, jadwal & materi' },
   { id: 'info',     icon: Info,                label: 'Informasi', desc: 'Panduan & aplikasi' },
 ];
 
@@ -213,7 +213,7 @@ function AppInner() {
               <span className="text-lg flex-shrink-0">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
               <div className="min-w-0">
                 <div className="text-[12px] font-bold leading-tight truncate">
-                  {syncStatus === 'connected' ? 'Multi-Device Sync' : 'Hubungkan Sync'}
+                  {syncStatus === 'connected' ? 'Sinkronisasi aktif' : 'Hubungkan perangkat'}
                 </div>
                 <div className="text-[10px] text-text3 truncate">
                   {user ? user.email : 'Masuk dengan Google'}
@@ -290,7 +290,7 @@ function AppInner() {
                 {view === 'today' && 'Jurnal KBM Hari Ini'}
                 {view === 'progress' && 'Capaian & Progres Pembelajaran'}
                 {view === 'exam' && 'Jadwal & Pengawasan Ujian'}
-                {view === 'setup' && 'Pengaturan Kelas & Materi'}
+                {view === 'setup' && 'Pengaturan Akademik'}
                 {view === 'info' && 'Pusat Informasi & Panduan'}
               </h1>
               <p className="text-[11px] text-text3 font-semibold mt-0.5">
@@ -309,7 +309,7 @@ function AppInner() {
               }`}
             >
               <span className="text-base">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
-              <span>{syncStatus === 'connected' ? (user?.email || 'Tersambung') : 'Hubungkan Sync'}</span>
+              <span>{syncStatus === 'connected' ? (user?.email || 'Tersambung') : 'Hubungkan perangkat'}</span>
             </button>
 
             <button

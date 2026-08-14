@@ -18,6 +18,7 @@ import {
 } from '@/lib/examData';
 import { getDailyBriefing } from '@/lib/briefing';
 import { requestNotifPermission } from '@/lib/notifications';
+import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -95,6 +96,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   const [statusBarOpen, setStatusBarOpen] = useState(false);
   const [agendaBesokOpen, setAgendaBesokOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [adminActionsOpen, setAdminActionsOpen] = useState(false);
+  const [showKbmDuringExam, setShowKbmDuringExam] = useState(false);
   // Setelah semua sesi selesai, guru tetap bisa kembali ke timeline untuk
   // melengkapi jurnal/reminder tanpa membatalkan centang sesi.
   const [showCompletedSchedule, setShowCompletedSchedule] = useState(false);
@@ -128,13 +132,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const openNoteEditor = (item: TodayScheduleItem) => {
     const { mainNote, reminder } = splitSessionNote(item.note);
     const session = getData().sessions.find(s => s.id === item.sessionId);
+    const draft = item.sessionId ? loadSessionDraft(item.sessionId) : null;
     setExpandedNoteId(item.id);
-    setNoteDraft(mainNote);
-    setBelumKumpulDraft(reminder);
-    setLastPageDraft(session?.lastPageReached ?? '');
+    setNoteDraft(draft?.note ?? mainNote);
+    setBelumKumpulDraft(draft?.reminder ?? reminder);
+    setLastPageDraft(draft?.lastPage ?? session?.lastPageReached ?? '');
   };
 
-  const closeNoteEditor = () => {
+  const closeNoteEditor = (discardDraft = true) => {
+    const sessionId = items.find(item => item.id === expandedNoteId)?.sessionId;
+    if (discardDraft && sessionId) clearSessionDraft(sessionId);
     setExpandedNoteId(null);
     setNoteDraft('');
     setBelumKumpulDraft('');
@@ -221,16 +228,28 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   const handleSaveNote = (sessionId: string) => {
     updateSessionNote(sessionId, composeSessionNote(noteDraft, belumKumpulDraft), lastPageDraft);
+    clearSessionDraft(sessionId);
     closeNoteEditor();
     onRefresh();
     toast({ title: 'Catatan disimpan' });
   };
+
+  const editingSessionId = items.find(item => item.id === expandedNoteId)?.sessionId;
+  useEffect(() => {
+    if (!editingSessionId) return;
+    saveSessionDraft(editingSessionId, {
+      note: noteDraft,
+      reminder: belumKumpulDraft,
+      lastPage: lastPageDraft,
+    });
+  }, [editingSessionId, noteDraft, belumKumpulDraft, lastPageDraft]);
 
 
 
   const handleTurnOffExamMode = () => {
     setExamDayMode(false);
     setExamModeBanner(false);
+    setShowKbmDuringExam(false);
     onRefresh();
     toast({ title: '📚 Mode KBM Normal kembali aktif' });
   };
@@ -250,7 +269,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: ok ? '🔔 Notifikasi ujian aktif' : 'Notifikasi belum diizinkan' });
   };
 
-  if (getExamDayMode()) {
+  if (getExamDayMode() && !showKbmDuringExam) {
     return (
       <div className="space-y-6 py-4 animate-slide-up pb-28">
         {/* Header Card */}
@@ -268,7 +287,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             </h1>
             
             <p className="text-[13px] font-semibold text-text2 leading-relaxed max-w-sm mx-auto mb-6 px-2">
-              Kegiatan Belajar Mengajar (KBM) dan pelacakan jadwal harian dinonaktifkan sementara.
+              Dashboard sedang berfokus pada ujian. Jadwal KBM tetap bisa dibuka dan dicatat bila diperlukan.
             </p>
             
             <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-3">
@@ -291,6 +310,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               📖 Buka Agenda Ujian
             </button>
             <button
+              onClick={() => setShowKbmDuringExam(true)}
+              className="w-full min-h-[48px] rounded-xl bg-surface border border-primary/30 text-[12px] font-bold text-primary flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              📅 Tampilkan Jadwal KBM
+            </button>
+            <button
               onClick={handleTurnOffExamMode}
               className="w-full min-h-[48px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-2 hover:bg-surface2 transition-all"
             >
@@ -303,7 +328,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="bg-surface/30 border border-border/50 rounded-2xl p-4 flex items-start gap-3">
           <span className="text-base mt-0.5">💡</span>
           <div className="text-[12px] text-text3 leading-relaxed">
-            Anda dapat menonaktifkan Mode Ujian kapan saja melalui tombol di atas atau melalui tab <strong>Ujian</strong> → <strong>Kelola</strong>.
+            Anda dapat kembali ke fokus ujian atau menonaktifkan mode ini kapan saja.
           </div>
         </div>
 
@@ -467,6 +492,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">
           Hari ini {DAYS_ID[todayNum()]}. Kayaknya hari santai buat kamu.
         </div>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'setup' }))}
+          className="mt-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-[12px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+        >
+          + Atur jadwal mengajar
+        </button>
       </div>
     );
   }
@@ -644,6 +675,21 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   return (
     <div>
+      {examModeBanner && showKbmDuringExam && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber/30 bg-amber/10 px-3.5 py-3">
+          <span className="mt-0.5 text-base">📋</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-bold text-amber">Mode fokus ujian aktif</div>
+            <div className="text-[11px] leading-snug text-text2">Jadwal KBM tetap dapat dicatat dari halaman ini.</div>
+          </div>
+          <button
+            onClick={() => setShowKbmDuringExam(false)}
+            className="flex-shrink-0 rounded-lg border border-amber/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-amber hover:bg-amber/10"
+          >
+            Fokus ujian
+          </button>
+        </div>
+      )}
       {items.every(x => x.done) && showCompletedSchedule && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-green/25 bg-green/10 px-3.5 py-3">
           <div className="min-w-0">
@@ -1002,40 +1048,56 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       {/* Task Inbox */}
       {pendingTasks.length > 0 && (
         <div className="mb-4 animate-slide-up-delay-2">
-          <div className="text-[11px] font-semibold tracking-[0.7px] uppercase text-amber mb-2 flex items-center justify-between">
-            <span>Inbox Tugas ({pendingTasks.length})</span>
-          </div>
-          <div className="bg-surface border border-border2 rounded-xl overflow-hidden shadow-sm">
-            {pendingTasks.map((t, i) => {
-              const cls = getData().classes.find(c => c.id === t.classId);
-              const sub = getData().subjects.find(s => s.id === t.subjectId);
-              return (
-                <div key={t.id} className={`p-3 flex items-start gap-3 ${i < pendingTasks.length - 1 ? 'border-b border-border2' : ''}`}>
-                  <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} className="mt-[2px] w-5 h-5 rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent hover:border-amber transition-colors">
-                    <span className="text-[12px]">✓</span>
-                  </button>
-                  <div>
-                    <div className="text-[13px] font-semibold leading-tight mb-1">{t.title}</div>
-                    <div className="text-[11px] text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
+          <button
+            onClick={() => setTasksOpen(open => !open)}
+            className="w-full rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 flex items-center justify-between"
+            aria-expanded={tasksOpen}
+          >
+            <span>Tugas tertunda ({pendingTasks.length})</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${tasksOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {tasksOpen && (
+            <div className="mt-2 bg-surface border border-border2 rounded-xl overflow-hidden shadow-sm animate-slide-up">
+              {pendingTasks.map((t, i) => {
+                const cls = getData().classes.find(c => c.id === t.classId);
+                const sub = getData().subjects.find(s => s.id === t.subjectId);
+                return (
+                  <div key={t.id} className={`p-3 flex items-start gap-3 ${i < pendingTasks.length - 1 ? 'border-b border-border2' : ''}`}>
+                    <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} aria-label={`Tandai tugas ${t.title} selesai`} className="mt-[2px] w-5 h-5 rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent hover:border-amber transition-colors">
+                      <span className="text-[12px]">✓</span>
+                    </button>
+                    <div>
+                      <div className="text-[13px] font-semibold leading-tight mb-1">{t.title}</div>
+                      <div className="text-[11px] text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Static Quick Actions Panel Container (Pulang Awal, Libur Mapel, Izin/Cuti) */}
+      {/* Secondary day actions stay available without competing with the teaching flow. */}
       <div className="bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setEarlyDismissSheet(true)}
-            className="flex-1 min-w-[105px] text-[11px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
-            title="Diliburkan setelah jam tertentu"
-          >
-            <Home className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="truncate">Pulang Awal</span>
-          </button>
+        <button
+          onClick={() => setAdminActionsOpen(open => !open)}
+          className="w-full flex items-center justify-between px-1 py-1 text-[11px] font-semibold text-text2"
+          aria-expanded={adminActionsOpen}
+        >
+          <span>Aksi hari ini</span>
+          <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${adminActionsOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {adminActionsOpen && (
+          <div className="mt-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none animate-slide-up">
+            <button
+              onClick={() => setEarlyDismissSheet(true)}
+              className="flex-1 min-w-[105px] text-[11px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+              title="Diliburkan setelah jam tertentu"
+            >
+              <Home className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Pulang Awal</span>
+            </button>
 
           <button
             onClick={() => {
@@ -1063,7 +1125,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <HeartPulse className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="truncate">Izin / Cuti</span>
           </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Timeline Header Title */}
@@ -1264,6 +1327,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           if (expandedNoteId === item.id) closeNoteEditor();
                           else openNoteEditor(item);
                         }}
+                        aria-label={`${expandedNoteId === item.id ? 'Tutup' : 'Edit'} catatan ${item.className} ${item.subjectName}`}
                         className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${
                           item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
                         }`}
@@ -1274,6 +1338,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   ) : (
                     <button
                       onClick={() => handleTLDone(item.id)}
+                      aria-label={`Tandai sesi ${item.className} ${item.subjectName} selesai`}
                       className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95"
                     >
                       <span>✓</span>
@@ -1342,6 +1407,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
 
                   <div className="flex justify-end gap-2 mt-2.5">
+                    <span className="mr-auto self-center text-[10px] text-text3">Draft tersimpan otomatis</span>
                     <button onClick={closeNoteEditor} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-text2">
                       Batal
                     </button>

@@ -6,6 +6,7 @@ import {
   composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, getTeachingPosition,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
 import WeeklyReviewCard from './WeeklyReviewCard';
 import ExamPrepCard from './ExamPrepCard';
 import { PaceSuggestion, PredictiveFinish, ExamPrepItem, Session } from '@/lib/types';
@@ -713,13 +714,15 @@ function HistoryTab() {
 
   const openEditor = (session: Session) => {
     const { mainNote, reminder } = splitSessionNote(session.note);
+    const draft = loadSessionDraft(session.id);
     setEditingSessionId(session.id);
-    setNoteDraft(mainNote);
-    setReminderDraft(reminder);
-    setLastPageDraft(session.lastPageReached ?? '');
+    setNoteDraft(draft?.note ?? mainNote);
+    setReminderDraft(draft?.reminder ?? reminder);
+    setLastPageDraft(draft?.lastPage ?? session.lastPageReached ?? '');
   };
 
-  const closeEditor = () => {
+  const closeEditor = (discardDraft = true) => {
+    if (discardDraft && editingSessionId) clearSessionDraft(editingSessionId);
     setEditingSessionId(null);
     setNoteDraft('');
     setReminderDraft('');
@@ -729,9 +732,19 @@ function HistoryTab() {
   const saveEditor = () => {
     if (!editingSessionId) return;
     updateSessionNote(editingSessionId, composeSessionNote(noteDraft, reminderDraft), lastPageDraft);
-    closeEditor();
+    clearSessionDraft(editingSessionId);
+    closeEditor(false);
     toast({ title: 'Catatan riwayat diperbarui' });
   };
+
+  useEffect(() => {
+    if (!editingSessionId) return;
+    saveSessionDraft(editingSessionId, {
+      note: noteDraft,
+      reminder: reminderDraft,
+      lastPage: lastPageDraft,
+    });
+  }, [editingSessionId, noteDraft, reminderDraft, lastPageDraft]);
 
   const grouped = historyItems.reduce((acc, sess) => {
     if (!acc[sess.date]) acc[sess.date] = [];
@@ -793,10 +806,11 @@ function HistoryTab() {
                           {sess.materialId !== 'SKIPPED' && (
                             <button
                               onClick={() => isEditing ? closeEditor() : openEditor(sess)}
-                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                              title="Edit catatan sesi"
+                              className="flex h-8 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-primary/25 bg-primary/10 px-2 text-[10px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                              aria-label={`Edit catatan sesi ${cls} ${sub}`}
                             >
                               <FilePenLine className="h-3.5 w-3.5" />
+                              <span>Edit</span>
                             </button>
                           )}
                           <div className="text-green text-sm flex-shrink-0 font-bold">✓</div>
@@ -831,6 +845,7 @@ function HistoryTab() {
                               className="min-h-[54px] w-full resize-none rounded-lg border border-amber/30 bg-surface2 p-2 text-[12px] focus:border-amber focus:outline-none placeholder:text-text3"
                             />
                             <div className="flex justify-end gap-2">
+                              <span className="mr-auto self-center text-[10px] text-text3">Draft tersimpan otomatis</span>
                               <button onClick={closeEditor} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
                               <button onClick={saveEditor} className="rounded-lg bg-green px-3 py-1.5 text-[11px] font-bold text-surface">Simpan</button>
                             </div>

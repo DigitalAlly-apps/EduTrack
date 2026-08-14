@@ -70,13 +70,13 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
             className={`app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm transition-all ${
               syncStatus === 'connected' ? 'border-green/40 bg-green/10 text-green' : ''
             }`}
-            title={user ? `Sync aktif (${user.email})` : 'Sinkronisasi Multi-Device'}
+            title={user ? `Sinkronisasi aktif (${user.email})` : 'Sinkronisasi antar perangkat'}
           >
             <span className="text-base leading-none">
               {syncStatus === 'syncing' ? '🔄' : syncStatus === 'connected' ? '☁️' : '☁️'}
             </span>
             <span className="text-[11px] font-bold tracking-wider hidden sm:inline">
-              {syncStatus === 'connected' ? 'Sync' : 'Sync'}
+              Sinkron
             </span>
           </button>
 

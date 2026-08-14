@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   getAllExamSubjects,
-  upsertCorrection, getExamDayMode, toggleExamDayMode,
+  upsertCorrection, getExamDayMode, setExamDayMode,
   getExamSchedules, addExamSchedule, deleteExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
   getProctorSessions, addProctorSession, deleteProctorSession,
@@ -82,8 +82,9 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   };
 
   const handleToggleExamMode = () => {
-    toggleExamDayMode();
-    const next = getExamDayMode();
+    if (!examMode && !window.confirm('Aktifkan mode fokus ujian? Halaman Hari Ini akan menampilkan agenda ujian terlebih dahulu, tetapi jadwal KBM tetap bisa dibuka dan dicatat.')) return;
+    const next = !examMode;
+    setExamDayMode(next);
     setExamMode(next);
     onRefresh();
     toast({ title: next ? '📋 Mode Ujian Aktif' : '📚 Mode KBM Normal' });
@@ -705,12 +706,12 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
             <div className="flex-1">
               <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-1">Mode Ujian Hari Ini</div>
               <div className={`text-xl font-bold mb-1 ${examMode ? 'text-amber' : 'text-foreground'}`}>
-                {examMode ? '🔕 KBM Dihentikan' : '📚 KBM Normal'}
+                {examMode ? '📋 Fokus Ujian Aktif' : '📚 KBM Normal'}
               </div>
               <div className="text-[12px] text-text2 leading-snug">
                 {examMode
-                  ? 'Tracking KBM hari ini dinonaktifkan. Banner ujian muncul di tab Hari Ini.'
-                  : 'Aktifkan saat hari ujian — tracking KBM dihentikan sementara untuk hari ini.'}
+                  ? 'Agenda ujian diprioritaskan. Jadwal KBM tetap dapat dibuka dari tab Hari Ini.'
+                  : 'Aktifkan saat hari ujian untuk memprioritaskan agenda ujian tanpa menghilangkan akses ke KBM.'}
               </div>
             </div>
             <button

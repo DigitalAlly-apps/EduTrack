@@ -11,7 +11,7 @@ const navItems: { id: ViewType; icon: React.ElementType; label: string }[] = [
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini' },
   { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres'  },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian'    },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola'   },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Atur'     },
 ];
 
 export default function BottomNav({ currentView, onViewChange }: BottomNavProps) {

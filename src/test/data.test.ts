@@ -28,6 +28,7 @@ import {
 } from '@/lib/data';
 import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
 import { AppData } from '@/lib/types';
+import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
 
 const baseData = (day = new Date().getDay()): AppData => ({
   teacherName: 'Guru Test',
@@ -68,6 +69,27 @@ const readBlobText = (blob: Blob) => new Promise<string>((resolve, reject) => {
 describe('dateKey', () => {
   it('formats dates using local calendar fields', () => {
     expect(dateKey(new Date(2025, 0, 2, 0, 30))).toBe('2025-01-02');
+  });
+});
+
+describe('session note drafts', () => {
+  it('persists a draft separately from the saved session and clears it explicitly', () => {
+    expect(loadSessionDraft('session-1')).toBeNull();
+
+    saveSessionDraft('session-1', {
+      note: 'Latihan tambahan',
+      reminder: 'Bawa lembar kerja',
+      lastPage: '18',
+    });
+
+    expect(loadSessionDraft('session-1')).toEqual({
+      note: 'Latihan tambahan',
+      reminder: 'Bawa lembar kerja',
+      lastPage: '18',
+    });
+
+    clearSessionDraft('session-1');
+    expect(loadSessionDraft('session-1')).toBeNull();
   });
 });
 
