@@ -1,14 +1,14 @@
 import { useState, useMemo, memo, useCallback, useEffect, type ElementType } from 'react';
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, History, LayoutDashboard, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, FilePenLine, History, LayoutDashboard, TrendingUp } from 'lucide-react';
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  getPredictiveFinishes, getExamPrepItems, undoLastSession, getTeachingPosition,
+  composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, getTeachingPosition,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import WeeklyReviewCard from './WeeklyReviewCard';
 import ExamPrepCard from './ExamPrepCard';
-import { PaceSuggestion, PredictiveFinish, ExamPrepItem } from '@/lib/types';
+import { PaceSuggestion, PredictiveFinish, ExamPrepItem, Session } from '@/lib/types';
 
 // ─── AI PACE SUGGESTIONS CARD ───────────────────────────────────────────────────
 function PaceSuggestionsCard() {
@@ -703,8 +703,35 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
 // ─── HistoryTab ───────────────────────────────────────────────────────────────
 function HistoryTab() {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [reminderDraft, setReminderDraft] = useState('');
+  const [lastPageDraft, setLastPageDraft] = useState('');
+  const { toast } = useToast();
   const historyItems = getSessionHistory(month);
   const data = getData();
+
+  const openEditor = (session: Session) => {
+    const { mainNote, reminder } = splitSessionNote(session.note);
+    setEditingSessionId(session.id);
+    setNoteDraft(mainNote);
+    setReminderDraft(reminder);
+    setLastPageDraft(session.lastPageReached ?? '');
+  };
+
+  const closeEditor = () => {
+    setEditingSessionId(null);
+    setNoteDraft('');
+    setReminderDraft('');
+    setLastPageDraft('');
+  };
+
+  const saveEditor = () => {
+    if (!editingSessionId) return;
+    updateSessionNote(editingSessionId, composeSessionNote(noteDraft, reminderDraft), lastPageDraft);
+    closeEditor();
+    toast({ title: 'Catatan riwayat diperbarui' });
+  };
 
   const grouped = historyItems.reduce((acc, sess) => {
     if (!acc[sess.date]) acc[sess.date] = [];
@@ -743,18 +770,72 @@ function HistoryTab() {
                     const matName = matObj ? matObj.name : (sess.materialId === 'SKIPPED' ? 'Dilewati/Kosong' : 'Selesai tanpa materi');
                     const sessCount = matObj?.sessions || 1;
                     const timeStr = new Date(sess.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    const { mainNote, reminder } = splitSessionNote(sess.note);
+                    const isEditing = editingSessionId === sess.id;
                     return (
-                      <div key={sess.id} className="bg-surface border border-border rounded-xl p-3 flex gap-3 shadow-sm">
-                        <div className="text-[10px] font-bold text-text3 pt-1 uppercase tabular-nums">{timeStr}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-bold leading-tight mb-1">{cls} <span className="text-text2 font-normal mx-1">•</span> {sub}</div>
-                          <div className={`text-[11px] ${sess.materialId === 'SKIPPED' ? 'text-amber' : 'text-text2'}`}>
-                            {matName}
-                            {sessCount > 1 && <span className="ml-2 bg-primary-dim text-primary text-[9px] font-bold px-[5px] py-[1px] rounded">MULTI-SESI ({sessCount}x)</span>}
+                      <div key={sess.id} className="bg-surface border border-border rounded-xl p-3 shadow-sm">
+                        <div className="flex gap-3">
+                          <div className="text-[10px] font-bold text-text3 pt-1 uppercase tabular-nums">{timeStr}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-bold leading-tight mb-1">{cls} <span className="text-text2 font-normal mx-1">•</span> {sub}</div>
+                            <div className={`text-[11px] ${sess.materialId === 'SKIPPED' ? 'text-amber' : 'text-text2'}`}>
+                              {matName}
+                              {sessCount > 1 && <span className="ml-2 bg-primary-dim text-primary text-[9px] font-bold px-[5px] py-[1px] rounded">MULTI-SESI ({sessCount}x)</span>}
+                            </div>
+                            {(sess.lastPageReached || mainNote || reminder) && (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-snug">
+                                {sess.lastPageReached && <span className="font-bold text-primary">📄 s/d hal. {sess.lastPageReached}</span>}
+                                {mainNote && <span className="text-text3 italic">📝 {mainNote}</span>}
+                                {reminder && <span className="rounded-full border border-amber/25 bg-amber/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber">📌 Reminder tersimpan</span>}
+                              </div>
+                            )}
                           </div>
-                          {sess.note && <div className="text-[11px] text-text3 mt-1 italic">📝 {sess.note}</div>}
+                          {sess.materialId !== 'SKIPPED' && (
+                            <button
+                              onClick={() => isEditing ? closeEditor() : openEditor(sess)}
+                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                              title="Edit catatan sesi"
+                            >
+                              <FilePenLine className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <div className="text-green text-sm flex-shrink-0 font-bold">✓</div>
                         </div>
-                        <div className="text-green text-sm flex-shrink-0 font-bold">✓</div>
+
+                        {isEditing && sess.materialId !== 'SKIPPED' && (
+                          <div className="mt-3 border-t border-border/60 pt-3 space-y-2.5 animate-slide-up">
+                            <textarea
+                              autoFocus
+                              value={noteDraft}
+                              onChange={e => setNoteDraft(e.target.value)}
+                              placeholder="Catatan sesi..."
+                              className="min-h-[54px] w-full resize-none rounded-lg border border-border2 bg-surface2 p-2 text-[12px] focus:border-primary focus:outline-none placeholder:text-text3"
+                            />
+                            <div className="flex items-center gap-2">
+                              <label htmlFor={`history-last-page-${sess.id}`} className="text-[11px] font-bold text-primary">📄 Sampai halaman</label>
+                              <input
+                                id={`history-last-page-${sess.id}`}
+                                type="number"
+                                min="1"
+                                value={lastPageDraft}
+                                onChange={e => setLastPageDraft(e.target.value)}
+                                placeholder="mis. 10"
+                                className="w-24 rounded-lg border border-primary/30 bg-surface2 px-2.5 py-1 text-[12px] font-bold focus:border-primary focus:outline-none"
+                              />
+                              {lastPageDraft && <span className="text-[10px] font-semibold text-green">→ mulai {getNextStartPage(lastPageDraft).nextPage}</span>}
+                            </div>
+                            <textarea
+                              value={reminderDraft}
+                              onChange={e => setReminderDraft(e.target.value)}
+                              placeholder="📌 Reminder untuk pertemuan berikutnya..."
+                              className="min-h-[54px] w-full resize-none rounded-lg border border-amber/30 bg-surface2 p-2 text-[12px] focus:border-amber focus:outline-none placeholder:text-text3"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button onClick={closeEditor} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
+                              <button onClick={saveEditor} className="rounded-lg bg-green px-3 py-1.5 text-[11px] font-bold text-surface">Simpan</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

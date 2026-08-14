@@ -95,6 +95,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   const [statusBarOpen, setStatusBarOpen] = useState(false);
   const [agendaBesokOpen, setAgendaBesokOpen] = useState(false);
+  // Setelah semua sesi selesai, guru tetap bisa kembali ke timeline untuk
+  // melengkapi jurnal/reminder tanpa membatalkan centang sesi.
+  const [showCompletedSchedule, setShowCompletedSchedule] = useState(false);
   const [endedBanner, setEndedBanner] = useState<string | null>(null);
   const endedNotifiedRef = useRef<Set<string>>(new Set());
 
@@ -468,7 +471,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     );
   }
 
-  if (items.every(x => x.done)) {
+  if (items.every(x => x.done) && !showCompletedSchedule) {
     const doneItems = items.filter(x => !x.skipped);
     const skippedItems = items.filter(x => x.skipped);
     return (
@@ -606,6 +609,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         </div>
 
+        <button
+          onClick={() => setShowCompletedSchedule(true)}
+          className="w-full rounded-xl border border-green/30 bg-green/10 px-4 py-3 text-[12px] font-bold text-green transition-colors hover:bg-green/20"
+        >
+          📝 Kembali ke jadwal untuk lengkapi catatan / reminder
+        </button>
+
 
         <div className="flex gap-2">
           <button 
@@ -634,6 +644,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   return (
     <div>
+      {items.every(x => x.done) && showCompletedSchedule && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-green/25 bg-green/10 px-3.5 py-3">
+          <div className="min-w-0">
+            <div className="text-[12px] font-bold text-green">Semua sesi sudah selesai</div>
+            <div className="text-[11px] text-text2">Tambahkan atau ubah catatan dan reminder pertemuan depan di tiap sesi.</div>
+          </div>
+          <button
+            onClick={() => setShowCompletedSchedule(false)}
+            className="flex-shrink-0 rounded-lg border border-green/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-green transition-colors hover:bg-green/10"
+          >
+            Ringkasan
+          </button>
+        </div>
+      )}
       {/* ── Desktop: 2-column layout (hero + timeline side by side) ── */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
         {/* LEFT COLUMN: Status bar + Hero card */}
