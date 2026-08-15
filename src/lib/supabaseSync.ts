@@ -3,6 +3,7 @@ import { getData, saveData, saveDataLocalOnly, setOnDataSaved } from './data';
 import type { AppData } from './types';
 
 const SYNC_TABLE = 'app_sync';
+const PENDING_SYNC_KEY = 'edutrack_pending_cloud_sync';
 let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let currentUserId: string | null = null;
 
@@ -87,6 +88,15 @@ export function initCloudSync(userId: string) {
   });
 
   subscribeRealtime(userId);
+  const pending = localStorage.getItem(PENDING_SYNC_KEY);
+  if (pending) {
+    try {
+      void syncDataToCloud(userId, JSON.parse(pending) as AppData);
+    } catch {
+      // Data antrean yang rusak tidak boleh menghentikan aplikasi saat dibuka.
+      localStorage.removeItem(PENDING_SYNC_KEY);
+    }
+  }
 }
 
 export function subscribeRealtime(userId: string) {
@@ -127,7 +137,9 @@ export async function syncDataToCloud(userId: string, appData: AppData) {
       data: appData,
       updated_at: new Date().toISOString(),
     });
+    localStorage.removeItem(PENDING_SYNC_KEY);
   } catch (e) {
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(appData));
     console.warn('[EduTrack Sync] Gagal sync ke cloud:', e);
   }
 }

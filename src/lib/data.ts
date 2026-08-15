@@ -1,6 +1,7 @@
 import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, ExamPrepItem, PredictiveFinish, Semester } from './types';
 
 const DB_KEY = 'pengajar_v4';
+const RECOVERY_KEY = 'edutrack_last_known_good';
 const CORR_KEY = 'edutrack_corrections';
 const EXAM_MODE_KEY = 'edutrack_exam_mode';
 
@@ -149,11 +150,15 @@ export function setOnDataSaved(cb: ((d: AppData) => void) | null) {
 // mencegah infinite loop: cloud → local → cloud → local → ...)
 export function saveDataLocalOnly(d: AppData) {
   const serialized = JSON.stringify(d);
+  const current = localStorage.getItem(DB_KEY);
+  if (current && current !== serialized) localStorage.setItem(RECOVERY_KEY, current);
   localStorage.setItem(DB_KEY, serialized);
 }
 
 export function saveData(d: AppData) {
   const serialized = JSON.stringify(d);
+  const current = localStorage.getItem(DB_KEY);
+  if (current && current !== serialized) localStorage.setItem(RECOVERY_KEY, current);
   localStorage.setItem(DB_KEY, serialized);
   if (onDataSavedCallback) {
     try { onDataSavedCallback(d); } catch (e) { console.warn('Cloud sync error on save:', e); }
