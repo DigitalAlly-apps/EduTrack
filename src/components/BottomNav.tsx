@@ -16,7 +16,10 @@ const navItems: { id: ViewType; icon: React.ElementType; label: string }[] = [
 
 export default function BottomNav({ currentView, onViewChange }: BottomNavProps) {
   return (
-    <div className="flex-shrink-0 absolute bottom-0 left-0 right-0 z-50 p-4 pb-7 pointer-events-none">
+    <div
+      className="fixed inset-x-0 z-50 px-4 pointer-events-none"
+      style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}
+    >
       <nav className="mx-auto max-w-[372px] pointer-events-auto min-h-[74px] bg-nav backdrop-blur-2xl border border-border2 rounded-3xl flex items-center px-2.5 justify-between shadow-[0_22px_60px_rgba(0,0,0,0.32)] transition-colors relative overflow-hidden">
         <span className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
         {navItems.map(item => {

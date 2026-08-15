@@ -160,7 +160,7 @@ function AppInner() {
 
   // ── Main App Shell ─────────────────────────────────────────────────────────
   return (
-    <div className="app-frame max-w-[430px] mx-auto h-dvh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70 lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[280px_1fr]">
+    <div className="app-frame max-w-[430px] mx-auto h-dvh min-h-svh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70 lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[280px_1fr]">
       <div className="absolute inset-x-6 top-0 h-24 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="absolute -right-10 top-32 h-40 w-40 rounded-full bg-teal/10 blur-3xl pointer-events-none" />
 
@@ -316,7 +316,7 @@ function AppInner() {
         </header>
 
         {/* Content view container */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[136px] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin relative z-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin relative z-0">
           <div className="max-w-7xl mx-auto w-full">
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
