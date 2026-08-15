@@ -1234,9 +1234,10 @@ export function shouldShowBackupReminder() {
   if (data.classes.length === 0) return false;
   const todayStr = dateKey();
   if (data.reminderDismissed === todayStr) return false;
-  if (!data.lastBackup) return true;
+  // Cloud sync is the primary safety net, so do not show a first-run backup prompt.
+  if (!data.lastBackup) return false;
   const daysSince = Math.ceil((now().getTime() - new Date(data.lastBackup).getTime()) / 864e5);
-  return daysSince >= 3;
+  return daysSince >= 30;
 }
 export function dismissBackupReminder() {
   updateData(d => { d.reminderDismissed = dateKey(); });
