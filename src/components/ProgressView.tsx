@@ -194,165 +194,106 @@ function getMaterialPageLabel(material?: { pageStart?: string; pageEnd?: string 
   return material.pageEnd ? `Hal. ${material.pageStart}-${material.pageEnd}` : `Hal. ${material.pageStart}`;
 }
 
+type EducationLevel = 'sd' | 'mts' | 'other';
+
+function getEducationLevel(level?: string): EducationLevel {
+  const normalized = (level ?? '').trim().toLowerCase();
+  if (/\b(sd|mi)\b/.test(normalized)) return 'sd';
+  if (/\b(mts|smp)\b/.test(normalized)) return 'mts';
+  const grade = Number(normalized.match(/\d+/)?.[0]);
+  if (Number.isFinite(grade) && grade >= 1 && grade <= 6) return 'sd';
+  if (Number.isFinite(grade) && grade >= 7 && grade <= 9) return 'mts';
+  return 'other';
+}
+
 // ─── ProgressTab ──────────────────────────────────────────────────────────────
 function ProgressTab({ predictiveFinishes, examPrepItems }: {
   predictiveFinishes: PredictiveFinish[];
   examPrepItems: ExamPrepItem[];
 }) {
-  const [filter, setFilter] = useState<'semua' | 'bermasalah'>('semua');
-  const [isMounting, setIsMounting] = useState(true);
-  
-  useEffect(() => {
-    setIsMounting(false);
-  }, []);
+  const [selectedLevel, setSelectedLevel] = useState<EducationLevel>('sd');
+  const [selectedClassId, setSelectedClassId] = useState('');
 
-  // All heavy computation in ONE memo — satisfies Rules of Hooks
   const computed = useMemo(() => {
     try {
       const data = getData();
-      if (!data.classes.length) {
-        return { allCards: [], groupedByClass: {}, classIds: [], hasSchedules: false, hasClasses: false };
-      }
-
       const cards: CardData[] = [];
-      let hasSched = false;
-
-      data.classes.forEach(cls => {
-        data.subjects.forEach(sub => {
-          if (!data.schedules.some(s => s.classId === cls.id && s.subjectId === sub.id)) return;
-          hasSched = true;
-          const st = getSubjectStatus(sub, cls, data);
-          const mats = getMaterials(sub.id, cls.id);
-          const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id);
-          const totalSessDone = prog?.materialsDone ?? 0;
-          const totalSessAll = getTotalSessionsNeeded(mats);
-          const teachingPosition = getTeachingPosition(cls.id, sub.id, data);
-          const pred = predictiveFinishes.find(p => p.classId === cls.id && p.subjectId === sub.id);
-          cards.push({
-            clsId: cls.id, clsName: cls.name,
-            subId: sub.id, subName: sub.name,
-            st, urgency: getUrgencyScore(st),
-            effectiveColor: getEffectiveStatus(st),
-            mats, matsDone: totalSessDone, totalSessDone, totalSessAll, teachingPosition,
-            predictiveFinish: pred,
-          });
+      data.classes.forEach(cls => data.subjects.forEach(sub => {
+        if (!data.schedules.some(schedule => schedule.classId === cls.id && schedule.subjectId === sub.id)) return;
+        const st = getSubjectStatus(sub, cls, data);
+        const mats = getMaterials(sub.id, cls.id);
+        const done = data.progress.find(progress => progress.classId === cls.id && progress.subjectId === sub.id)?.materialsDone ?? 0;
+        cards.push({
+          clsId: cls.id, clsName: cls.name, subId: sub.id, subName: sub.name,
+          st, urgency: getUrgencyScore(st), effectiveColor: getEffectiveStatus(st), mats,
+          matsDone: done, totalSessDone: done, totalSessAll: getTotalSessionsNeeded(mats),
+          teachingPosition: getTeachingPosition(cls.id, sub.id, data),
+          predictiveFinish: predictiveFinishes.find(item => item.classId === cls.id && item.subjectId === sub.id),
         });
-      });
-
-      // Group by class
-      const grp: Record<string, GroupData> = {};
-      cards.forEach(card => {
-        if (!grp[card.clsId]) grp[card.clsId] = { clsName: card.clsName, cards: [], issues: 0 };
-        grp[card.clsId].cards.push(card);
-        if (card.effectiveColor !== 'green') grp[card.clsId].issues++;
-      });
-      const classIds = Object.keys(grp).sort((a, b) => {
-        const diff = grp[b].issues - grp[a].issues;
-        return diff !== 0 ? diff : grp[a].clsName.localeCompare(grp[b].clsName);
-      });
-
-      return { allCards: cards, groupedByClass: grp, classIds, hasSchedules: hasSched, hasClasses: true };
-    } catch (e) {
-      console.error('ProgressTab computation error:', e);
-      return { allCards: [], groupedByClass: {}, classIds: [], hasSchedules: false, hasClasses: false };
+      }));
+      return { classes: data.classes, cards };
+    } catch (error) {
+      console.error('ProgressTab computation error:', error);
+      return { classes: [], cards: [] as CardData[] };
     }
   }, [predictiveFinishes]);
 
-  const { allCards, groupedByClass, classIds, hasSchedules, hasClasses } = computed;
+  const availableLevels = useMemo(() => (['sd', 'mts', 'other'] as EducationLevel[]).filter(level => computed.classes.some(cls => getEducationLevel(cls.level) === level)), [computed.classes]);
+  const levelClasses = useMemo(() => computed.classes.filter(cls => getEducationLevel(cls.level) === selectedLevel).sort((a, b) => a.name.localeCompare(b.name, 'id')), [computed.classes, selectedLevel]);
 
-  const bermasalahCount = allCards.filter(c => c.effectiveColor !== 'green').length;
+  useEffect(() => {
+    if (!availableLevels.length) return;
+    const storedLevel = localStorage.getItem('edutrack-progress-level') as EducationLevel | null;
+    if (!availableLevels.includes(selectedLevel)) setSelectedLevel(storedLevel && availableLevels.includes(storedLevel) ? storedLevel : availableLevels[0]);
+  }, [availableLevels, selectedLevel]);
 
-  const filteredClassIds = filter === 'bermasalah'
-    ? classIds.filter(id => groupedByClass[id].issues > 0)
-    : classIds;
+  useEffect(() => {
+    if (!levelClasses.length) { setSelectedClassId(''); return; }
+    const storageKey = `edutrack-progress-class-${selectedLevel}`;
+    const storedClassId = localStorage.getItem(storageKey);
+    const nextClassId = levelClasses.some(cls => cls.id === selectedClassId)
+      ? selectedClassId
+      : levelClasses.some(cls => cls.id === storedClassId) ? storedClassId! : levelClasses[0].id;
+    if (nextClassId !== selectedClassId) setSelectedClassId(nextClassId);
+  }, [levelClasses, selectedClassId, selectedLevel]);
 
-  if (isMounting) return (
-    <div className="space-y-4 py-4 animate-pulse">
-      <div className="flex gap-2">
-         <div className="h-12 flex-1 bg-surface2 rounded-2xl" />
-         <div className="h-12 flex-1 bg-surface2 rounded-2xl" />
+  const selectLevel = (level: EducationLevel) => { localStorage.setItem('edutrack-progress-level', level); setSelectedLevel(level); };
+  const selectClass = (classId: string) => { localStorage.setItem(`edutrack-progress-class-${selectedLevel}`, classId); setSelectedClassId(classId); };
+  const selectedClass = levelClasses.find(cls => cls.id === selectedClassId);
+  const classCards = useMemo(() => computed.cards.filter(card => card.clsId === selectedClassId).sort((a, b) => b.urgency - a.urgency || a.subName.localeCompare(b.subName, 'id')), [computed.cards, selectedClassId]);
+  const shortfallCount = classCards.filter(card => card.effectiveColor === 'red').length;
+  const tightCount = classCards.filter(card => card.effectiveColor === 'amber').length;
+  const nearExamCount = classCards.filter(card => card.st.daysLeft !== undefined && card.st.daysLeft <= 14).length;
+
+  if (!computed.classes.length) return <EmptyProgress title="Belum ada data progres" text="Tambahkan kelas, mata pelajaran, dan jadwal terlebih dahulu." />;
+  if (!computed.cards.length) return <EmptyProgress title="Belum ada jadwal terhubung" text="Hubungkan kelas dengan mata pelajaran di menu Kelola." />;
+
+  return <div className="mt-2 space-y-4">
+    <section className="app-card p-3 sm:p-4">
+      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text3">Pilih jenjang</p>
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface2/70 p-1">
+        {([['sd', 'SD'], ['mts', 'MTs'], ['other', 'Lainnya']] as const).map(([level, label]) => <button key={level} disabled={!availableLevels.includes(level)} onClick={() => selectLevel(level)} className={`rounded-lg px-2 py-2 text-xs font-black transition ${selectedLevel === level ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-35'}`}>{label}</button>)}
       </div>
-      <div className="space-y-6">
-        {[1,2,3].map(i => (
-          <div key={i} className="h-32 bg-surface2 rounded-2xl" />
-        ))}
-      </div>
-    </div>
-  );
+      <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-text3">Kelas</label>
+      <select value={selectedClassId} onChange={event => selectClass(event.target.value)} className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3 py-3 text-sm font-bold text-foreground outline-none focus:border-primary">
+        {levelClasses.map(cls => <option key={cls.id} value={cls.id}>{cls.name}{cls.level ? ` · Level ${cls.level}` : ''}</option>)}
+      </select>
+    </section>
 
-  if (!hasClasses) return (
-    <div className="text-center py-12 px-6 animate-slide-up">
-      <span className="text-5xl block mb-4">📈</span>
-      <div className="font-display text-2xl font-medium tracking-tight mb-2">Belum ada data progres</div>
-      <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">Tambahkan kelas, mata pelajaran, dan jadwal terlebih dahulu.</div>
-    </div>
-  );
+    <details className="app-card group overflow-hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 sm:p-4"><div><p className="text-sm font-black text-foreground">Ringkasan kapasitas</p><p className="mt-0.5 text-xs text-text3">{shortfallCount} kurang sesi · {tightCount} mepet · {nearExamCount} ujian dekat</p></div><ChevronDown className="h-4 w-4 text-text3 transition group-open:rotate-180" /></summary>
+      <div className="border-t border-border/60 p-3 sm:p-4 space-y-4"><WeeklyReviewCard /><PaceSuggestionsCard />{examPrepItems.length > 0 && <ExamPrepCard items={examPrepItems} />}</div>
+    </details>
 
-  if (!hasSchedules) return (
-    <div className="text-center py-12 px-6 animate-slide-up">
-      <span className="text-5xl block mb-4">📈</span>
-      <div className="font-display text-2xl font-medium tracking-tight mb-2">Belum ada jadwal terhubung</div>
-      <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">Hubungkan kelas dengan mata pelajaran di menu Kelola.</div>
-    </div>
-  );
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-text3">Kapasitas mengajar</p><h2 className="mt-1 font-display text-xl font-bold text-foreground">{selectedClass?.name ?? 'Pilih kelas'}</h2></div><span className="rounded-full bg-surface2 px-2.5 py-1 text-[10px] font-bold text-text2">{classCards.length} mapel</span></div>
+      {classCards.length ? <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">{classCards.map(card => <SubjectCard key={`${card.clsId}-${card.subId}`} card={card} />)}</div> : <div className="rounded-2xl border border-dashed border-border2 p-8 text-center text-sm text-text3">Belum ada mapel terjadwal pada kelas ini.</div>}
+    </section>
+  </div>;
+}
 
-    return (
-      <>
-        <div className="mt-2">
-        {/* Filter bar */}
-        <div className="mb-5 grid grid-cols-2 gap-2 w-full">
-          <button
-            onClick={() => setFilter('semua')}
-            className={`min-h-[58px] rounded-2xl flex items-center justify-center gap-3 transition-all ${filter === 'semua' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface border border-border text-text2 hover:bg-surface2'}`}
-          >
-            <CheckCircle2 className="h-5 w-5" />
-            <span className="text-left leading-tight">
-              <span className="block text-lg font-black">{allCards.length}</span>
-              <span className="block text-[10px] uppercase font-bold tracking-wider opacity-80">Semua Mapel</span>
-            </span>
-          </button>
-          <button
-            onClick={() => setFilter('bermasalah')}
-            className={`min-h-[58px] rounded-2xl flex items-center justify-center gap-3 transition-all ${filter === 'bermasalah' ? 'bg-red text-white shadow-md' : 'bg-surface border border-red/20 text-red hover:bg-red/5'}`}
-          >
-            <AlertTriangle className="h-5 w-5" />
-            <span className="text-left leading-tight">
-              <span className="block text-lg font-black">{bermasalahCount}</span>
-              <span className="block text-[10px] uppercase font-bold tracking-wider opacity-80">Perlu Perhatian</span>
-            </span>
-          </button>
-        </div>
-
-        {classIds.length === 0 && (
-          <div className="text-center py-10 border border-dashed border-border2 rounded-3xl mb-6">
-            <span className="text-3xl block mb-2">✅</span>
-            <div className="text-sm font-medium text-text2">Semua mapel sesuai target!</div>
-          </div>
-        )}
-
-         <div className="mb-8 space-y-4">
-           <WeeklyReviewCard />
-           <PaceSuggestionsCard />
-          </div>
-
-         {/* Exam Prep Mode - only show if there are upcoming exams within 14 days */}
-         {examPrepItems.length > 0 && (
-           <div className="mb-8">
-             <ExamPrepCard items={examPrepItems} />
-           </div>
-         )}
-
-         <div className="space-y-6">
-           {filteredClassIds.map(clsId => (
-             <ClassGroup
-               key={clsId}
-               group={groupedByClass[clsId]}
-             />
-           ))}
-         </div>
-       </div>
-    </>
-  );
+function EmptyProgress({ title, text }: { title: string; text: string }) {
+  return <div className="animate-slide-up px-6 py-12 text-center"><span className="mb-4 block text-5xl">📈</span><div className="mb-2 font-display text-2xl font-medium tracking-tight">{title}</div><div className="mx-auto max-w-[280px] text-sm leading-relaxed text-text2">{text}</div></div>;
 }
 
 // ─── ClassGroup — Handles its own state so parent isn't re-rendered ───────────
@@ -418,6 +359,11 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
     : effectiveColor === 'amber'
       ? 'text-amber bg-amber/10 border-amber/20'
       : 'text-green bg-green/10 border-green/20';
+  const capacityLabel = effectiveColor === 'red'
+    ? `Kurang ${sessionDeficit} sesi`
+    : effectiveColor === 'amber'
+      ? 'Jadwal mepet'
+      : 'Sesi cukup';
 
   return (
     <div className={`bg-surface/80 backdrop-blur-sm border rounded-2xl overflow-hidden transition-colors shadow-sm ${
@@ -439,9 +385,9 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="min-w-0">
               <span className="text-[15px] font-black text-foreground tracking-tight truncate block">{subName}</span>
-              <span className="text-[11px] font-semibold text-text3">{progressPct}% selesai</span>
+              <span className="text-[12px] font-bold text-text2">Sisa {sessionsAvailable} sesi · Butuh {sessionsNeeded}</span>
             </div>
-            <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0 border ${statusTone}`}>{st.label}</span>
+            <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0 border ${statusTone}`}>{capacityLabel}</span>
           </div>
 
           <div className="h-2 bg-surface2 rounded-full overflow-hidden border border-border/40 mb-3">
