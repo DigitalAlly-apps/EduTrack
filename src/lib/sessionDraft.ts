@@ -1,6 +1,6 @@
 export interface SessionDraft {
-  note: string;
-  reminder: string;
+  nextTopic: string;
+  supportingNote: string;
   lastPage: string;
 }
 
@@ -11,8 +11,12 @@ export function loadSessionDraft(sessionId: string): SessionDraft | null {
     const raw = localStorage.getItem(keyFor(sessionId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (typeof parsed?.note !== 'string' || typeof parsed?.reminder !== 'string' || typeof parsed?.lastPage !== 'string') return null;
-    return parsed;
+    if (typeof parsed?.lastPage !== 'string') return null;
+    // Draft lama tetap dapat dipulihkan setelah pembaruan UI.
+    const nextTopic = typeof parsed?.nextTopic === 'string' ? parsed.nextTopic : parsed?.note;
+    const supportingNote = typeof parsed?.supportingNote === 'string' ? parsed.supportingNote : parsed?.reminder;
+    if (typeof nextTopic !== 'string' || typeof supportingNote !== 'string') return null;
+    return { nextTopic, supportingNote, lastPage: parsed.lastPage };
   } catch {
     return null;
   }

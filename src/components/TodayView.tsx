@@ -66,8 +66,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   // Orange fixes
   const [skipConfirm, setSkipConfirm] = useState<TodayScheduleItem | null>(null);
-  const [liveNoteOpen, setLiveNoteOpen] = useState(false);
-  const [liveNoteDraft, setLiveNoteDraft] = useState('');
   // Tracker halaman terakhir: di-input setelah sesi selesai
   const [lastPageDraft, setLastPageDraft] = useState(''); // untuk expanded note section (timeline)
   const [lastPageHero, setLastPageHero] = useState('');   // untuk hero card quick input
@@ -100,8 +98,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [showKbmDuringExam, setShowKbmDuringExam] = useState(false);
   const [attentionOpen, setAttentionOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  // Setelah semua sesi selesai, guru tetap bisa kembali ke timeline untuk
-  // melengkapi jurnal/reminder tanpa membatalkan centang sesi.
+  // Setelah semua sesi selesai, guru tetap bisa kembali untuk
+  // melengkapi catatan pertemuan berikutnya tanpa membatalkan centang sesi.
   const [showCompletedSchedule, setShowCompletedSchedule] = useState(false);
   const [endedBanner, setEndedBanner] = useState<string | null>(null);
   const endedNotifiedRef = useRef<Set<string>>(new Set());
@@ -135,8 +133,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     const session = getData().sessions.find(s => s.id === item.sessionId);
     const draft = item.sessionId ? loadSessionDraft(item.sessionId) : null;
     setExpandedNoteId(item.id);
-    setNoteDraft(draft?.note ?? mainNote);
-    setBelumKumpulDraft(draft?.reminder ?? reminder);
+    setNoteDraft(draft?.nextTopic ?? mainNote);
+    setBelumKumpulDraft(draft?.supportingNote ?? reminder);
     setLastPageDraft(draft?.lastPage ?? session?.lastPageReached ?? '');
   };
 
@@ -150,7 +148,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
 
   const handleHeroDone = useCallback((id: string) => {
-    const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
     markDone(id);
     onRefresh();
     toast({
@@ -168,12 +165,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </button>
       ) as any,
     });
-    if (isLastItem) {
-      setExpandedNoteId(id);
-      setNoteDraft('');
-      setBelumKumpulDraft('');
-      setLastPageDraft('');
-    }
+    setExpandedNoteId(id);
+    setNoteDraft('');
+    setBelumKumpulDraft('');
+    setLastPageDraft('');
   }, [onRefresh, toast]);
 
   const handleSkip = (id: string, className: string, subjectName: string, classId: string, subjectId: string) => {
@@ -201,7 +196,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
 
   const handleTLDone = useCallback((id: string) => {
-    const isLastItem = getTodaySchedules().filter(x => !x.done).length === 1;
     markDone(id);
     onRefresh();
     toast({
@@ -219,12 +213,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </button>
       ) as any,
     });
-    if (isLastItem) {
-      setExpandedNoteId(id);
-      setNoteDraft('');
-      setBelumKumpulDraft('');
-      setLastPageDraft('');
-    }
+    setExpandedNoteId(id);
+    setNoteDraft('');
+    setBelumKumpulDraft('');
+    setLastPageDraft('');
   }, [onRefresh, toast]);
 
   const handleSaveNote = (sessionId: string) => {
@@ -239,8 +231,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   useEffect(() => {
     if (!editingSessionId) return;
     saveSessionDraft(editingSessionId, {
-      note: noteDraft,
-      reminder: belumKumpulDraft,
+      nextTopic: noteDraft,
+      supportingNote: belumKumpulDraft,
       lastPage: lastPageDraft,
     });
   }, [editingSessionId, noteDraft, belumKumpulDraft, lastPageDraft]);
@@ -544,7 +536,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Ringkasan catatan per sesi */}
             <div className="pt-3 border-t border-border/50">
-              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Catatan Sesi:</div>
+              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Catatan Pertemuan Berikutnya:</div>
               <div className="space-y-2">
                 {items.filter(it => !it.skipped).map((it, i) => {
                   const { mainNote, reminder } = splitSessionNote(it.note);
@@ -571,7 +563,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                             )}
                           </div>
                           <div className="text-foreground/70 leading-snug mt-1">
-                            {notePreview || <span className="italic text-text3">Belum ada catatan atau reminder</span>}
+                            {notePreview || <span className="italic text-text3">Belum ada catatan pertemuan berikutnya</span>}
                           </div>
                         </div>
                         {it.sessionId && (
@@ -587,12 +579,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       {isEditing && it.sessionId && (
                         <div className="mt-3 border-t border-border/50 pt-3 space-y-3 animate-slide-up">
                           <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text3">Catatan sesi</label>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-primary">Bab / subbab pertemuan berikutnya</label>
                             <textarea
                               autoFocus
                               value={noteDraft}
                               onChange={e => setNoteDraft(e.target.value)}
-                              placeholder="Catatan umum (opsional)..."
+                              placeholder="Mis. Lanjut subbab adab kepada guru..."
                               className="mt-1.5 w-full min-h-[54px] resize-none rounded-lg border border-border2 bg-surface p-2 text-[13px] focus:border-green focus:outline-none placeholder:text-text3"
                             />
                           </div>
@@ -616,9 +608,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
                           <div>
                             <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber">
-                              <span className="text-sm">📌</span> Reminder pertemuan depan
+                              <span className="text-sm">📌</span> Catatan pendukung pertemuan berikutnya
                             </label>
-                            <p className="mt-0.5 text-[10px] leading-snug text-text3">Akan muncul otomatis saat kelas ini berlangsung lagi.</p>
+                            <p className="mt-0.5 text-[10px] leading-snug text-text3">Mis. siswa belum mengumpulkan tugas atau perlu membahas PR.</p>
                             <textarea
                               value={belumKumpulDraft}
                               onChange={e => setBelumKumpulDraft(e.target.value)}
@@ -628,7 +620,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           </div>
 
                           <div className="flex justify-end gap-2">
-                            <button onClick={closeNoteEditor} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
+                            <button onClick={() => closeNoteEditor()} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
                             <button onClick={() => handleSaveNote(it.sessionId!)} className="rounded-lg bg-green px-3 py-1.5 text-[11px] font-bold text-surface shadow-sm">Simpan</button>
                           </div>
                         </div>
@@ -645,7 +637,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           onClick={() => setShowCompletedSchedule(true)}
           className="w-full rounded-xl border border-green/30 bg-green/10 px-4 py-3 text-[12px] font-bold text-green transition-colors hover:bg-green/20"
         >
-          📝 Kembali ke jadwal untuk lengkapi catatan / reminder
+          📝 Kembali ke jadwal untuk lengkapi catatan pertemuan berikutnya
         </button>
 
 
@@ -673,6 +665,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   }
 
   const doneCount = items.filter(x => x.done).length;
+  const lastTeachingEndTime = items.reduce(
+    (latest, item) => !latest || timeToMin(item.endTime) > timeToMin(latest) ? item.endTime : latest,
+    '',
+  );
 
   return (
     <div>
@@ -695,7 +691,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-green/25 bg-green/10 px-3.5 py-3">
           <div className="min-w-0">
             <div className="text-[12px] font-bold text-green">Semua sesi sudah selesai</div>
-            <div className="text-[11px] text-text2">Tambahkan atau ubah catatan dan reminder pertemuan depan di tiap sesi.</div>
+            <div className="text-[11px] text-text2">Tambahkan atau ubah catatan pertemuan berikutnya di tiap sesi.</div>
           </div>
           <button
             onClick={() => setShowCompletedSchedule(false)}
@@ -705,9 +701,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </button>
         </div>
       )}
-      {/* ── Desktop: 2-column layout (hero + timeline side by side) ── */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
-        {/* LEFT COLUMN: Status bar + Hero card */}
+      {/* Satu alur baca: ringkasan → fokus sekarang → jadwal lengkap. */}
+      <div className="mx-auto w-full max-w-3xl">
         <div>
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button
@@ -718,7 +713,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
             {items.length > 0 && (
               <span className="text-[11px] font-bold text-text2">
-                📚 {doneCount}/{items.length} KBM
+                📚 {doneCount}/{items.length} KBM · selesai {fmt(lastTeachingEndTime)}
               </span>
             )}
             {todayExamItems.length > 0 && (
@@ -783,8 +778,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
         </div>
 
-        {/* RIGHT COLUMN: KBM Timeline */}
-        <div>
+        <div className="flex flex-col">
       {/* Unified Hero Area: Active Session, Upcoming, or Exams */}
       {(() => {
         const hasExams = todayExamItems.length > 0;
@@ -908,22 +902,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </button>
                  </div>
 
-                  {/* Compact secondary actions row */}
-                  <div className="mt-2.5 grid grid-cols-2 gap-2">
-                    {/* Live note button — #4 */}
-                    <button
-                      onClick={() => { setLiveNoteDraft(''); setLiveNoteOpen(true); }}
-                       className="min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
-                    >
-                      <FilePenLine className="h-4 w-4" /> Catat
-                    </button>
+                  <div className="mt-2.5">
                     <button
                       onClick={() => {
                         setSubjectDismissSubjectId(active.subjectId);
                         setSubjectDismissClassId('');
                         setSubjectDismissSheet(true);
                       }}
-                       className="min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                       className="w-full min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
                     >
                       <SkipForward className="h-4 w-4" /> Libur
                     </button>
@@ -1007,7 +993,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="flex-1 min-w-0">
             <div className="text-[9px] font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
             <div className="text-sm font-semibold truncate">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
-            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}</div>}
+            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}{getMaterialPageLabel(next.nextMat) ? ` · ${getMaterialPageLabel(next.nextMat)}` : ''}</div>}
           </div>
           <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
             <span className="text-[13px] font-semibold text-teal tabular-nums block leading-tight">{fmt(next.startTime)}</span>
@@ -1016,7 +1002,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
 
-      {/* Suggestions and warnings are available, without taking over the daily flow. */}
+      <div className="order-20 mt-2 mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-text3">Info lainnya</div>
+
+      {/* Informasi tambahan tetap tersedia setelah jadwal. */}
       {(() => {
         const attention = insights.filter(ins => ins.type === 'warn');
         const suggestions = insights.filter(ins => ins.type === 'tip');
@@ -1038,7 +1026,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         ));
 
         return (
-          <div className="space-y-2 mb-4 animate-slide-up-delay-2">
+          <div className="order-20 space-y-2 mb-4 animate-slide-up-delay-2">
             {attention.length > 0 && (
               <div className="rounded-xl border border-amber/20 bg-amber/5 overflow-hidden">
                 <button
@@ -1071,7 +1059,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* Task Inbox */}
       {pendingTasks.length > 0 && (
-        <div className="mb-4 animate-slide-up-delay-2">
+        <div className="order-20 mb-4 animate-slide-up-delay-2">
           <button
             onClick={() => setTasksOpen(open => !open)}
             className="w-full rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 flex items-center justify-between"
@@ -1103,7 +1091,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
 
       {/* Secondary day actions stay available without competing with the teaching flow. */}
-      <div className="bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
+      <div className="order-20 bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
         <button
           onClick={() => setAdminActionsOpen(open => !open)}
           className="w-full flex items-center justify-between px-1 py-1 text-[11px] font-semibold text-text2"
@@ -1335,7 +1323,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         {hasReminder && (
                           <div className="inline-flex items-center gap-1 bg-amber/10 border border-amber/25 rounded-full px-2 py-0.5">
                             <span className="text-[10px]">📌</span>
-                            <span className="text-[10px] font-semibold text-amber">Ada reminder pertemuan depan</span>
+                            <span className="text-[10px] font-semibold text-amber">Ada catatan pendukung pertemuan berikutnya</span>
                           </div>
                         )}
                       </div>
@@ -1386,12 +1374,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               {item.done && expandedNoteId === item.id && item.sessionId && (() => {
                 return (
                 <div className="mt-1 bg-surface2 border border-border2 rounded-xl p-3 animate-slide-up origin-top">
-                  <div className="text-[10px] font-semibold text-text3 uppercase tracking-[0.5px] mb-2">Jurnal Sesi / Catatan</div>
+                  <div className="text-[10px] font-semibold text-primary uppercase tracking-[0.5px] mb-2">Bab / subbab pertemuan berikutnya</div>
                   <textarea
                     autoFocus
                     value={noteDraft}
                     onChange={e => setNoteDraft(e.target.value)}
-                    placeholder="Catatan umum (mis. Budi remedial, tugas hal 12)..."
+                    placeholder="Mis. Lanjut subbab adab kepada guru..."
                     className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[50px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
                   />
                   
@@ -1418,9 +1406,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="mt-2.5">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-sm">📌</span>
-                      <span className="text-[10px] font-bold text-amber uppercase tracking-wider">Reminder Pertemuan Depan</span>
+                      <span className="text-[10px] font-bold text-amber uppercase tracking-wider">Catatan Pendukung Pertemuan Berikutnya</span>
                     </div>
-                    <p className="text-[10px] text-text3 mb-1.5 leading-snug">Otomatis muncul di awal kelas ini minggu depan — mis. "Fulan belum kumpul soal", "Bahas PR hal. 15".</p>
+                    <p className="text-[10px] text-text3 mb-1.5 leading-snug">Otomatis muncul saat kelas ini berlangsung lagi — mis. "Fulan belum kumpul soal", "Bahas PR hal. 15".</p>
                     <textarea
                       value={belumKumpulDraft}
                       onChange={e => setBelumKumpulDraft(e.target.value)}
@@ -1432,7 +1420,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
                   <div className="flex justify-end gap-2 mt-2.5">
                     <span className="mr-auto self-center text-[10px] text-text3">Draft tersimpan otomatis</span>
-                    <button onClick={closeNoteEditor} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-text2">
+                    <button onClick={() => closeNoteEditor()} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-text2">
                       Batal
                     </button>
                     <button onClick={() => {
@@ -1460,7 +1448,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           return cur >= timeToMin(exam.startTime) && cur < timeToMin(exam.endTime);
         })();
         return (
-          <div key={`exam-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
+          <div key={`exam-${i}`} className="order-20 flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
                 <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(exam.startTime)}</div>
@@ -1501,7 +1489,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           return cur >= timeToMin(proctor.startTime) && cur < timeToMin(proctor.endTime);
         })();
         return (
-          <div key={`proctor-${i}`} className="flex items-stretch gap-[10px] mb-1 animate-slide-up">
+          <div key={`proctor-${i}`} className="order-20 flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
                 <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(proctor.startTime)}</div>
@@ -1536,7 +1524,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* ── Agenda Besok (collapsible) ── */}
       {(tomorrowExamItems.length > 0 || tomorrowProctorSessions.length > 0 || tomorrowKbmSchedules.length > 0) && (
-        <div className="mt-2 mb-3">
+        <div className="order-20 mt-2 mb-3">
           <button
             onClick={() => setAgendaBesokOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
@@ -1602,7 +1590,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
         </div>
       </div>
-      {/* End desktop grid */}
 
       {/* Smart Rescheduler Modal */}
       <SmartReschedulerModal
@@ -1773,45 +1760,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 Ya, Lewati
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Bottom Sheet: Catatan Real-time (#4) ────────────────────── */}
-      {liveNoteOpen && active && (
-        <div className="app-overlay z-[500]" onClick={() => setLiveNoteOpen(false)}>
-          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="app-sheet-handle" />
-            <div className="flex items-center gap-2 mb-1">
-              <FilePenLine className="h-5 w-5 text-primary" />
-              <div className="app-sheet-title text-[20px]">Catatan Sesi</div>
-              <span className="ml-auto text-[11px] text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">{active.className}</span>
-            </div>
-            <p className="text-[11px] text-text3 mb-3">Akan tersimpan ke jurnal sesi setelah kelas selesai.</p>
-            <textarea
-              autoFocus
-              value={liveNoteDraft}
-              onChange={e => setLiveNoteDraft(e.target.value)}
-              placeholder="cth: Siswa ramai, lanjut dari hal 45, Ahmad belum hadir..."
-              className="form-input-style min-h-[120px] resize-none mb-4 font-mono text-[13px]"
-            />
-            <button
-              onClick={() => {
-                if (active.sessionId) {
-                  updateSessionNote(active.sessionId, liveNoteDraft);
-                  toast({ title: '📝 Catatan disimpan' });
-                } else {
-                  // Store in a temp key, applied when markDone
-                  localStorage.setItem(`pending_note_${active.id}`, liveNoteDraft);
-                  toast({ title: '📝 Catatan akan disimpan saat selesai' });
-                }
-                setLiveNoteOpen(false);
-              }}
-              className="btn-primary-style bg-green text-black font-bold"
-            >
-              Simpan Catatan
-            </button>
-            <button onClick={() => setLiveNoteOpen(false)} className="w-full py-3 text-text2 text-[13px] mt-2">Tutup</button>
           </div>
         </div>
       )}

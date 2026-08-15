@@ -716,8 +716,8 @@ function HistoryTab() {
     const { mainNote, reminder } = splitSessionNote(session.note);
     const draft = loadSessionDraft(session.id);
     setEditingSessionId(session.id);
-    setNoteDraft(draft?.note ?? mainNote);
-    setReminderDraft(draft?.reminder ?? reminder);
+    setNoteDraft(draft?.nextTopic ?? mainNote);
+    setReminderDraft(draft?.supportingNote ?? reminder);
     setLastPageDraft(draft?.lastPage ?? session.lastPageReached ?? '');
   };
 
@@ -740,8 +740,8 @@ function HistoryTab() {
   useEffect(() => {
     if (!editingSessionId) return;
     saveSessionDraft(editingSessionId, {
-      note: noteDraft,
-      reminder: reminderDraft,
+      nextTopic: noteDraft,
+      supportingNote: reminderDraft,
       lastPage: lastPageDraft,
     });
   }, [editingSessionId, noteDraft, reminderDraft, lastPageDraft]);
@@ -798,8 +798,8 @@ function HistoryTab() {
                             {(sess.lastPageReached || mainNote || reminder) && (
                               <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-snug">
                                 {sess.lastPageReached && <span className="font-bold text-primary">📄 s/d hal. {sess.lastPageReached}</span>}
-                                {mainNote && <span className="text-text3 italic">📝 {mainNote}</span>}
-                                {reminder && <span className="rounded-full border border-amber/25 bg-amber/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber">📌 Reminder tersimpan</span>}
+                                {mainNote && <span className="text-text3 italic">📖 Berikutnya: {mainNote}</span>}
+                                {reminder && <span className="rounded-full border border-amber/25 bg-amber/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber">📌 Catatan pendukung tersimpan</span>}
                               </div>
                             )}
                           </div>
@@ -822,7 +822,7 @@ function HistoryTab() {
                               autoFocus
                               value={noteDraft}
                               onChange={e => setNoteDraft(e.target.value)}
-                              placeholder="Catatan sesi..."
+                              placeholder="Bab / subbab pertemuan berikutnya..."
                               className="min-h-[54px] w-full resize-none rounded-lg border border-border2 bg-surface2 p-2 text-[12px] focus:border-primary focus:outline-none placeholder:text-text3"
                             />
                             <div className="flex items-center gap-2">
@@ -841,12 +841,12 @@ function HistoryTab() {
                             <textarea
                               value={reminderDraft}
                               onChange={e => setReminderDraft(e.target.value)}
-                              placeholder="📌 Reminder untuk pertemuan berikutnya..."
+                              placeholder="📌 Catatan pendukung pertemuan berikutnya..."
                               className="min-h-[54px] w-full resize-none rounded-lg border border-amber/30 bg-surface2 p-2 text-[12px] focus:border-amber focus:outline-none placeholder:text-text3"
                             />
                             <div className="flex justify-end gap-2">
                               <span className="mr-auto self-center text-[10px] text-text3">Draft tersimpan otomatis</span>
-                              <button onClick={closeEditor} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
+                              <button onClick={() => closeEditor()} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
                               <button onClick={saveEditor} className="rounded-lg bg-green px-3 py-1.5 text-[11px] font-bold text-surface">Simpan</button>
                             </div>
                           </div>

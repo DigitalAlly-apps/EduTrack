@@ -12,7 +12,11 @@ const DEFAULT_DATA: AppData = {
 
 const REMINDER_MARKERS = ['---REMINDER_DEPAN---', '---BELUM_KUMPUL---'] as const;
 
-/** Pisahkan jurnal sesi dari reminder yang akan muncul pada pertemuan berikutnya. */
+/**
+ * Pisahkan dua catatan untuk pertemuan berikutnya.
+ * `mainNote` adalah bab/subbab, sedangkan `reminder` adalah catatan pendukung.
+ * Nama hasil ini dipertahankan demi kompatibilitas data dan pemanggil lama.
+ */
 export function splitSessionNote(note?: string) {
   const source = note?.trim();
   if (!source) return { mainNote: '', reminder: '' };
@@ -30,10 +34,10 @@ export function splitSessionNote(note?: string) {
   };
 }
 
-/** Gabungkan jurnal dan reminder dalam format yang tetap kompatibel dengan data lama. */
-export function composeSessionNote(mainNote: string, reminder: string) {
-  const cleanNote = mainNote.trim();
-  const cleanReminder = reminder.trim();
+/** Gabungkan catatan bab/subbab dan pendukung dalam format kompatibel. */
+export function composeSessionNote(nextTopic: string, supportingNote: string) {
+  const cleanNote = nextTopic.trim();
+  const cleanReminder = supportingNote.trim();
   if (!cleanReminder) return cleanNote;
 
   const marker = '---REMINDER_DEPAN---';
@@ -1293,7 +1297,7 @@ export function deleteTask(id: string) {
   updateData(d => { if (d.tasks) d.tasks = d.tasks.filter(x => x.id !== id); });
 }
 
-// ── Session Journaling ──────────────────────────────────────────────────────
+// ── Catatan pertemuan berikutnya ────────────────────────────────────────────
 export function updateSessionNote(sessionId: string, note: string, lastPageReached?: string) {
   updateData(d => {
     const s = d.sessions.find(x => x.id === sessionId);
@@ -1453,9 +1457,7 @@ export function generateDailyJournal(): string {
       const matName = mat ? mat.name : 'Selesai tanpa materi';
       journal += `✅ *${cls} - ${sub}*\nMateri: ${matName}\n`;
     }
-    if (sess.note) {
-      journal += `Catatan: ${sess.note}\n`;
-    }
+    if (sess.lastPageReached) journal += `Sampai halaman: ${sess.lastPageReached}\n`;
     journal += '\n';
   });
   

@@ -77,14 +77,14 @@ describe('session note drafts', () => {
     expect(loadSessionDraft('session-1')).toBeNull();
 
     saveSessionDraft('session-1', {
-      note: 'Latihan tambahan',
-      reminder: 'Bawa lembar kerja',
+      nextTopic: 'Latihan tambahan',
+      supportingNote: 'Bawa lembar kerja',
       lastPage: '18',
     });
 
     expect(loadSessionDraft('session-1')).toEqual({
-      note: 'Latihan tambahan',
-      reminder: 'Bawa lembar kerja',
+      nextTopic: 'Latihan tambahan',
+      supportingNote: 'Bawa lembar kerja',
       lastPage: '18',
     });
 
