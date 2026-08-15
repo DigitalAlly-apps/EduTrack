@@ -422,6 +422,8 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
   const [level, setLevel] = useState('');
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkLevel, setBulkLevel] = useState('SD/MI');
   const { toast } = useToast();
   const data = getData();
 
@@ -429,6 +431,14 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
     if (!name.trim()) return toast({ title: 'Masukkan nama kelas' });
     updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue', level: level.trim() || undefined }));
     setName(''); setLevel(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
+  };
+  const addBulk = () => {
+    const names = [...new Set(bulkNames.split('\n').map(v => v.trim()).filter(Boolean))];
+    if (!names.length) return toast({ title: 'Isi minimal satu kelas' });
+    const existing = new Set(data.classes.filter(c => (c.level || '') === bulkLevel).map(c => c.name.toLowerCase()));
+    const added = names.filter(item => !existing.has(item.toLowerCase()));
+    updateData(d => added.forEach(item => d.classes.push({ id: genId(), name: item, color: 'blue', level: bulkLevel })));
+    setBulkNames(''); toast({ title: `${added.length} kelas ditambahkan${names.length - added.length ? ` · ${names.length - added.length} duplikat dilewati` : ''}` }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras?: { level?: string }) => {
     if(!newName.trim()) return;
@@ -449,13 +459,18 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
   return (
     <div>
       <div className="app-card-soft p-4 mb-6">
-        <FormField label="Tambah Kelas Baru">
+        <FormField label="Tambah Banyak Kelas">
+          <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style mb-2"><option value="SD/MI">SD / MI</option><option value="SMP/MTs">SMP / MTs</option><option value="SMA/MA">SMA / MA</option></select>
+          <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)} className="form-input-style min-h-[104px] mb-2 resize-none" placeholder={'Satu kelas per baris\nContoh:\n4A\n4B\n5A'} />
+          <button onClick={addBulk} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px] w-full">＋ Tambah Semua Kelas</button>
+        </FormField>
+        <details className="mt-4"><summary className="cursor-pointer text-xs font-bold text-text2">Tambah satu kelas</summary>
           <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-            className="form-input-style mb-3" placeholder="cth: 4A, 10B, XI IPA 2..." />
+            className="form-input-style my-2" placeholder="cth: 4A, 10B, XI IPA 2..." />
           <input value={level} onChange={e => setLevel(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
             className="form-input-style mb-3" placeholder="Level/jenjang opsional, cth: 10, SD/MI, SMP/MTs" />
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
-        </FormField>
+        </details>
       </div>
       <div className="app-section-title mt-6 mb-2">Daftar Kelas</div>
       {data.classes.map(c => (
@@ -510,6 +525,16 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   };
 
   const [showAdvancedAdd, setShowAdvancedAdd] = useState(false);
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkAddLevel, setBulkAddLevel] = useState('SD/MI');
+  const addBulkSubjects = () => {
+    const names = [...new Set(bulkNames.split('\n').map(v => v.trim()).filter(Boolean))];
+    if (!names.length) return toast({ title: 'Isi minimal satu mapel' });
+    const existing = new Set(data.subjects.filter(s => (s.level || '') === bulkAddLevel).map(s => s.name.toLowerCase()));
+    const added = names.filter(item => !existing.has(item.toLowerCase()));
+    updateData(d => added.forEach(item => d.subjects.push({ id: genId(), name: item, level: bulkAddLevel, examDate: null, semesterId: null })));
+    setBulkNames(''); toast({ title: `${added.length} mapel ditambahkan${names.length - added.length ? ` · ${names.length - added.length} duplikat dilewati` : ''}` }); onRefresh();
+  };
 
   return (
     <div>
@@ -526,7 +551,11 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
       )}
 
       <div className="app-card-soft p-4 mb-4">
-        <FormField label="Tambah Mata Pelajaran" className="mb-0">
+        <FormField label="Tambah Banyak Mata Pelajaran" className="mb-0">
+          <select value={bulkAddLevel} onChange={e => setBulkAddLevel(e.target.value)} className="form-select-style mb-2"><option value="SD/MI">SD / MI</option><option value="SMP/MTs">SMP / MTs</option><option value="SMA/MA">SMA / MA</option></select>
+          <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)} className="form-input-style min-h-[104px] mb-2 resize-none" placeholder={'Satu mapel per baris\nContoh:\nFiqih\nBahasa Arab\nMatematika'} />
+          <button onClick={addBulkSubjects} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px] w-full mb-3">＋ Tambah Semua Mapel</button>
+          <details><summary className="cursor-pointer text-xs font-bold text-text2">Tambah satu mapel + pengaturan lanjutan</summary><div className="mt-3">
           <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
           <div className="flex gap-2 mb-3">
             <div className="flex-1">
@@ -559,6 +588,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
             )}
           </div>
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Mapel</button>
+          </div></details>
         </FormField>
       </div>
 
@@ -909,6 +939,8 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const { toast } = useToast();
   const data = getData();
+  const selectedClass = data.classes.find(c => c.id === classId);
+  const compatibleSubjects = data.subjects.filter(s => !selectedClass?.level || !s.level || s.level === selectedClass.level);
 
   const toggleDay = (d: number, stateObj: number[], setter: any) => { setter(stateObj.includes(d) ? stateObj.filter(x => x !== d) : [...stateObj, d]); };
 
@@ -950,8 +982,8 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
         <FormField label="Kelas & Mapel">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-            <select value={classId} onChange={e => setClassId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih kelas...</option>{data.classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih mapel...</option>{data.subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <select value={classId} onChange={e => { setClassId(e.target.value); setSubjectId(''); }} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih kelas...</option>{data.classes.map(c=><option key={c.id} value={c.id}>{c.name}{c.level ? ` · ${c.level}` : ''}</option>)}</select>
+            <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih mapel...</option>{compatibleSubjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
           </div>
         </FormField>
         <FormField label="Hari">
@@ -968,6 +1000,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
           <FormField label="Jam Mulai" className="flex-1 mb-0"><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" /></FormField>
           <FormField label="Durasi (mnt)" className="flex-1 mb-0"><input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" min={15} max={180} /></FormField>
         </div>
+        <div className="rounded-xl bg-surface2/70 border border-border2 px-3 py-2 text-xs text-text2">{classId && subjectId ? <><b>{data.classes.find(c => c.id === classId)?.name}</b> · <b>{data.subjects.find(s => s.id === subjectId)?.name}</b> · {selectedDays.length ? selectedDays.map(d => DAYS_SHORT[d]).join(', ') : 'pilih hari'} · {startTime} · {duration} menit</> : 'Pilih kelas dan mapel untuk melihat ringkasan jadwal.'}</div>
         <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px] flex items-center justify-center gap-2"><CalendarDays className="h-4 w-4" /> Tambah Jadwal</button>
       </div>
 
@@ -1457,6 +1490,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const [utsDate, setUtsDate] = useState('');
   const [uasDate, setUasDate] = useState('');
   const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const { toast } = useToast();
   const semesters = getSemesters();
   const data = getData();
@@ -1464,8 +1498,9 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama semester' });
     if (!utsDate && !uasDate) return toast({ title: 'Masukkan minimal satu tanggal ujian (UTS atau UAS)' });
-    addSemester(name, utsDate || null, uasDate || null);
-    setName(''); setUtsDate(''); setUasDate('');
+    const created = addSemester(name, utsDate || null, uasDate || null);
+    selectedSubjectIds.forEach(subjectId => linkSubjectToSemester(subjectId, created.id));
+    setName(''); setUtsDate(''); setUasDate(''); setSelectedSubjectIds([]);
     toast({ title: 'Semester ditambahkan ✓' });
     onRefresh();
   };
@@ -1531,6 +1566,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               />
             </div>
           </div>
+          {data.subjects.length > 0 && <div className="mb-3"><label className="block text-[10px] text-text2 mb-1 pl-1">Hubungkan mapel sekarang <span className="text-text3">(opsional)</span></label><div className="max-h-36 overflow-y-auto rounded-xl border border-border2 bg-surface p-2 space-y-1">{data.subjects.map(subject => <label key={subject.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface2"><input type="checkbox" checked={selectedSubjectIds.includes(subject.id)} onChange={() => setSelectedSubjectIds(ids => ids.includes(subject.id) ? ids.filter(id => id !== subject.id) : [...ids, subject.id])} />{subject.name}<span className="ml-auto text-[10px] text-text3">{subject.level || 'Umum'}</span></label>)}</div></div>}
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">
             ＋ Tambah Semester
           </button>
