@@ -7,8 +7,7 @@ import {
   getProctorSessions, addProctorSession, deleteProctorSession,
   getCorrectionQueue, getCorrectionStats,
   fmtDate, fmtDayLabel, dayLabelColor,
-  STATUS_LABEL, STATUS_NEXT, STATUS_CLS,
-  ExamSubjectItem, CorrectionStatus, CorrectionQueueItem, ProctorSession, ExamReminderSettingKey,
+  ExamSubjectItem, CorrectionQueueItem, ProctorSession, ExamReminderSettingKey,
   fmt, resetAllExamData,
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
@@ -17,11 +16,10 @@ import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
 
-type ExamTab = 'koreksi' | 'manage';
+type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
 
 function getInitialExamTab(): ExamTab {
-  if (getCorrectionStats().pending > 0) return 'koreksi';
-  return 'manage';
+  return 'agenda';
 }
 
 export default function ExamView({ onRefresh }: ExamViewProps) {
@@ -36,7 +34,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [examMode, setExamMode] = useState(getExamDayMode());
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showCompletedKoreksi, setShowCompletedKoreksi] = useState(false);
 
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
@@ -76,8 +73,8 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const pastExamSchedules = examSchedules.filter(s => s.date < todayStr)
     .sort((a, b) => b.date.localeCompare(a.date) || timeToMin(a.startTime) - timeToMin(b.startTime));
 
-  const handleCycle = (subjectId: string, classId: string, examDate: string, cur: CorrectionStatus | null) => {
-    upsertCorrection(subjectId, classId, examDate, cur ? STATUS_NEXT[cur] : 'sedang');
+  const handleCorrectionStatus = (subjectId: string, classId: string, examDate: string, status: 'sedang' | 'selesai') => {
+    upsertCorrection(subjectId, classId, examDate, status);
     onRefresh();
   };
 
@@ -110,6 +107,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
       examType: eType,
     });
     setEStart(''); setEEnd(''); setELocation(''); setENote('');
+    setExamFormOpen(false);
     onRefresh();
     toast({ title: '✓ Jadwal ujian ditambahkan' });
   };
@@ -299,14 +297,25 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
             {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft)}</span>}
           </div>
         </div>
-        <button
-          onClick={() => handleCycle(item.subjectId, item.classId, item.examDate, corrSt)}
-          className={`text-xs px-3.5 py-1.5 rounded-full border font-bold transition-all flex-shrink-0 active:scale-95 ${
-            corrSt ? STATUS_CLS[corrSt] : 'text-text3 bg-surface2 border-border2 hover:border-border3'
-          }`}
-        >
-          {corrSt ? STATUS_LABEL[corrSt] : 'Belum'}
-        </button>
+        <div className="flex-shrink-0">
+          {corrSt === 'selesai' ? (
+            <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
+          ) : corrSt === 'sedang' ? (
+            <button
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate, 'selesai')}
+              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+            >
+              Tandai selesai
+            </button>
+          ) : (
+            <button
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate, 'sedang')}
+              className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
+            >
+              Mulai koreksi
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -336,9 +345,108 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   // ─── (Agenda 2 Hari dipindah ke TodayView) ──────────────────────────────
   // renderToday removed — agenda hari ini & besok kini tampil di tab Hari Ini
 
+  // ─── Tab: Agenda ─────────────────────────────────────────────────────────
+  const renderAgenda = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = dateKey(tomorrow);
+    const tomorrowSchedules = futureExamSchedules.filter(s => s.date === tomorrowStr);
+    const laterSchedules = futureExamSchedules.filter(s => s.date > tomorrowStr);
+    const noPrereq = data.classes.length === 0 || data.subjects.length === 0;
+    const groups = [
+      { label: 'Hari ini', items: todayExamSchedules },
+      { label: 'Besok', items: tomorrowSchedules },
+      { label: 'Tanggal berikutnya', items: laterSchedules },
+    ];
+
+    return (
+      <div className="space-y-3 animate-slide-up pb-20">
+        <div className="bg-surface border border-border2 rounded-3xl overflow-hidden">
+          <button
+            onClick={() => setExamFormOpen(open => !open)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-surface2/40 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary"><Plus className="h-4 w-4" /></span>
+              <div>
+                <div className="text-[13px] font-bold">Tambah ujian</div>
+                <div className="text-[11px] text-text3 mt-0.5">Atur kelas, mapel, tanggal, dan jam</div>
+              </div>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {examFormOpen && (
+            <div className="border-t border-border2/60 px-4 py-4 space-y-3">
+              {noPrereq ? (
+                <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mapel dulu di Atur Akademik.</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
+                      <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-sm h-10 w-full">
+                        <option value="">Pilih kelas</option>
+                        {data.classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
+                      <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-sm h-10 w-full">
+                        <option value="">Pilih mapel</option>
+                        {data.subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+                      <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tipe</label>
+                      <select value={eType} onChange={e => setEType(e.target.value as typeof eType)} className="form-input-style text-sm h-10 w-full">
+                        <option value="UTS">UTS</option><option value="UAS">UAS</option><option value="Umum">Umum</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style text-sm h-10 w-full" /></div>
+                    <div><label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" /></div>
+                  </div>
+                  <details className="rounded-xl border border-border2 bg-surface2/30 px-3 py-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-text2">Ruangan dan catatan (opsional)</summary>
+                    <div className="space-y-2 pt-3">
+                      <input value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="Ruangan" className="form-input-style text-sm h-10 w-full" />
+                      <input value={eNote} onChange={e => setENote(e.target.value)} placeholder="Catatan" className="form-input-style text-sm h-10 w-full" />
+                    </div>
+                  </details>
+                  <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold active:scale-[0.98]">Simpan ujian</button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {examSchedules.length === 0 ? (
+          <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
+            <div className="text-4xl mb-3">🗓️</div>
+            <div className="text-sm font-bold">Belum ada agenda ujian</div>
+            <div className="text-xs text-text3 mt-1">Tambah jadwal agar agenda dan antrean koreksi tersusun otomatis.</div>
+          </div>
+        ) : groups.map(group => group.items.length > 0 && (
+          <section key={group.label} className="space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-1">{group.label} · {group.items.length} ujian</div>
+            <div className="space-y-2">{group.items.map(schedule => <ExamScheduleCard key={schedule.id} s={schedule} />)}</div>
+          </section>
+        ))}
+      </div>
+    );
+  };
+
   // ─── Tab: Koreksi ─────────────────────────────────────────────────────────
   const renderKoreksi = () => {
-    const queue = getCorrectionQueue({ includeCompleted: showCompletedKoreksi }).slice(0, showCompletedKoreksi ? 20 : undefined);
+    const queue = getCorrectionQueue();
     const { done, total, pending, overdue } = correctionStats;
     const progressPct = total > 0 ? Math.max(4, (done / total) * 100) : 0;
 
@@ -372,28 +480,11 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </div>
         </div>
 
-        {/* Filter toggle */}
-        <button
-          onClick={() => setShowCompletedKoreksi(v => !v)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border text-xs font-semibold transition-all ${
-            showCompletedKoreksi ? 'bg-primary/10 border-primary-border text-foreground' : 'bg-surface border-border2 text-text2 hover:bg-surface2'
-          }`}
-        >
-          <span>{showCompletedKoreksi ? '✓ Menampilkan selesai' : 'Tampilkan selesai'}</span>
-          <span className="text-text3">{showCompletedKoreksi ? '▲' : '▼'}</span>
-        </button>
-
         {queue.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
-            <div className="text-5xl mb-4">{showCompletedKoreksi ? '📭' : '✅'}</div>
-            <div className="text-sm font-bold mb-1">
-              {showCompletedKoreksi ? 'Belum ada riwayat koreksi' : 'Semua koreksi beres'}
-            </div>
-            <div className="text-xs text-text3">
-              {showCompletedKoreksi
-                ? 'Koreksi yang sudah selesai akan muncul di sini.'
-                : 'Tidak ada ujian yang perlu dikoreksi saat ini.'}
-            </div>
+            <div className="text-5xl mb-4">✅</div>
+            <div className="text-sm font-bold mb-1">Semua koreksi beres</div>
+            <div className="text-xs text-text3">Tidak ada ujian yang perlu dikoreksi saat ini.</div>
           </div>
         ) : (
           <div className="space-y-2">
@@ -402,6 +493,37 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderHistory = () => {
+    const completed = getCorrectionQueue({ includeCompleted: true }).filter(item => item.status === 'selesai');
+    const legacyPast = examSchedules.length === 0 ? past : [];
+
+    return (
+      <div className="space-y-3 animate-slide-up pb-20">
+        <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden">
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
+            <div><div className="text-[13px] font-bold">Koreksi selesai</div><div className="text-[11px] text-text3 mt-0.5">{completed.length} kelas sudah dikoreksi</div></div>
+            <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-border2/60 p-3 space-y-2">
+            {completed.length ? completed.map(item => <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />) : <p className="text-xs text-text3 text-center py-3">Belum ada koreksi yang selesai.</p>}
+          </div>
+        </details>
+
+        <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden">
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
+            <div><div className="text-[13px] font-bold">Jadwal yang telah lewat</div><div className="text-[11px] text-text3 mt-0.5">{pastExamSchedules.length || legacyPast.length} jadwal terdahulu</div></div>
+            <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-border2/60 p-3 space-y-2">
+            {pastExamSchedules.length ? pastExamSchedules.map(schedule => <ExamScheduleCard key={schedule.id} s={schedule} />)
+              : legacyPast.length ? legacyPast.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)
+              : <p className="text-xs text-text3 text-center py-3">Belum ada jadwal ujian yang telah lewat.</p>}
+          </div>
+        </details>
       </div>
     );
   };
@@ -753,7 +875,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     </div>
   );
 
-  // ─── Tab: Kelola (single scroll, section headers) ────────────────────────
+  // ─── Tab: Pengaturan ─────────────────────────────────────────────────────
   const renderManage = () => (
     <div className="space-y-6 animate-slide-up">
       {/* ── Section: Ngawas ── */}
@@ -764,19 +886,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageProctor()}
-      </div>
-
-      {/* ── Section: Jadwal Ujian ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="text-base">📚</span>
-          <div className="min-w-0">
-            <span className="text-[11px] font-black uppercase tracking-widest text-primary">Jadwal Ujian</span>
-            <div className="text-[10px] text-text3 mt-0.5">Atur tanggal &amp; jam ujian per kelas</div>
-          </div>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-        </div>
-        {renderManageExam()}
       </div>
 
       {/* ── Section: Pengaturan ── */}
@@ -848,8 +957,10 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
 
   // ─── Main shell ───────────────────────────────────────────────────────────
   const tabItems: { id: ExamTab; label: string; emoji: string; badge?: number }[] = [
+    { id: 'agenda', label: 'Agenda', emoji: '🗓️' },
     { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
-    { id: 'manage', label: 'Kelola', emoji: '⚙️' },
+    { id: 'riwayat', label: 'Riwayat', emoji: '📁' },
+    { id: 'settings', label: 'Atur', emoji: '⚙️' },
   ];
 
   return (
@@ -860,11 +971,11 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
             <div className="text-[11px] text-text3 truncate">
-              {correctionStats.pending > 0 ? `${correctionStats.pending} koreksi pending` : 'Agenda & jadwal di tab Hari Ini'}
+              {correctionStats.pending > 0 ? `${correctionStats.pending} koreksi perlu dikerjakan` : 'Agenda ujian dan koreksi dalam satu alur'}
             </div>
           </div>
           <button
-            onClick={() => { setTab('manage'); }}
+            onClick={() => { setTab('settings'); }}
             className={`px-2.5 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide flex-shrink-0 ${
               examMode ? 'bg-amber/15 border-amber/30 text-amber' : 'bg-surface2 border-border2 text-text3'
             }`}
@@ -873,7 +984,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-4 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
           {tabItems.map(t => (
             <button
               key={t.id}
@@ -895,8 +1006,10 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
         </div>
       </div>
 
+      {tab === 'agenda' && renderAgenda()}
       {tab === 'koreksi' && renderKoreksi()}
-      {tab === 'manage' && renderManage()}
+      {tab === 'riwayat' && renderHistory()}
+      {tab === 'settings' && renderManage()}
     </div>
   );
 }
