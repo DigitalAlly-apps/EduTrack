@@ -2178,27 +2178,114 @@ function suggestMaterialsToTrim(
   return remainingMats.map(m => m.name);
 }
 
+export function markMaterialCompleted(classId: string, subjectId: string, materialId: string) {
+  updateData(d => {
+    let prog = d.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+    if (!prog) {
+      prog = { id: genId(), classId, subjectId, materialsDone: 0, lastSession: null };
+      d.progress.push(prog);
+    }
+    const completedSet = new Set(prog.completedMaterialIds ?? []);
+    completedSet.add(materialId);
+    prog.completedMaterialIds = Array.from(completedSet);
+
+    const mats = getMaterialsFromData(d, subjectId, classId);
+    let targetDone = 0;
+    for (const m of mats) {
+      targetDone += m.sessions ?? 1;
+      if (m.id === materialId) break;
+    }
+    if (prog.materialsDone < targetDone) {
+      prog.materialsDone = targetDone;
+    }
+  });
+}
+
+export function applyMergeSuggestion(classId: string, subjectId: string, materialsToMerge?: string[]) {
+  updateData(d => {
+    const mats = getMaterialsFromData(d, subjectId, classId);
+    const prog = d.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+    const completedIds = new Set(prog?.completedMaterialIds ?? []);
+
+    const targets = mats.filter(m => {
+      if (completedIds.has(m.id)) return false;
+      if (materialsToMerge && materialsToMerge.length > 0) {
+        return materialsToMerge.includes(m.name) || materialsToMerge.includes(m.id);
+      }
+      return (m.sessions ?? 1) > 1;
+    });
+
+    targets.forEach(m => {
+      const matInDb = d.materials.find(mat => mat.id === m.id);
+      if (matInDb) {
+        matInDb.sessions = Math.max(1, (matInDb.sessions ?? 1) - 1);
+      }
+    });
+
+    if (prog) {
+      const newTotal = getTotalSessionsNeeded(getMaterialsFromData(d, subjectId, classId));
+      if (prog.materialsDone > newTotal) {
+        prog.materialsDone = newTotal;
+      }
+    }
+  });
+}
+
+export function applyTrimSuggestion(classId: string, subjectId: string, materialsToTrim?: string[]) {
+  updateData(d => {
+    const mats = getMaterialsFromData(d, subjectId, classId);
+    const prog = d.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+    const completedIds = new Set(prog?.completedMaterialIds ?? []);
+
+    const targets = mats.filter(m => {
+      if (completedIds.has(m.id)) return false;
+      if (materialsToTrim && materialsToTrim.length > 0) {
+        return materialsToTrim.includes(m.name) || materialsToTrim.includes(m.id);
+      }
+      return true;
+    });
+
+    targets.forEach(m => {
+      const matInDb = d.materials.find(mat => mat.id === m.id);
+      if (matInDb) {
+        matInDb.sessions = 1;
+      }
+    });
+
+    if (prog) {
+      const newTotal = getTotalSessionsNeeded(getMaterialsFromData(d, subjectId, classId));
+      if (prog.materialsDone > newTotal) {
+        prog.materialsDone = newTotal;
+      }
+    }
+  });
+}
+
 /**
- * Apply a pace suggestion — creates catch-up tasks for suggested extra sessions
+ * Apply a pace suggestion — creates catch-up tasks, merges sessions, or trims materials
  */
 export function applyPaceSuggestion(suggestion: PaceSuggestion) {
-  if (suggestion.type !== 'add_sessions' || !suggestion.suggestedDates?.length) return;
+  if (suggestion.type === 'add_sessions' && suggestion.suggestedDates?.length) {
+    updateData(d => {
+      const sched = d.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
+      if (!sched) return;
 
-  updateData(d => {
-    const sched = d.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
-    if (!sched) return;
-
-    suggestion.suggestedDates!.forEach(dateStr => {
-      d.tasks.push({
-        id: genId(),
-        classId: suggestion.classId,
-        subjectId: suggestion.subjectId,
-        title: `📚 Extra session: ${suggestion.subject} (catch-up)`,
-        deadline: dateStr,
-        status: 'pending'
+      suggestion.suggestedDates!.forEach(dateStr => {
+        d.tasks.push({
+          id: genId(),
+          classId: suggestion.classId,
+          subjectId: suggestion.subjectId,
+          title: `📚 Extra session: ${suggestion.subject} (catch-up)`,
+          deadline: dateStr,
+          status: 'pending'
+        });
       });
     });
-  });
+  } else if (suggestion.type === 'merge_sessions') {
+    applyMergeSuggestion(suggestion.classId, suggestion.subjectId, suggestion.materialsToTrim);
+  } else if (suggestion.type === 'trim_materials') {
+    applyTrimSuggestion(suggestion.classId, suggestion.subjectId, suggestion.materialsToTrim);
+  }
 }
 
 /**

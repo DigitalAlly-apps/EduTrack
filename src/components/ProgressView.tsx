@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, FilePenLine, Hi
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, updateSessionMaterial, getTeachingPosition, updateMaterialEstimate,
+  composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, updateSessionMaterial, getTeachingPosition, updateMaterialEstimate, markMaterialCompleted,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
@@ -31,6 +31,17 @@ function PaceSuggestionsCard() {
       applyPaceSuggestion(suggestion);
       toast({ title: `Ditambahkan ${suggestion.suggestedDates.length} sesi pengganti` });
       fetchSuggestions();
+      window.dispatchEvent(new Event('edutrack-data-changed'));
+    } else if (suggestion.type === 'merge_sessions') {
+      applyPaceSuggestion(suggestion);
+      toast({ title: 'Materi berhasil dipadatkan (pertemuan dikurangi)' });
+      fetchSuggestions();
+      window.dispatchEvent(new Event('edutrack-data-changed'));
+    } else if (suggestion.type === 'trim_materials') {
+      applyPaceSuggestion(suggestion);
+      toast({ title: 'Jumlah pertemuan materi berhasil dipangkas' });
+      fetchSuggestions();
+      window.dispatchEvent(new Event('edutrack-data-changed'));
     } else {
       toast({ title: 'Saran tidak bisa diterapkan otomatis' });
     }
@@ -349,6 +360,8 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const activeMaterial = teachingPosition;
   const [editingEstimate, setEditingEstimate] = useState(false);
   const [estimateValue, setEstimateValue] = useState(activeMaterial.material?.sessions ?? 1);
+  const [editingMatId, setEditingMatId] = useState<string | null>(null);
+  const [editingMatSess, setEditingMatSess] = useState<number>(1);
   const activePageLabel = getMaterialPageLabel(activeMaterial.material);
   const sessionsAvailable = st.sessLeft ?? 0;
   const sessionsNeeded = st.sessionsNeeded ?? st.remaining;
@@ -582,34 +595,85 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                 const pageLabel = getMaterialPageLabel(mat);
                 currentTotal += sessions;
                 
+                const isEditing = editingMatId === mat.id;
                 return (
                   <div key={mat.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     isCurrent ? 'bg-primary-dim/30 border border-primary-border/20 shadow-sm' : 
-                    isFinished ? 'opacity-50' : 'opacity-[0.35]'
+                    isFinished ? 'opacity-50' : 'opacity-80'
                   }`}>
                     <span className={`text-[12px] mt-[1px] flex-shrink-0 ${isFinished ? 'text-green' : isCurrent ? 'text-primary' : 'text-text3'}`}>
                       {isFinished ? '✓' : isCurrent ? '▶' : '○'}
                     </span>
-                    <span className={`text-[13px] leading-snug flex-1 ${
-                      isFinished ? 'line-through decoration-text3/50' :
-                      isCurrent ? 'font-bold text-foreground' : 'font-medium text-text2'
-                    }`}>
-                      {mat.name}
-                      {pageLabel && (
-                        <span className="block mt-0.5 text-[10px] font-semibold opacity-70">{pageLabel}</span>
-                      )}
-                      {mat.note && (
-                        <span className="block mt-0.5 text-[10px] font-medium opacity-60">Catatan: {mat.note}</span>
-                      )}
-                      {isCurrent && (
-                        <span className="block mt-0.5 text-[10px] font-bold text-primary opacity-90">
-                          Pertemuan {sessionIndex}/{sessions} sekarang
-                        </span>
-                      )}
-                      {!isCurrent && sessions > 1 && (
-                        <span className="ml-2 text-[10px] opacity-60">{sessions} pertemuan</span>
-                      )}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[13px] leading-snug ${
+                        isFinished ? 'line-through decoration-text3/50 text-text3' :
+                        isCurrent ? 'font-bold text-foreground' : 'font-medium text-text2'
+                      }`}>
+                        {mat.name}
+                        {pageLabel && (
+                          <span className="block mt-0.5 text-[10px] font-semibold opacity-70">{pageLabel}</span>
+                        )}
+                        {mat.note && (
+                          <span className="block mt-0.5 text-[10px] font-medium opacity-60">Catatan: {mat.note}</span>
+                        )}
+                        {isCurrent && (
+                          <span className="block mt-0.5 text-[10px] font-bold text-primary opacity-90">
+                            Pertemuan {sessionIndex}/{sessions} sekarang
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Inline Session Editor / Quick Action */}
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5 bg-surface border border-primary/30 rounded-lg p-1">
+                            <span className="text-[10px] text-text3 font-medium">Sesi:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={editingMatSess}
+                              onChange={e => setEditingMatSess(Math.max(1, Number(e.target.value) || 1))}
+                              className="w-12 h-6 rounded border border-border bg-surface2 px-1 text-xs font-bold text-center"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                updateMaterialEstimate(mat.id, editingMatSess);
+                                setEditingMatId(null);
+                                window.dispatchEvent(new Event('edutrack-data-changed'));
+                                toast({ title: `Estimasi "${mat.name}" diperbarui ke ${editingMatSess} pertemuan` });
+                              }}
+                              className="text-[10px] font-bold text-primary-foreground bg-primary px-2 py-0.5 rounded"
+                            >
+                              Simpan
+                            </button>
+                            <button onClick={() => setEditingMatId(null)} className="text-[10px] text-text3 px-1">Batal</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setEditingMatId(mat.id); setEditingMatSess(sessions); }}
+                            className="text-[10px] text-text3 hover:text-primary font-semibold bg-surface2/80 border border-border/40 px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+                            title="Klik untuk ubah jumlah pertemuan"
+                          >
+                            <span>{sessions} pertemuan</span>
+                            <span className="text-[9px]">✏️</span>
+                          </button>
+                        )}
+
+                        {isCurrent && !isFinished && (
+                          <button
+                            onClick={() => {
+                              markMaterialCompleted(card.classId, card.subjectId, mat.id);
+                              window.dispatchEvent(new Event('edutrack-data-changed'));
+                              toast({ title: `Bab "${mat.name}" ditandai selesai!` });
+                            }}
+                            className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-amber/20 transition-colors"
+                          >
+                            ⚡ Selesaikan bab sekarang
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               });

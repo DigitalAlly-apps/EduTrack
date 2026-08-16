@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   getData, updateData, genId, DAYS_SHORT, DAYS_ID, fmt, checkOverlap, saveData, dateKey, dateFromKey,
   exportJSON, exportCSV, importJSON, loadDemo, updateClass, updateSubject, bulkUpdateExamDateByLevel, updateMaterial, updateSchedule, reorderMaterials, bulkAddMaterials, bulkSetExamPeriodByOrderRange, estimateStorageSize, pruneOldSessions,
-  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines,
+  addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines, getTeachingPosition,
   getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester, linkSubjectToSemester,
 } from '@/lib/data';
 import { SetupTab } from '@/lib/types';
@@ -398,13 +398,25 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
       }`}>{item.examPeriod}</span>
     : null;
 
+  const statusBadge = item.progressStatus ? (
+    <span className={`inline-block ml-1.5 text-[9px] font-bold px-[5px] py-[1px] rounded border ${
+      item.progressStatus.type === 'finished'
+        ? 'bg-green/15 border-green/30 text-green'
+        : item.progressStatus.type === 'current'
+          ? 'bg-primary/15 border-primary/30 text-primary'
+          : 'bg-surface2 border-border text-text3'
+    }`}>
+      {item.progressStatus.label}
+    </span>
+  ) : null;
+
   return (
     <>
       <div ref={setNodeRef} style={style} className={`bg-surface border ${isDragging ? 'border-primary border-[2px] shadow-lg' : 'border-border'} rounded-2xl p-3 flex items-center justify-between mb-2`}>
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
-            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{periodBadge}</div>
+            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{periodBadge}{statusBadge}</div>
             <div className="text-[11px] text-text2 mt-[2px] leading-snug">{item.meta}</div>
           </div>
         </div>
@@ -915,11 +927,30 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={mats.map(m=>m.id)} strategy={verticalListSortingStrategy}>
-              {mats.map((m, i) => {
-                const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
-                const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${i+1}`;
-                return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta }} onSave={saveItem} onDelete={del} />;
-              })}
+              {(() => {
+                const teachingPos = classId && subId ? getTeachingPosition(classId, subId, data) : null;
+                const completedIds = new Set(teachingPos?.completedMaterialIds ?? []);
+                let runningTotal = 0;
+
+                return mats.map((m, i) => {
+                  const sessions = m.sessions ?? 1;
+                  const isFinished = completedIds.has(m.id) || (teachingPos && teachingPos.totalSessionsDone >= runningTotal + sessions);
+                  const isCurrent = teachingPos && teachingPos.material?.id === m.id;
+                  const sessionIndex = teachingPos?.sessionIndex || 1;
+                  runningTotal += sessions;
+
+                  let progressStatus = null;
+                  if (isFinished) {
+                    progressStatus = { type: 'finished', label: '✓ Selesai' };
+                  } else if (isCurrent) {
+                    progressStatus = { type: 'current', label: `▶ Sesi ${sessionIndex}/${sessions}` };
+                  }
+
+                  const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
+                  const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${i+1}`;
+                  return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta, progressStatus }} onSave={saveItem} onDelete={del} />;
+                });
+              })()}
             </SortableContext>
           </DndContext>
           {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada materi</div>}

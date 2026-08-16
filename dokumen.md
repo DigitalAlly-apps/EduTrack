@@ -363,9 +363,11 @@ Data jadwal hari ini dibuat oleh `getTodaySchedules()`:
 Aksi sesi:
 
 - `markDone(scheduleId, note?)`: membuat `Session`, menaikkan progress, simpan data.
+- `markMaterialCompleted(classId, subjectId, materialId)`: menandai bab/materi tertentu selesai lebih cepat, menggeser KBM ke bab berikutnya.
 - `skipSession(scheduleId)`: membuat `Session` dengan `materialId: SKIPPED`, tidak menaikkan progress.
 - `undoLastSession(classId, subjectId)`: menghapus sesi non-skipped terakhir dan menurunkan `materialsDone`.
 - `postponeSchedule(scheduleId, diffMinutes)`: membuat/memperbarui override start time untuk hari ini.
+- `⚡ Selesaikan bab ini`: quick action di Hero Card dan Timeline untuk menutup bab aktif lebih cepat.
 
 Jurnal harian:
 
@@ -427,7 +429,9 @@ Pace suggestions:
 - `calculatePaceForCombination(classId, subjectId)` menganalisis satu kombinasi kelas+mapel.
 - `generatePaceSuggestions()` menghasilkan saran semua kombinasi.
 - Tipe saran: `add_sessions`, `merge_sessions`, `trim_materials`, `no_issue`.
-- `applyPaceSuggestion()` membuat task catch-up untuk tanggal yang disarankan.
+- `applyPaceSuggestion()` mengeksekusi aksi sesuai tipe saran (membuat task catch-up untuk `add_sessions`, memadatkan sesi materi untuk `merge_sessions` via `applyMergeSuggestion`, atau memangkas sesi materi menjadi 1 pertemuan untuk `trim_materials` via `applyTrimSuggestion`).
+- `applyMergeSuggestion()` dan `applyTrimSuggestion()` menyesuaikan estimasi pertemuan materi dan auto-reconcile `materialsDone`.
+- Inline Material Editor: Di daftar materi ProgressView, setiap materi dapat diubah estimasi pertemuannya secara langsung via mini editor inline (`✏️`), dan materi aktif dapat diselesaikan instan (`⚡ Selesaikan bab sekarang`).
 - `addExtraSession()` membuat extra schedule override untuk tanggal tertentu.
 
 Heatmap:

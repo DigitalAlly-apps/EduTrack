@@ -6,7 +6,7 @@ import {
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
-  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate,
+  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted,
 } from '@/lib/data';
 import { TodayScheduleItem, MissingTeachingSession } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -77,6 +77,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [recordNote, setRecordNote] = useState('');
   const [estimateSheet, setEstimateSheet] = useState<Material | null>(null);
   const [estimateDraft, setEstimateDraft] = useState(1);
+  const [finishBabConfirm, setFinishBabConfirm] = useState<{ schedule: TodayScheduleItem; material: any } | null>(null);
 
   const getPrevReminder = (classId: string, subjectId: string, todayStr: string): string => {
     try {
@@ -850,7 +851,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
                     {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
-                    {activeMaterial && <button onClick={() => { setEstimateDraft(activeMaterial.sessions ?? 1); setEstimateSheet(activeMaterial); }} className="mt-2 text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi pertemuan</button>}
+                    {activeMaterial && (
+                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                        <button onClick={() => { setEstimateDraft(activeMaterial.sessions ?? 1); setEstimateSheet(activeMaterial); }} className="text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi</button>
+                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1">⚡ Selesaikan bab ini</button>
+                      </div>
+                    )}
                     {/* Info halaman dari sesi sebelumnya */}
                     {(() => {
                       const lastPage = getLastPageReached(active.classId, active.subjectId);
@@ -1808,6 +1814,31 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 className="flex-1 py-3 bg-amber/15 border border-amber/30 text-amber rounded-xl text-sm font-bold"
               >
                 Ya, Lewati
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {finishBabConfirm && (
+        <div className="app-overlay z-[520]" onClick={() => setFinishBabConfirm(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1 flex items-center gap-2">⚡ Selesaikan Bab Ini Lebih Cepat?</div>
+            <p className="text-[13px] text-text2 mb-3 leading-relaxed">
+              Bab <strong className="text-foreground">"{finishBabConfirm.material.name}"</strong> akan ditandai selesai. Pertemuan berikutnya akan langsung pindah ke bab selanjutnya.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setFinishBabConfirm(null)} className="flex-1 py-3 bg-surface border border-border2 rounded-xl text-sm font-medium">Batal</button>
+              <button
+                onClick={() => {
+                  markMaterialCompleted(finishBabConfirm.schedule.classId, finishBabConfirm.schedule.subjectId, finishBabConfirm.material.id);
+                  setFinishBabConfirm(null);
+                  onRefresh();
+                  toast({ title: `Bab "${finishBabConfirm.material.name}" ditandai selesai!` });
+                }}
+                className="flex-1 py-3 bg-amber/15 border border-amber/30 text-amber rounded-xl text-sm font-bold"
+              >
+                Ya, Selesaikan Bab
               </button>
             </div>
           </div>

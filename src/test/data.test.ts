@@ -27,7 +27,10 @@ import {
   splitSessionNote,
   updateMaterial,
   updateMaterialEstimate,
-  updateSessionNote,
+  markMaterialCompleted,
+  applyMergeSuggestion,
+  applyTrimSuggestion,
+  applyPaceSuggestion,
 } from '@/lib/data';
 import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
 import { AppData } from '@/lib/types';
@@ -833,5 +836,74 @@ describe('lastPageReached feature', () => {
     saveData(data);
 
     expect(getLastPageReached('c1', 's1')).toBe('10');
+  });
+
+  describe('Flexible Material Sessions Management', () => {
+    it('markMaterialCompleted — marks a material completed early and advances teaching position', () => {
+      const data = baseData();
+      data.materials = [
+        { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 3 },
+        { id: 'm2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 2 },
+      ];
+      saveData(data);
+
+      expect(getTeachingPosition('c1', 's1').material?.name).toBe('Bab 1');
+
+      markMaterialCompleted('c1', 's1', 'm1');
+
+      const pos = getTeachingPosition('c1', 's1');
+      expect(pos.material?.name).toBe('Bab 2');
+      expect(pos.completedMaterialIds).toContain('m1');
+    });
+
+    it('applyMergeSuggestion — reduces sessions for uncompleted materials with >1 sessions', () => {
+      const data = baseData();
+      data.materials = [
+        { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 3 },
+        { id: 'm2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 2 },
+      ];
+      saveData(data);
+
+      applyMergeSuggestion('c1', 's1');
+
+      const updatedMats = getMaterials('s1', 'c1');
+      expect(updatedMats.find(m => m.id === 'm1')?.sessions).toBe(2);
+      expect(updatedMats.find(m => m.id === 'm2')?.sessions).toBe(1);
+    });
+
+    it('applyTrimSuggestion — sets sessions to 1 for target materials', () => {
+      const data = baseData();
+      data.materials = [
+        { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 4 },
+        { id: 'm2', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 3 },
+      ];
+      saveData(data);
+
+      applyTrimSuggestion('c1', 's1');
+
+      const updatedMats = getMaterials('s1', 'c1');
+      expect(updatedMats.find(m => m.id === 'm1')?.sessions).toBe(1);
+      expect(updatedMats.find(m => m.id === 'm2')?.sessions).toBe(1);
+    });
+
+    it('applyPaceSuggestion — delegates merge and trim correctly', () => {
+      const data = baseData();
+      data.materials = [
+        { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Bab 1', order: 1, sessions: 3 },
+      ];
+      saveData(data);
+
+      applyPaceSuggestion({
+        class: '10A',
+        classId: 'c1',
+        subject: 'Matematika',
+        subjectId: 's1',
+        type: 'merge_sessions',
+        description: 'Merge sessions',
+        actionable: true,
+      });
+
+      expect(getMaterials('s1', 'c1')[0].sessions).toBe(2);
+    });
   });
 });
