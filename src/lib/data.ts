@@ -1,4 +1,4 @@
-import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, ExamPrepItem, PredictiveFinish, Semester } from './types';
+import { AppData, TodayScheduleItem, Insight, SubjectStatus, Subject, ClassItem, PaceSuggestion, RescheduleAction, Schedule, Material, ExamPrepItem, PredictiveFinish, Semester, MissingTeachingSession } from './types';
 
 const DB_KEY = 'pengajar_v4';
 const RECOVERY_KEY = 'edutrack_last_known_good';
@@ -303,6 +303,30 @@ export function getTeachingPosition(classId: string, subjectId: string, data: Ap
   const mats = getMaterialsFromData(data, subjectId, classId);
   const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
   const totalSessionsAll = getTotalSessionsNeeded(mats);
+  const hasExplicitCompletion = Boolean(prog.completedMaterialIds?.length || data.sessions.some(s => s.classId === classId && s.subjectId === subjectId && s.materialCompleted));
+  if (hasExplicitCompletion) {
+    const completedIds = new Set(prog.completedMaterialIds ?? []);
+    data.sessions
+      .filter(s => s.classId === classId && s.subjectId === subjectId && s.materialCompleted && s.materialId)
+      .forEach(s => completedIds.add(s.materialId!));
+    const active = mats.find(m => !completedIds.has(m.id));
+    const activeSessions = active
+      ? data.sessions.filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId === active.id && s.materialId !== 'SKIPPED').length
+      : 0;
+    const completedPlanned = mats.filter(m => completedIds.has(m.id)).reduce((sum, m) => sum + (m.sessions ?? 1), 0);
+    const actualSessions = data.sessions.filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId !== 'SKIPPED').length;
+    return {
+      material: active ?? null,
+      materialNumber: active ? mats.findIndex(m => m.id === active.id) + 1 : mats.length,
+      sessionIndex: active ? activeSessions + 1 : 0,
+      totalSessionsInMaterial: active?.sessions ?? 0,
+      totalSessionsDone: Math.min(active ? completedPlanned + activeSessions : totalSessionsAll, totalSessionsAll),
+      totalSessionsAll,
+      actualSessions,
+      completedMaterialIds: [...completedIds],
+      isComplete: mats.length > 0 && !active,
+    };
+  }
   const totalSessionsDone = Math.min(prog.materialsDone, totalSessionsAll);
   const current = getMaterialForSession(mats, totalSessionsDone);
 
@@ -317,6 +341,8 @@ export function getTeachingPosition(classId: string, subjectId: string, data: Ap
     totalSessionsInMaterial: current.totalSessionsInMat,
     totalSessionsDone,
     totalSessionsAll,
+    actualSessions: data.sessions.filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId !== 'SKIPPED').length,
+    completedMaterialIds: [],
     isComplete: mats.length > 0 && totalSessionsDone >= totalSessionsAll,
   };
 }
@@ -696,8 +722,17 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   }
 
   const totalSessions = getTotalSessionsNeeded(mats);
-  const doneSessions = prog.materialsDone;
-  const remainingSessions = Math.max(0, totalSessions - doneSessions);
+  const position = getTeachingPosition(cls.id, sub.id, data);
+  const explicitIds = new Set(position.completedMaterialIds ?? []);
+  const hasExplicitCompletion = explicitIds.size > 0;
+  const completedPlanned = mats.filter(m => explicitIds.has(m.id)).reduce((sum, m) => sum + (m.sessions ?? 1), 0);
+  const activeActual = position.material
+    ? data.sessions.filter(s => s.classId === cls.id && s.subjectId === sub.id && s.materialId === position.material?.id && s.materialId !== 'SKIPPED').length
+    : 0;
+  const doneSessions = hasExplicitCompletion ? completedPlanned + activeActual : prog.materialsDone;
+  const remainingSessions = hasExplicitCompletion
+    ? Math.max(0, totalSessions - completedPlanned - activeActual)
+    : Math.max(0, totalSessions - doneSessions);
   const pct = totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 100;
 
   let status: 'on-track' | 'tight' | 'behind' = 'on-track', label = 'Sesuai jadwal', rec = 'Lanjutkan seperti biasa.';
@@ -733,28 +768,85 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 }
 
 
-export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {
+export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return;
-  const todayStr = dateKey();
-  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === todayStr)) return;
+  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return;
   
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
-  const mats = getMaterials(sched.subjectId, sched.classId);
-  const { material } = getMaterialForSession(mats, prog ? prog.materialsDone : 0);
+  const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
+  const position = getTeachingPosition(sched.classId, sched.subjectId, data);
+  const material = mats.find(m => m.id === materialId) ?? position.material;
   
-  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: todayStr, materialId: material?.id || null, completedAt: now().toISOString(), note };
+  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: sessionDate, materialId: material?.id || null, materialCompleted, completedAt: now().toISOString(), note };
   if (lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
   data.sessions.push(session);
   
-  if (prog) { 
-    prog.materialsDone = Math.min(prog.materialsDone + 1, getTotalSessionsNeeded(mats));
-    prog.lastSession = todayStr; 
-  } else {
-    data.progress.push({ id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 1, lastSession: todayStr });
+  const nextProg = prog ?? { id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 0, lastSession: null };
+  nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
+  nextProg.lastSession = sessionDate;
+  if (materialCompleted && material) {
+    nextProg.completedMaterialIds = [...new Set([...(nextProg.completedMaterialIds ?? []), material.id])];
+  }
+  if (!prog) {
+    data.progress.push(nextProg);
   }
   saveData(data);
+}
+
+export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {
+  recordTeachingSession(scheduleId, dateKey(), undefined, false, note, lastPageReached);
+}
+
+export function updateSessionMaterial(sessionId: string, materialId: string | null, materialCompleted: boolean) {
+  updateData(d => {
+    const session = d.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    session.materialId = materialId;
+    session.materialCompleted = materialCompleted;
+    const progress = d.progress.find(p => p.classId === session.classId && p.subjectId === session.subjectId);
+    if (!progress) return;
+    const completed = new Set((progress.completedMaterialIds ?? []).filter(id =>
+      d.sessions.some(s => s.id !== sessionId && s.classId === session.classId && s.subjectId === session.subjectId && s.materialId === id && s.materialCompleted)
+    ));
+    if (materialCompleted && materialId) completed.add(materialId);
+    progress.completedMaterialIds = [...completed];
+  });
+}
+
+export function updateMaterialEstimate(id: string, sessions: number) {
+  updateData(d => {
+    const material = d.materials.find(m => m.id === id);
+    if (material) material.sessions = Math.max(1, Math.round(sessions) || 1);
+  });
+}
+
+export function getMissingTeachingSessions(daysBack = 60): MissingTeachingSession[] {
+  const data = getData();
+  const result: MissingTeachingSession[] = [];
+  for (let offset = 1; offset <= daysBack; offset++) {
+    const date = new Date();
+    date.setDate(date.getDate() - offset);
+    const dateStr = dateKey(date);
+    for (const schedule of data.schedules) {
+      if (!schedule.days.includes(date.getDay())) continue;
+      if (data.sessions.some(s => s.scheduleId === schedule.id && s.date === dateStr)) continue;
+      const subject = data.subjects.find(s => s.id === schedule.subjectId);
+      if (data.holidays.some(h => typeof h === 'string' ? h === dateStr : h.date === dateStr && (!h.level || h.level === subject?.level))) continue;
+      if (data.scheduleOverrides?.some(o => o.scheduleId === schedule.id && o.date === dateStr && o.skipped)) continue;
+      result.push({ schedule, date: dateStr, className: data.classes.find(c => c.id === schedule.classId)?.name ?? '?', subjectName: subject?.name ?? '?' });
+    }
+  }
+  return result.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function skipSessionForDate(scheduleId: string, sessionDate: string) {
+  updateData(d => {
+    if (!d.scheduleOverrides) d.scheduleOverrides = [];
+    const exists = d.scheduleOverrides.some(o => o.scheduleId === scheduleId && o.date === sessionDate);
+    if (!exists) d.scheduleOverrides.push({ scheduleId, date: sessionDate, startTime: d.schedules.find(s => s.id === scheduleId)?.startTime ?? '00:00', skipped: true });
+  });
 }
 
 export function unmarkDone(scheduleId: string) {
@@ -772,6 +864,10 @@ export function unmarkDone(scheduleId: string) {
     const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
     if (prog && prog.materialsDone > 0) {
       prog.materialsDone--;
+      if (session.materialCompleted && prog.completedMaterialIds?.length && session.materialId) {
+        const stillCompleted = data.sessions.some(s => s.id !== session.id && s.classId === sched.classId && s.subjectId === sched.subjectId && s.materialId === session.materialId && s.materialCompleted);
+        if (!stillCompleted) prog.completedMaterialIds = prog.completedMaterialIds.filter(id => id !== session.materialId);
+      }
     }
   }
   saveData(data);
@@ -797,6 +893,10 @@ export function undoLastSession(classId: string, subjectId: string): boolean {
   data.sessions = data.sessions.filter(s => s.id !== lastSess.id);
   const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId);
   if (prog && prog.materialsDone > 0) prog.materialsDone--;
+  if (prog?.completedMaterialIds?.length && lastSess.materialId) {
+    const stillCompleted = data.sessions.some(s => s.classId === classId && s.subjectId === subjectId && s.materialId === lastSess.materialId && s.materialCompleted);
+    if (!stillCompleted) prog.completedMaterialIds = prog.completedMaterialIds.filter(id => id !== lastSess.materialId);
+  }
   saveData(data);
   return true;
 }

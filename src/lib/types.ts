@@ -44,6 +44,8 @@ export interface Progress {
   subjectId: string;
   materialsDone: number;
   lastSession: string | null;
+  /** Materi yang ditutup lebih cepat dari estimasi awal. */
+  completedMaterialIds?: string[];
 }
 export interface Session {
   id: string;
@@ -55,6 +57,8 @@ export interface Session {
   completedAt: string;
   note?: string;
   lastPageReached?: string; // halaman terakhir yang diajarkan di sesi ini
+  /** True bila materi benar-benar selesai pada sesi ini. */
+  materialCompleted?: boolean;
 }
 export interface TeacherTask {
   id: string;
@@ -106,6 +110,12 @@ export interface TodayScheduleItem extends Schedule {
   sessionId?: string;
   note?: string;
   skipped?: boolean;
+}
+export interface MissingTeachingSession {
+  schedule: Schedule;
+  date: string;
+  className: string;
+  subjectName: string;
 }
 export interface SubjectStatus {
   status: 'on-track' | 'tight' | 'behind';

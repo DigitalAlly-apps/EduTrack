@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   getTodaySchedules, getActiveSession, getNextSession,
-  markDone, unmarkDone, skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
+  skipSession, applyEarlyDismissal, timeToMin, currentMin, fmt, fmtCountdown,
   todayNum, DAYS_ID, isTodayHolidayGlobal,
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
+  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate,
 } from '@/lib/data';
-import { TodayScheduleItem } from '@/lib/types';
+import { TodayScheduleItem, MissingTeachingSession } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import SmartReschedulerModal from './SmartReschedulerModal';
 import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
@@ -32,6 +33,7 @@ function getMaterialPageLabel(material?: { pageStart?: string; pageEnd?: string 
 
 export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const items = getTodaySchedules();
+  const missingSessions = getMissingTeachingSessions().slice(0, 3);
   const active = getActiveSession(items);
   const next = getNextSession(items);
   const { toast } = useToast();
@@ -69,6 +71,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   // Tracker halaman terakhir: di-input setelah sesi selesai
   const [lastPageDraft, setLastPageDraft] = useState(''); // untuk expanded note section (timeline)
   const [lastPageHero, setLastPageHero] = useState('');   // untuk hero card quick input
+  const [recordSheet, setRecordSheet] = useState<{ scheduleId: string; date: string; classId: string; subjectId: string; className: string; subjectName: string } | null>(null);
+  const [recordMaterialId, setRecordMaterialId] = useState('');
+  const [recordMaterialCompleted, setRecordMaterialCompleted] = useState(false);
+  const [recordNote, setRecordNote] = useState('');
+  const [estimateSheet, setEstimateSheet] = useState<Material | null>(null);
+  const [estimateDraft, setEstimateDraft] = useState(1);
 
   const getPrevReminder = (classId: string, subjectId: string, todayStr: string): string => {
     try {
@@ -147,29 +155,28 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     setLastPageDraft('');
   };
 
-  const handleHeroDone = useCallback((id: string) => {
-    markDone(id);
+  const openRecordSheet = useCallback((item: TodayScheduleItem | MissingTeachingSession) => {
+    const source = 'schedule' in item ? { ...item.schedule, className: item.className, subjectName: item.subjectName } as TodayScheduleItem : item;
+    const date = 'date' in item ? item.date : dateKey();
+    const position = getTeachingPosition(source.classId, source.subjectId);
+    setRecordSheet({ scheduleId: source.id, date, classId: source.classId, subjectId: source.subjectId, className: source.className, subjectName: source.subjectName });
+    setRecordMaterialId(position.material?.id ?? '');
+    setRecordMaterialCompleted(false);
+    setRecordNote('');
+  }, []);
+
+  const saveRecordedSession = () => {
+    if (!recordSheet) return;
+    recordTeachingSession(recordSheet.scheduleId, recordSheet.date, recordMaterialId || null, recordMaterialCompleted, recordNote);
+    setRecordSheet(null);
     onRefresh();
-    toast({
-      title: '✓ KBM Selesai',
-      action: (
-        <button
-          onClick={() => {
-            unmarkDone(id);
-            onRefresh();
-            toast({ title: '↩️ Dibatalkan' });
-          }}
-          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
-        >
-          Urungkan
-        </button>
-      ) as any,
-    });
-    setExpandedNoteId(id);
-    setNoteDraft('');
-    setBelumKumpulDraft('');
-    setLastPageDraft('');
-  }, [onRefresh, toast]);
+    toast({ title: '✓ Pertemuan tersimpan', description: recordSheet.date === dateKey() ? 'Progres materi diperbarui.' : 'Pertemuan lama berhasil dicatat.' });
+  };
+
+  const handleHeroDone = useCallback((id: string) => {
+    const item = items.find(x => x.id === id);
+    if (item) openRecordSheet(item);
+  }, [items, openRecordSheet]);
 
   const handleSkip = (id: string, className: string, subjectName: string, classId: string, subjectId: string) => {
     skipSession(id);
@@ -196,28 +203,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   };
 
   const handleTLDone = useCallback((id: string) => {
-    markDone(id);
-    onRefresh();
-    toast({
-      title: '✓ KBM Selesai',
-      action: (
-        <button
-          onClick={() => {
-            unmarkDone(id);
-            onRefresh();
-            toast({ title: '↩️ Dibatalkan' });
-          }}
-          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
-        >
-          Urungkan
-        </button>
-      ) as any,
-    });
-    setExpandedNoteId(id);
-    setNoteDraft('');
-    setBelumKumpulDraft('');
-    setLastPageDraft('');
-  }, [onRefresh, toast]);
+    const item = items.find(x => x.id === id);
+    if (item) openRecordSheet(item);
+  }, [items, openRecordSheet]);
 
   const handleSaveNote = (sessionId: string) => {
     updateSessionNote(sessionId, composeSessionNote(noteDraft, belumKumpulDraft), lastPageDraft);
@@ -862,6 +850,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
                     {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
+                    {activeMaterial && <button onClick={() => { setEstimateDraft(activeMaterial.sessions ?? 1); setEstimateSheet(activeMaterial); }} className="mt-2 text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi pertemuan</button>}
                     {/* Info halaman dari sesi sebelumnya */}
                     {(() => {
                       const lastPage = getLastPageReached(active.classId, active.subjectId);
@@ -1155,6 +1144,27 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
         </div>
       </div>
+
+      {missingSessions.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-amber/30 bg-amber/10 p-3">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-[12px] font-black text-amber">⚠️ Ada {missingSessions.length} pertemuan belum dicatat</div>
+            <span className="text-[10px] text-text3">60 hari terakhir</span>
+          </div>
+          <div className="space-y-2">
+            {missingSessions.map(missing => (
+              <div key={`${missing.schedule.id}-${missing.date}`} className="flex items-center gap-2 rounded-xl bg-surface/70 border border-amber/15 px-2.5 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12px] font-bold text-foreground truncate">{missing.className} · {missing.subjectName}</div>
+                  <div className="text-[10px] text-text3">{new Date(`${missing.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+                </div>
+                <button onClick={() => openRecordSheet(missing)} className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-primary-foreground">Catat</button>
+                <button onClick={() => { skipSessionForDate(missing.schedule.id, missing.date); onRefresh(); }} className="rounded-lg border border-border2 px-2.5 py-1.5 text-[10px] font-semibold text-text2">Lewati</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {items.map((item, i) => {
         const state = item.active ? 'active' : item.done ? 'done' : '';
@@ -1732,6 +1742,46 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               Tambah Tugas
             </button>
             <button onClick={() => setNewTaskSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-2">Batal</button>
+          </div>
+        </div>
+      )}
+
+      {recordSheet && (
+        <div className="app-overlay z-[520]" onClick={() => setRecordSheet(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1">Catat Posisi Materi</div>
+            <p className="text-[12px] text-text2 mb-4">
+              {recordSheet.className} · {recordSheet.subjectName} · {new Date(`${recordSheet.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi yang diajarkan</label>
+            <select value={recordMaterialId} onChange={e => setRecordMaterialId(e.target.value)} className="form-select-style mb-3">
+              <option value="">Belum memilih materi</option>
+              {getMaterials(recordSheet.subjectId, recordSheet.classId).map(material => (
+                <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>
+              ))}
+            </select>
+            <label className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2 mb-3">
+              <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
+              <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
+            </label>
+            <textarea value={recordNote} onChange={e => setRecordNote(e.target.value)} className="form-input-style min-h-[68px] resize-none mb-4" placeholder="Catatan opsional..." />
+            <button onClick={saveRecordedSession} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Pertemuan</button>
+            <button onClick={() => setRecordSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
+          </div>
+        </div>
+      )}
+
+      {estimateSheet && (
+        <div className="app-overlay z-[520]" onClick={() => setEstimateSheet(null)}>
+          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title mb-1">Ubah Estimasi Pertemuan</div>
+            <p className="text-[12px] text-text2 mb-4">{estimateSheet.name}</p>
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Butuh berapa pertemuan?</label>
+            <input type="number" min="1" value={estimateDraft} onChange={e => setEstimateDraft(Math.max(1, Number(e.target.value) || 1))} className="form-input-style mb-4" autoFocus />
+            <button onClick={() => { updateMaterialEstimate(estimateSheet.id, estimateDraft); setEstimateSheet(null); onRefresh(); toast({ title: 'Estimasi diperbarui' }); }} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Estimasi</button>
+            <button onClick={() => setEstimateSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
           </div>
         </div>
       )}

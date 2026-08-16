@@ -16,6 +16,8 @@ import {
   getPredictiveFinishes,
   getTodaySchedules,
   getTeachingPosition,
+  recordTeachingSession,
+  getMissingTeachingSessions,
   importJSON,
   markDone,
   parseMaterialDraftLine,
@@ -24,6 +26,7 @@ import {
   skipSession,
   splitSessionNote,
   updateMaterial,
+  updateMaterialEstimate,
   updateSessionNote,
 } from '@/lib/data';
 import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
@@ -202,6 +205,34 @@ describe('session actions', () => {
     expect(afterSkip.sessions).toHaveLength(2);
     expect(afterSkip.sessions.find(s => s.scheduleId === 'sc2')?.materialId).toBe('SKIPPED');
     expect(afterSkip.progress[0].materialsDone).toBe(1);
+  });
+
+  it('closes a material early and continues with the next material', () => {
+    const data = baseData();
+    data.materials.push({ id: 'm3', subjectId: 's1', classId: 'c1', name: 'Bab 2', order: 2, sessions: 1 });
+    data.materials[0].sessions = 3;
+    saveData(data);
+
+    recordTeachingSession('sc1', '2026-08-10', 'm1', false);
+    recordTeachingSession('sc1', '2026-08-11', 'm1', true);
+    expect(getTeachingPosition('c1', 's1').material?.id).toBe('m3');
+
+    updateMaterialEstimate('m3', 4);
+    expect(getMaterials('s1', 'c1').find(m => m.id === 'm3')?.sessions).toBe(4);
+    expect(getData().sessions).toHaveLength(2);
+  });
+
+  it('finds a past scheduled meeting without creating data until confirmed', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const data = baseData(yesterday.getDay());
+    saveData(data);
+
+    const missing = getMissingTeachingSessions();
+    expect(missing).toEqual(expect.arrayContaining([
+      expect.objectContaining({ schedule: expect.objectContaining({ id: 'sc1' }), date: dateKey(yesterday) }),
+    ]));
+    expect(getData().sessions).toHaveLength(0);
   });
 });
 

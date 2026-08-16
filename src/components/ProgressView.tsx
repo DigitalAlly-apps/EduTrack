@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, FilePenLine, Hi
 import {
   getData, getMaterials, getSubjectStatus, fmt, getSessionHistory, now, getMonthCalendar, DayStatus, getTotalSessionsNeeded, dateKey, dateFromKey,
   generatePaceSuggestions, applyPaceSuggestion, addExtraSession,
-  composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, getTeachingPosition,
+  composeSessionNote, getNextStartPage, getPredictiveFinishes, getExamPrepItems, splitSessionNote, undoLastSession, updateSessionNote, updateSessionMaterial, getTeachingPosition, updateMaterialEstimate,
 } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
@@ -120,6 +120,12 @@ function getEffectiveStatus(st: ReturnType<typeof getSubjectStatus>): 'green' | 
 }
 
 export default function ProgressView() {
+  const [, forceRefresh] = useState(0);
+  useEffect(() => {
+    const refresh = () => forceRefresh(value => value + 1);
+    window.addEventListener('edutrack-data-changed', refresh);
+    return () => window.removeEventListener('edutrack-data-changed', refresh);
+  }, []);
   const [tab, setTab] = useState<'progress' | 'history' | 'kalender'>('progress');
   const tabs: { id: typeof tab; label: string; icon: ElementType }[] = [
     { id: 'progress', label: 'Progres', icon: LayoutDashboard },
@@ -341,6 +347,8 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
   const { toast } = useToast();
   const { subName, st, effectiveColor, mats, matsDone, totalSessDone, totalSessAll, teachingPosition, predictiveFinish } = card;
   const activeMaterial = teachingPosition;
+  const [editingEstimate, setEditingEstimate] = useState(false);
+  const [estimateValue, setEstimateValue] = useState(activeMaterial.material?.sessions ?? 1);
   const activePageLabel = getMaterialPageLabel(activeMaterial.material);
   const sessionsAvailable = st.sessLeft ?? 0;
   const sessionsNeeded = st.sessionsNeeded ?? st.remaining;
@@ -413,6 +421,16 @@ const SubjectCard = memo(function SubjectCard({ card }: { card: CardData }) {
                 </div>
                 {activePageLabel && <div className="text-[11px] text-text2 mt-0.5">{activePageLabel}</div>}
                 {activeMaterial.material.note && <div className="text-[11px] text-text3 mt-0.5 truncate">Catatan: {activeMaterial.material.note}</div>}
+                {editingEstimate ? (
+                  <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <span className="text-[10px] text-text3">Estimasi:</span>
+                    <input type="number" min="1" value={estimateValue} onChange={e => setEstimateValue(Math.max(1, Number(e.target.value) || 1))} className="w-14 h-7 rounded-lg border border-primary/30 bg-surface px-2 text-xs font-bold text-center" />
+                    <button onClick={() => { updateMaterialEstimate(activeMaterial.material!.id, estimateValue); setEditingEstimate(false); window.dispatchEvent(new Event('edutrack-data-changed')); toast({ title: 'Estimasi diperbarui' }); }} className="text-[10px] font-bold text-primary">Simpan</button>
+                    <button onClick={() => setEditingEstimate(false)} className="text-[10px] text-text3">Batal</button>
+                  </div>
+                ) : (
+                  <button onClick={e => { e.stopPropagation(); setEstimateValue(activeMaterial.material?.sessions ?? 1); setEditingEstimate(true); }} className="mt-2 text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi</button>
+                )}
               </>
             ) : (
               <>
@@ -654,6 +672,8 @@ function HistoryTab() {
   const [noteDraft, setNoteDraft] = useState('');
   const [reminderDraft, setReminderDraft] = useState('');
   const [lastPageDraft, setLastPageDraft] = useState('');
+  const [materialDraft, setMaterialDraft] = useState('');
+  const [completedDraft, setCompletedDraft] = useState(false);
   const { toast } = useToast();
   const historyItems = getSessionHistory(month);
   const data = getData();
@@ -665,6 +685,8 @@ function HistoryTab() {
     setNoteDraft(draft?.nextTopic ?? mainNote);
     setReminderDraft(draft?.supportingNote ?? reminder);
     setLastPageDraft(draft?.lastPage ?? session.lastPageReached ?? '');
+    setMaterialDraft(session.materialId ?? '');
+    setCompletedDraft(Boolean(session.materialCompleted));
   };
 
   const closeEditor = (discardDraft = true) => {
@@ -673,11 +695,14 @@ function HistoryTab() {
     setNoteDraft('');
     setReminderDraft('');
     setLastPageDraft('');
+    setMaterialDraft('');
+    setCompletedDraft(false);
   };
 
   const saveEditor = () => {
     if (!editingSessionId) return;
     updateSessionNote(editingSessionId, composeSessionNote(noteDraft, reminderDraft), lastPageDraft);
+    updateSessionMaterial(editingSessionId, materialDraft || null, completedDraft);
     clearSessionDraft(editingSessionId);
     closeEditor(false);
     toast({ title: 'Catatan riwayat diperbarui' });
@@ -764,6 +789,13 @@ function HistoryTab() {
 
                         {isEditing && sess.materialId !== 'SKIPPED' && (
                           <div className="mt-3 border-t border-border/60 pt-3 space-y-2.5 animate-slide-up">
+                            <select value={materialDraft} onChange={e => setMaterialDraft(e.target.value)} className="form-select-style text-xs">
+                              <option value="">Tanpa materi</option>
+                              {getMaterials(sess.subjectId, sess.classId).map(material => <option key={material.id} value={material.id}>{material.name}</option>)}
+                            </select>
+                            <label className="flex items-center gap-2 text-[11px] font-semibold text-text2">
+                              <input type="checkbox" checked={completedDraft} onChange={e => setCompletedDraft(e.target.checked)} className="accent-primary" /> Materi selesai pada pertemuan ini
+                            </label>
                             <textarea
                               autoFocus
                               value={noteDraft}
