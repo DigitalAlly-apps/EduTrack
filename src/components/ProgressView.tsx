@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CalendarDays, Check, ChevronDown, History, LayoutDashboard, Pencil, X } from 'lucide-react';
 import {
   dateFromKey,
@@ -216,58 +217,73 @@ function SubjectCard({ classId, subjectId, subjectName, status, revision }: { cl
   };
 
   return (
-    <article className={`overflow-hidden rounded-2xl border bg-surface/80 shadow-sm ${tone === 'red' ? 'border-red/30' : tone === 'amber' ? 'border-amber/30' : 'border-border/60'}`}>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0"><h3 className="truncate text-[15px] font-black text-foreground">{subjectName}</h3><p className="mt-0.5 text-[11px] font-semibold text-text3">{sessionsDone}/{sessionsTotal} pertemuan selesai</p></div>
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${tone === 'red' ? 'border-red/20 bg-red/10 text-red' : tone === 'amber' ? 'border-amber/20 bg-amber/10 text-amber' : 'border-green/20 bg-green/10 text-green'}`}>{deficit > 0 ? `Kurang ${deficit} sesi` : tone === 'amber' ? 'Jadwal mepet' : 'Sesi cukup'}</span>
-        </div>
-
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface2"><div className={`h-full rounded-full transition-all duration-500 ${tone === 'red' ? 'bg-red' : tone === 'amber' ? 'bg-amber' : 'bg-green'}`} style={{ width: `${progressPct}%` }} /></div>
-
-        <div className="mt-3 rounded-2xl border border-border/60 bg-surface2/45 p-3">
-          <p className="text-[9px] font-black uppercase tracking-widest text-text3">Bab sekarang</p>
-          {position.isComplete ? <p className="mt-1 text-sm font-black text-green">✓ Semua bab selesai</p> : activeMaterial ? <>
-            <p className="mt-1 text-[14px] font-black leading-snug text-foreground">{activeMaterial.name}</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-text2">Pertemuan {position.sessionIndex} dari {position.totalSessionsInMaterial}</p>
-            {(activeMaterial.pageStart || activeMaterial.pageEnd) && <p className="mt-0.5 text-[10px] text-text3">Hal. {activeMaterial.pageStart}{activeMaterial.pageEnd ? `–${activeMaterial.pageEnd}` : ''}</p>}
-          </> : <p className="mt-1 text-sm text-text3">Materi belum diatur.</p>}
-        </div>
-
-        {activeMaterial && !position.isComplete && (
-          <div className="mt-3 rounded-2xl border border-primary/15 bg-primary/5 p-3">
-            <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-widest text-primary">Pertemuan berikutnya</p><p className="mt-0.5 text-[11px] text-text3">Catatan pribadi supaya langsung ingat saat mengajar.</p></div>{!editingNote && <button onClick={() => { setNoteDraft(activeMaterial.note ?? ''); setEditingNote(true); }} className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-bold text-primary"><Pencil className="h-3 w-3" /> Edit</button>}</div>
-            {editingNote ? <div className="mt-2"><textarea autoFocus value={noteDraft} onChange={event => setNoteDraft(event.target.value)} placeholder="Contoh: rangkum isi bab, tulis 5 poin di papan tulis..." className="min-h-[72px] w-full resize-none rounded-xl border border-primary/25 bg-surface p-2.5 text-xs outline-none focus:border-primary" /><div className="mt-2 flex justify-end gap-2"><button onClick={() => setEditingNote(false)} className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-text3">Batal</button><button onClick={saveNextNote} className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black text-primary-foreground">Simpan catatan</button></div></div> : <p className={`mt-2 whitespace-pre-wrap text-xs leading-relaxed ${activeMaterial.note ? 'font-semibold text-foreground' : 'italic text-text3'}`}>{activeMaterial.note || 'Belum ada catatan. Tambahkan hal yang perlu dilakukan pada pertemuan berikutnya.'}</p>}
+    <>
+      <article className={`overflow-hidden rounded-2xl border bg-surface/80 shadow-sm ${tone === 'red' ? 'border-red/30' : tone === 'amber' ? 'border-amber/30' : 'border-border/60'}`}>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0"><h3 className="truncate text-[15px] font-black text-foreground">{subjectName}</h3><p className="mt-0.5 text-[11px] font-semibold text-text3">{sessionsDone}/{sessionsTotal} pertemuan selesai</p></div>
+            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${tone === 'red' ? 'border-red/20 bg-red/10 text-red' : tone === 'amber' ? 'border-amber/20 bg-amber/10 text-amber' : 'border-green/20 bg-green/10 text-green'}`}>{deficit > 0 ? `Kurang ${deficit} sesi` : tone === 'amber' ? 'Jadwal mepet' : 'Sesi cukup'}</span>
           </div>
-        )}
 
-        <button onClick={() => setExpanded(value => !value)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3 py-2 text-left text-[11px] font-black text-text2"><span>Rencana bab</span><ChevronDown className={`h-4 w-4 transition ${expanded ? 'rotate-180' : ''}`} /></button>
-      </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface2"><div className={`h-full rounded-full transition-all duration-500 ${tone === 'red' ? 'bg-red' : tone === 'amber' ? 'bg-amber' : 'bg-green'}`} style={{ width: `${progressPct}%` }} /></div>
 
-      {expanded && <div className="border-t border-border/50 bg-surface2/20 p-4">
-        <div className="space-y-2">
-          {(() => {
-            let consumed = 0;
-            return materials.map(material => {
-              const count = material.sessions ?? 1;
-              const finished = sessionsDone >= consumed + count || Boolean(progress?.completedMaterialIds?.includes(material.id));
-              const current = !finished && sessionsDone >= consumed && sessionsDone < consumed + count;
-              consumed += count;
-              const editing = editingSessionsId === material.id;
-              return <div key={material.id} className={`rounded-xl border p-3 ${current ? 'border-primary/25 bg-primary/5' : 'border-border/50 bg-surface'}`}>
-                <div className="flex items-start gap-2"><span className={`mt-0.5 text-xs font-black ${finished ? 'text-green' : current ? 'text-primary' : 'text-text3'}`}>{finished ? '✓' : current ? '▶' : '○'}</span><div className="min-w-0 flex-1"><p className={`text-xs font-bold ${finished ? 'text-text3 line-through' : 'text-foreground'}`}>{material.name}</p><div className="mt-2 flex flex-wrap items-center gap-2">
-                  {editing ? <div className="flex items-center gap-1.5"><input type="number" min="1" inputMode="numeric" value={sessionDraft} onChange={event => setSessionDraft(event.target.value)} className="h-8 w-16 rounded-lg border border-primary/30 bg-surface px-2 text-center text-xs font-bold" autoFocus /><button onClick={() => saveSessions(material)} className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground" title="Simpan"><Check className="h-3.5 w-3.5" /></button><button onClick={() => setEditingSessionsId(null)} className="grid h-8 w-8 place-items-center rounded-lg border border-border text-text3" title="Batal"><X className="h-3.5 w-3.5" /></button></div> : <button onClick={() => { setEditingSessionsId(material.id); setSessionDraft(String(count)); }} className="rounded-lg border border-border bg-surface2 px-2 py-1 text-[10px] font-bold text-text3">{count} pertemuan ✏️</button>}
-                  {current && <button onClick={() => setConfirmMaterial(material)} className="rounded-lg border border-amber/25 bg-amber/10 px-2 py-1 text-[10px] font-black text-amber">Selesaikan bab sekarang</button>}
-                </div></div></div>
-              </div>;
-            });
-          })()}
+          <div className="mt-3 rounded-2xl border border-border/60 bg-surface2/45 p-3">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text3">Bab sekarang</p>
+            {position.isComplete ? <p className="mt-1 text-sm font-black text-green">✓ Semua bab selesai</p> : activeMaterial ? <>
+              <p className="mt-1 text-[14px] font-black leading-snug text-foreground">{activeMaterial.name}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-text2">Pertemuan {position.sessionIndex} dari {position.totalSessionsInMaterial}</p>
+              {(activeMaterial.pageStart || activeMaterial.pageEnd) && <p className="mt-0.5 text-[10px] text-text3">Hal. {activeMaterial.pageStart}{activeMaterial.pageEnd ? `–${activeMaterial.pageEnd}` : ''}</p>}
+            </> : <p className="mt-1 text-sm text-text3">Materi belum diatur.</p>}
+          </div>
+
+          {activeMaterial && !position.isComplete && (
+            <div className="mt-3 rounded-2xl border border-primary/15 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-widest text-primary">Pertemuan berikutnya</p><p className="mt-0.5 text-[11px] text-text3">Catatan pribadi supaya langsung ingat saat mengajar.</p></div>{!editingNote && <button onClick={() => { setNoteDraft(activeMaterial.note ?? ''); setEditingNote(true); }} className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-bold text-primary"><Pencil className="h-3 w-3" /> Edit</button>}</div>
+              {editingNote ? <div className="mt-2"><textarea autoFocus value={noteDraft} onChange={event => setNoteDraft(event.target.value)} placeholder="Contoh: rangkum isi bab, tulis 5 poin di papan tulis..." className="min-h-[72px] w-full resize-none rounded-xl border border-primary/25 bg-surface p-2.5 text-xs outline-none focus:border-primary" /><div className="mt-2 flex justify-end gap-2"><button onClick={() => setEditingNote(false)} className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-text3">Batal</button><button onClick={saveNextNote} className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black text-primary-foreground">Simpan catatan</button></div></div> : <p className={`mt-2 whitespace-pre-wrap text-xs leading-relaxed ${activeMaterial.note ? 'font-semibold text-foreground' : 'italic text-text3'}`}>{activeMaterial.note || 'Belum ada catatan. Tambahkan hal yang perlu dilakukan pada pertemuan berikutnya.'}</p>}
+            </div>
+          )}
+
+          <button onClick={() => setExpanded(value => !value)} className="mt-3 flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3 py-2 text-left text-[11px] font-black text-text2"><span>Rencana bab</span><ChevronDown className={`h-4 w-4 transition ${expanded ? 'rotate-180' : ''}`} /></button>
         </div>
-        {sessionsDone > 0 && <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3"><span className="text-[10px] text-text3">Salah input progres?</span><button onClick={undo} className="rounded-lg border border-amber/25 bg-amber/10 px-2.5 py-1.5 text-[10px] font-black text-amber">↩ Mundur 1 sesi</button></div>}
-      </div>}
 
-      {confirmMaterial && <div className="app-overlay z-[500]" onClick={() => setConfirmMaterial(null)}><div className="app-bottom-sheet" onClick={event => event.stopPropagation()}><div className="app-sheet-handle" /><div className="app-sheet-title text-[20px]">Selesaikan bab?</div><p className="mt-2 text-[13px] leading-relaxed text-text2">Tandai <strong>{confirmMaterial.name}</strong> selesai sekarang. Sisa rencana pertemuan bab ini akan dilewati dan progres langsung berpindah ke bab berikutnya.</p><div className="mt-5 flex gap-3"><button onClick={() => setConfirmMaterial(null)} className="flex-1 rounded-xl border border-border2 bg-surface py-3 text-sm font-bold">Batal</button><button onClick={finishMaterial} className="flex-1 rounded-xl bg-primary py-3 text-sm font-black text-primary-foreground">Ya, selesaikan</button></div></div></div>}
-    </article>
+        {expanded && <div className="border-t border-border/50 bg-surface2/20 p-4">
+          <div className="space-y-2">
+            {(() => {
+              let consumed = 0;
+              return materials.map(material => {
+                const count = material.sessions ?? 1;
+                const finished = sessionsDone >= consumed + count || Boolean(progress?.completedMaterialIds?.includes(material.id));
+                const current = !finished && sessionsDone >= consumed && sessionsDone < consumed + count;
+                consumed += count;
+                const editing = editingSessionsId === material.id;
+                return <div key={material.id} className={`rounded-xl border p-3 ${current ? 'border-primary/25 bg-primary/5' : 'border-border/50 bg-surface'}`}>
+                  <div className="flex items-start gap-2"><span className={`mt-0.5 text-xs font-black ${finished ? 'text-green' : current ? 'text-primary' : 'text-text3'}`}>{finished ? '✓' : current ? '▶' : '○'}</span><div className="min-w-0 flex-1"><p className={`text-xs font-bold ${finished ? 'text-text3 line-through' : 'text-foreground'}`}>{material.name}</p><div className="mt-2 flex flex-wrap items-center gap-2">
+                    {editing ? <div className="flex items-center gap-1.5"><input type="number" min="1" inputMode="numeric" value={sessionDraft} onChange={event => setSessionDraft(event.target.value)} className="h-8 w-16 rounded-lg border border-primary/30 bg-surface px-2 text-center text-xs font-bold" autoFocus /><button onClick={() => saveSessions(material)} className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground" title="Simpan"><Check className="h-3.5 w-3.5" /></button><button onClick={() => setEditingSessionsId(null)} className="grid h-8 w-8 place-items-center rounded-lg border border-border text-text3" title="Batal"><X className="h-3.5 w-3.5" /></button></div> : <button onClick={() => { setEditingSessionsId(material.id); setSessionDraft(String(count)); }} className="rounded-lg border border-border bg-surface2 px-2 py-1 text-[10px] font-bold text-text3">{count} pertemuan ✏️</button>}
+                    {current && <button onClick={() => setConfirmMaterial(material)} className="rounded-lg border border-amber/25 bg-amber/10 px-2 py-1 text-[10px] font-black text-amber">Selesaikan bab sekarang</button>}
+                  </div></div></div>
+                </div>;
+              });
+            })()}
+          </div>
+          {sessionsDone > 0 && <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3"><span className="text-[10px] text-text3">Salah input progres?</span><button onClick={undo} className="rounded-lg border border-amber/25 bg-amber/10 px-2.5 py-1.5 text-[10px] font-black text-amber">↩ Mundur 1 sesi</button></div>}
+        </div>}
+      </article>
+
+      {confirmMaterial && createPortal(
+        <div className="app-overlay z-[1000]" onClick={() => setConfirmMaterial(null)}>
+          <div className="app-bottom-sheet" onClick={event => event.stopPropagation()}>
+            <div className="app-sheet-handle" />
+            <div className="app-sheet-title text-[20px]">Selesaikan bab?</div>
+            <p className="mt-2 text-[13px] leading-relaxed text-text2">Tandai <strong>{confirmMaterial.name}</strong> selesai sekarang. Sisa rencana pertemuan bab ini akan dilewati dan progres langsung berpindah ke bab berikutnya.</p>
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setConfirmMaterial(null)} className="flex-1 rounded-xl border border-border2 bg-surface py-3 text-sm font-bold">Batal</button>
+              <button onClick={finishMaterial} className="flex-1 rounded-xl bg-primary py-3 text-sm font-black text-primary-foreground">Ya, selesaikan</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 
