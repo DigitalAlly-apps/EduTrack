@@ -28,8 +28,6 @@ export interface Material {
   pageStart?: string;
   pageEnd?: string;
   note?: string;
-  /** Catatan praktis guru untuk pertemuan berikutnya pada bab ini. */
-  nextSessionNote?: string;
   examPeriod?: 'UTS' | 'UAS' | null; // bab ini masuk ujian mana — null = belum ditentukan
 }
 export interface Schedule {
