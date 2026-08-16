@@ -18,10 +18,19 @@ const guides: Guide[] = [
   {
     id: 'g1', icon: '⚡', title: 'Cara Menggunakan Tab Hari Ini', steps: [
       { t: 'Lihat status kelas aktif', d: 'Sesi yang sedang berlangsung tampil di hero card besar dengan badge <strong>Sedang Berlangsung</strong> dan countdown sisa waktu.' },
-      { t: 'Tandai sesi selesai', d: 'Tekan tombol <strong>✓ Tandai Selesai</strong> — materi otomatis maju ke bab berikutnya. Ada waktu 4 detik untuk membatalkan.' },
+      { t: 'Catat sesi selesai', d: 'Tekan <strong>Selesai & pilih materi</strong>, periksa materi yang diajarkan, lalu pilih apakah materinya masih lanjut atau sudah selesai.' },
       { t: 'Lewati sesi', d: 'Tombol ⏭ di samping untuk melewati sesi tanpa mencatat materi — berguna jika kelas kosong atau ada agenda lain.' },
       { t: 'Timeline jadwal', d: 'Gulir ke bawah untuk melihat semua jadwal hari ini. Tekan tombol ✓ di kanan tiap item untuk menandai selesai dari timeline.' },
     ], tip: 'Sesi aktif ditentukan otomatis berdasarkan jam dan jadwal yang sudah diatur. Tidak perlu buka-tutup manual.'
+  },
+  {
+    id: 'g6', icon: '📚', title: 'Tracker Materi & Estimasi Pertemuan', steps: [
+      { t: 'Materi masih berlanjut', d: 'Saat menyimpan pertemuan, biarkan pilihan <strong>Materi selesai hari ini</strong> tidak dicentang. Pertemuan berikutnya tetap menggunakan materi yang sama.' },
+      { t: 'Selesai lebih cepat', d: 'Jika estimasi awal 3 pertemuan tetapi selesai pada pertemuan ke-2, centang <strong>Materi selesai hari ini</strong>. Sesi berikutnya langsung berpindah ke materi selanjutnya.' },
+      { t: 'Butuh waktu lebih banyak', d: 'Tekan <strong>Ubah estimasi pertemuan</strong> dari Hari Ini atau Progress, lalu naikkan jumlahnya. Riwayat yang sudah tersimpan tidak berubah.' },
+      { t: 'Lupa mencatat', d: 'Jika ada jadwal lama tanpa catatan, gunakan panel <strong>Pertemuan belum dicatat</strong>. Tekan Catat untuk menyimpan dengan tanggal asli, atau Lewati jika kelas memang tidak berlangsung.' },
+      { t: 'Perbaiki salah input', d: 'Buka <strong>Progress → Riwayat → Edit</strong> untuk memperbaiki materi, status selesai, halaman terakhir, dan catatan pertemuan.' },
+    ], tip: 'Estimasi adalah rencana, bukan aturan wajib. Progres mengikuti materi yang benar-benar diajarkan di kelas.'
   },
   {
     id: 'g2', icon: '📈', title: 'Cara Membaca Tab Progres', steps: [
@@ -121,6 +130,7 @@ export default function InfoView() {
     g3: BookOpen,
     g4: DatabaseBackup,
     g5: Sparkles,
+    g6: BookOpen,
     g7: Lightbulb,
     g8: TrendingUp,
     g9: TrendingUp,
