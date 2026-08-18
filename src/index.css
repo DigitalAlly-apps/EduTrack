@@ -337,7 +337,7 @@
   @apply fixed inset-0 bg-black/70 flex items-end;
 }
 .app-bottom-sheet {
-  @apply w-full max-w-[430px] mx-auto rounded-t-3xl p-5 pb-10 max-h-[88dvh] overflow-y-auto animate-slide-up border-t border-border shadow-[0_-24px_70px_rgba(0,0,0,0.42)];
+  @apply w-full max-w-[430px] mx-auto rounded-t-3xl p-5 pb-[calc(2.5rem+76px+env(safe-area-inset-bottom,0px))] max-h-[88dvh] overflow-y-auto animate-slide-up border-t border-border shadow-[0_-24px_70px_rgba(0,0,0,0.42)];
   background: hsl(var(--surface2));
 }
 .app-sheet-handle {

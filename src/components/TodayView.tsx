@@ -76,7 +76,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [recordMaterialCompleted, setRecordMaterialCompleted] = useState(false);
   const [recordNote, setRecordNote] = useState('');
   const [estimateSheet, setEstimateSheet] = useState<Material | null>(null);
-  const [estimateDraft, setEstimateDraft] = useState(1);
+  const [estimateDraft, setEstimateDraft] = useState('1');
   const [finishBabConfirm, setFinishBabConfirm] = useState<{ schedule: TodayScheduleItem; material: any } | null>(null);
 
   const getPrevReminder = (classId: string, subjectId: string, todayStr: string): string => {
@@ -853,7 +853,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
                     {activeMaterial && (
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        <button onClick={() => { setEstimateDraft(activeMaterial.sessions ?? 1); setEstimateSheet(activeMaterial); }} className="text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi</button>
+                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi</button>
                         <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1">⚡ Selesaikan bab ini</button>
                       </div>
                     )}
@@ -1785,8 +1785,18 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="app-sheet-title mb-1">Ubah Estimasi Pertemuan</div>
             <p className="text-[12px] text-text2 mb-4">{estimateSheet.name}</p>
             <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Butuh berapa pertemuan?</label>
-            <input type="number" min="1" value={estimateDraft} onChange={e => setEstimateDraft(Math.max(1, Number(e.target.value) || 1))} className="form-input-style mb-4" autoFocus />
-            <button onClick={() => { updateMaterialEstimate(estimateSheet.id, estimateDraft); setEstimateSheet(null); onRefresh(); toast({ title: 'Estimasi diperbarui' }); }} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Estimasi</button>
+            <input type="number" min="1" value={estimateDraft} onChange={e => setEstimateDraft(e.target.value)} className="form-input-style mb-4" autoFocus />
+            <button onClick={() => {
+              const parsed = Number(estimateDraft);
+              if (!Number.isInteger(parsed) || parsed < 1) {
+                toast({ title: 'Jumlah pertemuan minimal 1', variant: 'destructive' });
+                return;
+              }
+              updateMaterialEstimate(estimateSheet.id, parsed);
+              setEstimateSheet(null);
+              onRefresh();
+              toast({ title: 'Estimasi diperbarui' });
+            }} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Estimasi</button>
             <button onClick={() => setEstimateSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
           </div>
         </div>

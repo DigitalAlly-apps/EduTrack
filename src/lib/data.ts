@@ -755,7 +755,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
       rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Ideal: ${ratio}× per sesi.`;
     } else if (remainingSessions > sessLeft) {
       status = 'tight'; label = `Mepet target${phaseLabel}`;
-      rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Jaga ritme.`;
+      rec = `Butuh ${remainingSessions} sesi, tersedia ${sessLeft}${holidaysInPeriod > 0 ? ` (−${holidaysInPeriod} libur)` : ''}. Perlu percepatan ringan agar tidak ketinggalan.`;
     } else {
       status = 'on-track'; label = `Sesuai jadwal${phaseLabel}`;
       rec = remainingSessions === sessLeft
@@ -1611,7 +1611,7 @@ export function getWeeklyStats(): WeeklyStats {
 
 export type DayStatus = 'done' | 'partial' | 'missed' | 'holiday' | 'noclass' | 'future';
 
-export function getMonthCalendar(yearMonth: string): { date: string; status: DayStatus; sessionCount: number; schedCount: number }[] {
+export function getMonthCalendar(yearMonth: string, classId?: string): { date: string; status: DayStatus; sessionCount: number; schedCount: number }[] {
   const data = getData();
   const [year, month] = yearMonth.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -1623,13 +1623,14 @@ export function getMonthCalendar(yearMonth: string): { date: string; status: Day
     const dayOfWeek = dateFromKey(dateStr).getDay();
     const isHoliday = (data.holidays ?? []).some(h => typeof h === 'string' ? h === dateStr : (h.date === dateStr && !h.level));
     const scheds = data.schedules.filter(s => {
+      if (classId && s.classId !== classId) return false;
       if (!s.days.includes(dayOfWeek)) return false;
       const sub = data.subjects.find(x => x.id === s.subjectId);
       return !isDateHolidayForSubject(dateStr, sub?.level);
     });
     if (isHoliday) { result.push({ date: dateStr, status: 'holiday', sessionCount: 0, schedCount: 0 }); continue; }
     if (scheds.length === 0) { result.push({ date: dateStr, status: 'noclass', sessionCount: 0, schedCount: 0 }); continue; }
-    const sessions = data.sessions.filter(s => s.date === dateStr);
+    const sessions = data.sessions.filter(s => s.date === dateStr && (!classId || s.classId === classId));
     const sessionCount = sessions.length;
     const schedCount = scheds.length;
     if (sessionCount === 0) result.push({ date: dateStr, status: 'missed', sessionCount: 0, schedCount });

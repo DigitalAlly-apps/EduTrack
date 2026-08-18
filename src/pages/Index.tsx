@@ -123,11 +123,16 @@ function AppInner() {
       setRefreshKey(k => k + 1);
       toast({ title: '⚡ Tersinkron dari perangkat lain', duration: 2000 });
     };
+    const handleDataChanged = () => {
+      refresh();
+    };
     window.addEventListener(REMOTE_SYNC_EVENT, handleRemoteSync);
+    window.addEventListener('edutrack-data-changed', handleDataChanged);
 
     return () => {
       authListener.subscription.unsubscribe();
       window.removeEventListener(REMOTE_SYNC_EVENT, handleRemoteSync);
+      window.removeEventListener('edutrack-data-changed', handleDataChanged);
     };
   }, [refresh, toast]);
 
