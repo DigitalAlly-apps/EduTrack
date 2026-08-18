@@ -406,16 +406,59 @@ function SubjectCard({
                 <div className="mt-3 space-y-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-text3 mb-1">
-                      Materi / Topik Berikutnya
+                      Materi / Topik Pertemuan Berikutnya
                     </label>
-                    <input
-                      type="text"
-                      autoFocus
-                      value={topicDraft}
-                      onChange={e => setTopicDraft(e.target.value)}
-                      placeholder="Contoh: Rangkuman Bab Thaharah"
-                      className="w-full rounded-xl border border-primary/30 bg-surface px-3 py-2 text-xs font-semibold outline-none focus:border-primary"
-                    />
+                    <select
+                      value={
+                        [
+                          'Rangkum isi bab & tulis poin penting di papan tulis',
+                          'Lanjut pembahasan halaman berikutnya',
+                          'Latihan soal & pembahasan buku tulis',
+                          'Ulangi pembahasan contoh & cek hafalan',
+                          'Kuis & evaluasi bab',
+                          'Selesaikan bab hari ini',
+                        ].includes(topicDraft)
+                          ? topicDraft
+                          : topicDraft
+                          ? '__custom__'
+                          : ''
+                      }
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '__custom__') {
+                          setTopicDraft('');
+                        } else {
+                          setTopicDraft(val);
+                        }
+                      }}
+                      className="w-full rounded-xl border border-primary/30 bg-surface px-3 py-2 text-xs font-semibold outline-none focus:border-primary mb-2"
+                    >
+                      <option value="">-- Pilih rencana pertemuan berikutnya --</option>
+                      <option value="Rangkum isi bab & tulis poin penting di papan tulis">Rangkum isi bab & tulis poin di papan tulis</option>
+                      <option value="Lanjut pembahasan halaman berikutnya">Lanjut pembahasan halaman berikutnya</option>
+                      <option value="Latihan soal & pembahasan buku tulis">Latihan soal & pembahasan buku tulis</option>
+                      <option value="Ulangi pembahasan contoh & cek hafalan">Ulangi pembahasan contoh & cek hafalan</option>
+                      <option value="Kuis & evaluasi bab">Kuis & evaluasi bab</option>
+                      <option value="Selesaikan bab hari ini">Selesaikan bab hari ini</option>
+                      <option value="__custom__">✍️ Ketik topik/rencana khusus...</option>
+                    </select>
+
+                    {(![
+                      'Rangkum isi bab & tulis poin penting di papan tulis',
+                      'Lanjut pembahasan halaman berikutnya',
+                      'Latihan soal & pembahasan buku tulis',
+                      'Ulangi pembahasan contoh & cek hafalan',
+                      'Kuis & evaluasi bab',
+                      'Selesaikan bab hari ini',
+                    ].includes(topicDraft) || topicDraft === '') && (
+                      <input
+                        type="text"
+                        value={topicDraft}
+                        onChange={e => setTopicDraft(e.target.value)}
+                        placeholder="Contoh: Rangkuman Bab Thaharah / Ketik topik..."
+                        className="w-full rounded-xl border border-primary/30 bg-surface px-3 py-2 text-xs font-semibold outline-none focus:border-primary"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-text3 mb-1">
