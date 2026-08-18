@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { ViewType } from '@/lib/types';
 import { getData, loadDemo, pruneOldSessions, now } from '@/lib/data';
+import { normalizeProgressConsistency } from '@/lib/progressConsistency';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
 import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
@@ -55,7 +56,21 @@ function AppInner() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'connected' | 'syncing' | 'offline'>('idle');
   const { toast } = useToast();
 
-  const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  const refresh = useCallback(() => {
+    normalizeProgressConsistency();
+    setRefreshKey(k => k + 1);
+  }, []);
+
+  // Mutation dari ProgressView juga melewati normalizer yang sama agar Hari Ini
+  // dan Progress tidak pernah membaca posisi bab dari state yang berbeda.
+  useEffect(() => {
+    const handleDataChanged = () => {
+      normalizeProgressConsistency();
+      setRefreshKey(k => k + 1);
+    };
+    window.addEventListener('edutrack-data-changed', handleDataChanged);
+    return () => window.removeEventListener('edutrack-data-changed', handleDataChanged);
+  }, []);
 
   // Init Supabase Auth & Realtime Sync
   useEffect(() => {
@@ -67,7 +82,7 @@ function AppInner() {
         if (!hasCloudData) {
           await pushLocalToCloud(u.id);
         } else {
-          // Data cloud berhasil di-pull, refresh komponen sekali
+          // Data cloud berhasil di-pull, normalisasi lalu refresh komponen sekali
           refresh();
         }
         // initCloudSync sekarang tidak butuh callback —
@@ -102,9 +117,10 @@ function AppInner() {
       }
     });
 
-    // ✅ Terima notifikasi sync dari perangkat lain — HANYA tampilkan toast,
-    // TIDAK re-mount komponen, sehingga layar tidak kedip
+    // Terima update dari perangkat lain, normalisasi posisi bab dan refresh ringan.
     const handleRemoteSync = () => {
+      normalizeProgressConsistency();
+      setRefreshKey(k => k + 1);
       toast({ title: '⚡ Tersinkron dari perangkat lain', duration: 2000 });
     };
     window.addEventListener(REMOTE_SYNC_EVENT, handleRemoteSync);
@@ -116,6 +132,7 @@ function AppInner() {
   }, [refresh, toast]);
 
   useEffect(() => {
+    normalizeProgressConsistency();
     if (view !== 'today') return;
     const data = getData();
     const hasData = data.classes.length > 0 || data.schedules.length > 0;
@@ -133,7 +150,9 @@ function AppInner() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as AppView;
+      normalizeProgressConsistency();
       setView(detail);
+      setRefreshKey(k => k + 1);
     };
     window.addEventListener('edutrack-nav', handler);
     window.addEventListener('set-tab', handler);
@@ -144,6 +163,7 @@ function AppInner() {
   }, []);
 
   const handleViewChange = (v: ViewType) => {
+    normalizeProgressConsistency();
     setView(v);
     setRefreshKey(k => k + 1);
   };
@@ -315,8 +335,8 @@ function AppInner() {
           </div>
         </header>
 
-        {/* Content view container */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin relative z-0">
+        {/* Content view container. Jangan buat stacking-context sendiri: modal view harus bisa mengalahkan floating nav. */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
           <div className="max-w-7xl mx-auto w-full">
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
