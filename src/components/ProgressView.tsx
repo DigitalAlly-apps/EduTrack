@@ -65,7 +65,7 @@ export default function ProgressView() {
   }, []);
 
   const tabs = [
-    { id: 'progress' as const, label: 'Progres', icon: LayoutDashboard },
+    { id: 'progress' as const, label: 'Ringkasan', icon: LayoutDashboard },
     { id: 'kalender' as const, label: 'Kalender', icon: CalendarDays },
     { id: 'history' as const, label: 'Riwayat', icon: History },
   ];
@@ -237,7 +237,7 @@ function ProgressTab({
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-text3">Progres mengajar</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-text3">Kendali kelas</p>
             <h2 className="mt-0.5 font-display text-xl font-bold">{selectedClass?.name ?? 'Pilih kelas'}</h2>
           </div>
 
@@ -249,7 +249,7 @@ function ProgressTab({
                 viewMode === 'compact' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
-              📋 Ringkas
+              Ringkas
             </button>
             <button
               onClick={() => setMode('detailed')}
@@ -257,7 +257,7 @@ function ProgressTab({
                 viewMode === 'detailed' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
-              📄 Detail
+              Detail
             </button>
           </div>
         </div>
@@ -862,7 +862,9 @@ function HistoryTab({ revision }: { revision: number }) {
 
 function CalendarTab({ revision, classId }: { revision: number; classId?: string }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
+  const [selectedDate, setSelectedDate] = useState(dateKey());
   const days = useMemo(() => getMonthCalendar(month, classId), [month, classId, revision]);
+  const data = useMemo(() => getData(), [revision]);
   const firstDay = new Date(`${month}-01T12:00:00`).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const tones: Record<DayStatus, string> = {
@@ -899,6 +901,13 @@ function CalendarTab({ revision, classId }: { revision: number; classId?: string
       desc: 'Hari libur sekolah/nasional atau tidak ada jadwal KBM.',
     },
   ];
+  const selectedDay = days.find(day => day.date === selectedDate);
+  const selectedSessions = data.sessions.filter(session =>
+    session.date === selectedDate && (!classId || session.classId === classId),
+  );
+  const selectedStatusLabel: Record<DayStatus, string> = {
+    done: 'Selesai', partial: 'Sebagian', missed: 'Terlewat', holiday: 'Libur', noclass: 'Tidak ada jadwal', future: 'Mendatang',
+  };
 
   return (
     <div>
@@ -920,17 +929,44 @@ function CalendarTab({ revision, classId }: { revision: number; classId?: string
             <div key={`empty-${i}`} />
           ))}
           {days.map(day => (
-            <div
+            <button
               key={day.date}
+              onClick={() => setSelectedDate(day.date)}
+              aria-pressed={selectedDate === day.date}
               className={`m-0.5 grid min-h-10 place-items-center rounded-xl text-xs font-black transition-all ${tones[day.status]} ${
                 day.date === dateKey() ? 'ring-2 ring-primary shadow-sm' : ''
+              } ${
+                selectedDate === day.date ? 'outline outline-2 outline-offset-1 outline-primary' : ''
               }`}
             >
               {Number(day.date.slice(8))}
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {selectedDay && (
+        <section className="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text3">Audit pengajaran</p>
+          <h3 className="mt-1 text-sm font-black">
+            {dateFromKey(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </h3>
+          <p className="mt-1 text-[12px] font-bold text-text2">
+            {selectedStatusLabel[selectedDay.status]} · {selectedDay.sessionCount} dari {selectedDay.schedCount} KBM tercatat
+          </p>
+          {selectedSessions.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {selectedSessions.map(session => {
+                const cls = data.classes.find(item => item.id === session.classId)?.name ?? '?';
+                const subject = data.subjects.find(item => item.id === session.subjectId)?.name ?? '?';
+                return <div key={session.id} className="rounded-xl border border-border/60 bg-surface2/40 px-3 py-2 text-[12px] font-bold">✓ {subject} — {cls}</div>;
+              })}
+            </div>
+          ) : selectedDay.schedCount > 0 ? (
+            <p className="mt-3 rounded-xl bg-surface2/50 px-3 py-2 text-[12px] text-text3">Belum ada KBM yang tercatat pada tanggal ini.</p>
+          ) : null}
+        </section>
+      )}
 
       {/* Keterangan Warna Kalender */}
       <div className="mt-4 rounded-2xl border border-border/70 bg-surface/80 p-4 shadow-sm space-y-3">

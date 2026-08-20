@@ -9,9 +9,9 @@ interface BottomNavProps {
 
 const navItems: { id: ViewType; icon: React.ElementType; label: string }[] = [
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini' },
-  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres'  },
+  { id: 'progress', icon: ChartNoAxesCombined, label: 'Kendali'  },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian'    },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Atur'     },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola'   },
 ];
 
 export default function BottomNav({ currentView, onViewChange }: BottomNavProps) {

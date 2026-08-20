@@ -27,17 +27,17 @@ const guides: Guide[] = [
     id: 'g6', icon: '📚', title: 'Tracker Materi & Estimasi Pertemuan', steps: [
       { t: 'Materi masih berlanjut', d: 'Saat menyimpan pertemuan, biarkan pilihan <strong>Materi selesai hari ini</strong> tidak dicentang. Pertemuan berikutnya tetap menggunakan materi yang sama.' },
       { t: 'Selesai lebih cepat', d: 'Jika estimasi awal 3 pertemuan tetapi selesai pada pertemuan ke-2, centang <strong>Materi selesai hari ini</strong>. Sesi berikutnya langsung berpindah ke materi selanjutnya.' },
-      { t: 'Butuh waktu lebih banyak', d: 'Tekan <strong>Ubah estimasi pertemuan</strong> dari Hari Ini atau Progress, lalu naikkan jumlahnya. Riwayat yang sudah tersimpan tidak berubah.' },
-      { t: 'Lupa mencatat', d: 'Jika ada jadwal lama tanpa catatan, gunakan panel <strong>Pertemuan belum dicatat</strong>. Tekan Catat untuk menyimpan dengan tanggal asli, atau Lewati jika kelas memang tidak berlangsung.' },
-      { t: 'Perbaiki salah input', d: 'Buka <strong>Progress → Riwayat → Edit</strong> untuk memperbaiki materi, status selesai, halaman terakhir, dan catatan pertemuan.' },
+      { t: 'Butuh waktu lebih banyak', d: 'Ubah estimasi pertemuan dari Hari Ini atau <strong>Kendali</strong>, lalu naikkan jumlahnya. Riwayat yang sudah tersimpan tidak berubah.' },
+      { t: 'Kemarin belum dicatat', d: 'Jika ada jadwal <strong>kemarin</strong> yang belum tercatat, gunakan panel <strong>Kemarin belum dicatat</strong>. Catat dengan tanggal asli, atau lewati jika kelas tidak berlangsung.' },
+      { t: 'Perbaiki salah input', d: 'Buka <strong>Kendali → Riwayat</strong> untuk menelusuri dan memperbaiki catatan sesi.' },
     ], tip: 'Estimasi adalah rencana, bukan aturan wajib. Progres mengikuti materi yang benar-benar diajarkan di kelas.'
   },
   {
-    id: 'g2', icon: '📈', title: 'Cara Membaca Tab Progres', steps: [
-      { t: 'Dikelompokkan Otomatis', d: 'Semua mata pelajaran sekarang dikelompokkan berdasarkan kelasnya masing-masing. Ketuk nama kelas untuk memperluas daftarnya.' },
-      { t: 'Card progres per mapel', d: 'Status real-time: <strong>Sesuai jadwal</strong>, <strong>Mepet target</strong>, atau <strong>Perlu percepatan</strong>.' },
-      { t: 'Angka statistik', d: 'Tiga angka di tengah: <strong>Selesai</strong> (bab yang sudah diajarkan), <strong>Tersisa</strong>, dan <strong>Total</strong> bab untuk mapel itu.' },
-      { t: 'Saran asisten AI', d: 'Tekan tombol <strong>↻</strong> pada kartu AI (paling atas) agar asisten menganalisis hambatan secara holistik.' },
+    id: 'g2', icon: '📈', title: 'Cara Membaca Kendali', steps: [
+      { t: 'Pilih kelas', d: 'Pilih jenjang dan kelas untuk melihat kondisi pengajaran kelas tersebut.' },
+      { t: 'Baca kondisi mapel', d: 'Mapel berstatus <strong>Aman</strong>, <strong>Mepet</strong>, atau <strong>Kurang sesi</strong> ditampilkan agar prioritas tindakan jelas.' },
+      { t: 'Lihat posisi materi', d: 'Setiap kartu menampilkan bab saat ini, <strong>Pertemuan X dari Y</strong>, dan catatan untuk pertemuan berikutnya.' },
+      { t: 'Buka detail bila perlu', d: 'Rencana bab, estimasi sesi, dan koreksi progres tetap tersedia melalui detail kartu.' },
     ], tip: 'Status badge dihitung otomatis dari sisa materi dibagi estimasi sesi sebelum tanggal ujian.'
   },
   {
@@ -50,7 +50,7 @@ const guides: Guide[] = [
   },
   {
     id: 'g4', icon: '💾', title: 'Cara Backup & Restore Data', steps: [
-      { t: 'Export JSON (backup utama)', d: 'Di tab Pengaturan → Data → <strong>💾 Backup Full</strong>. Lakukan secara berkala sesuai kebutuhan.' },
+      { t: 'Export JSON (backup utama)', d: 'Di Kelola → Backup & Data → <strong>💾 Backup Full</strong>. Lakukan secara berkala sesuai kebutuhan.' },
       { t: 'Export CSV', d: 'Untuk melihat riwayat sesi mengajar di spreadsheet. Bisa dibuka di Excel atau Google Sheets.' },
       { t: 'Restore / Import JSON', d: 'Pilih <strong>📂 Upload JSON</strong> dan pilih file backup Anda. Semua data akan dikembalikan seperti semula.' },
     ], tip: 'Data tersimpan di localStorage browser. Jika ganti browser atau hapus cache, data bisa hilang. Selalu backup JSON!'
@@ -59,41 +59,13 @@ const guides: Guide[] = [
       id: 'g5', icon: '✨', title: 'Fitur Unggulan EduTrack', steps: [
         { t: 'Materi Drag-and-Drop', d: 'Anda sekarang bisa menekan ✏️ untuk mengubah nama, atau menahan ≡ untuk mengurutkan daftar materi.' },
         { t: 'Sistem Multijenjang', d: 'Dapat membedakan materi dan tanggal ujian secara massal untuk berbagai tingkat (SD, MTs, MA).' },
-        { t: 'Riwayat Sesi Bulanan', d: 'Buka tab <strong>Progres</strong> lalu tekan <strong>Riwayat Sesi</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
+        { t: 'Riwayat Sesi Bulanan', d: 'Buka <strong>Kendali → Riwayat</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
         { t: 'Notifikasi Background (Web Push)', d: 'Aktifkan notifikasi, EduTrack akan mengingatkan Anda 5 menit sebelum sesi mengajar meskipun app ditutup.' },
       ], tip: 'PWA Shortcut HP juga tersedia! Tahan icon EduTrack di layar lalu tap "Jadwal Hari Ini".'
     },
-    {
-      id: 'g7', icon: '🧠', title: 'AI Auto-Pacing & Smart Rescheduler', steps: [
-        { t: 'Saran Cerdas Target Ujian', d: 'Sistem menganalisis target ujian, sisa materi, dan hari libur untuk memberikan saran: "Perlu tambah jadwal", "Mepet target", atau "Gabungkan sesi". Klik <strong>Terapkan</strong> untuk otomatis buat task pengganti.' },
-        { t: 'Smart Rescheduler (Izin/Cuti)', d: 'Ketika unable mengajar, tekan tombol <strong>🏥 Izin/Cuti</strong> di timeline Hari Ini. Sistem akan sarankan: keep (jangan ubah), postpone (tunda ke minggu depan), skip (dilewati + auto task kejar), atau deliver (tandai selesai).' },
-        { t: 'Re-plan 1-Klik', d: 'Validasi pilihan, tekan "Terapkan Semua" — semua jadwal hari ini disesuaikan otomatis beserta task pengganti.' },
-      ], tip: 'AI tidak mengganti keputusan Anda. Setiap saran bisa diubah sebelum diterapkan.'
-    },
-    {
-      id: 'g8', icon: '🗺️', title: 'Heatmap Mingguan', steps: [
-        { t: 'Visualisasi Grid', d: 'Heatmap di tab <strong>Progres</strong> menampilkan grid Minggu x Mapel. Setiap cell berwarna: hijau (on track), amber (mepet), merah (behind).' },
-        { t: 'Baca Sel', d: 'Tekan dan tahan cell untuk melihat detail: jumlah sesi selesai vs total yang dijadwalkan pada minggu itu.' },
-        { t: 'Deteksi Pola', d: 'Gunakan heatmap untuk melihat apakah ada minggu yang Rogers (berlebihan) atau kurang padat.' },
-      ], tip: 'Heatmap cakup 8 minggu ke depan. Weekly review menjadi visual dan instant.'
-    },
-    {
-      id: 'g9', icon: '📅', title: 'Prediksi Tanggal Selesai', steps: [
-        { t: 'Prediksi Otomatis', d: 'Untuk setiap mapel, sistem menghitung prediksi tanggal selesai berdasarkan aktualitas akhir-akhir (4 minggu terakhir).' },
-        { t: 'Bandingkan dengan Ujian', d: 'Prediksi dibandingkan dengan tanggal ujian. Jika prediksi setelah ujian → status <strong>behind</strong>, jika sebelum → <strong>on-track</strong>.' },
-        { t: 'Tindak Lanjut', d: 'Gunakan saran "Percepatan" dari AI Auto-Pacing jika prediksi tidak memuaskan.' },
-      ], tip: 'Prediksi akurat jika Anda konsisten menginput sesi. Pasokan data real-time untuk hasil yang reliable.'
-    },
-    {
-      id: 'g10', icon: '🎯', title: 'Exam Prep Mode (H-14)', steps: [
-        { t: 'Auto-Activation', d: '14 hari sebelum ujian, sistem otomatis masuk mode exam prep. Muncul di tab <strong>Progres</strong> sebagai kartu teratas.' },
-        { t: 'Checklist Review', d: 'Sistem membersihkan materi yang sudah siap, menyoroti yang belum, dan memberikan action items: tambah sesi, fokus inti, mulai review.' },
-        { t: 'Prioritas', d: 'Urutkan berdasarkan urgency: critical (terlambat), warning (mepet), ok (aman). Fokus ke critical dulu.' },
-      ], tip: 'Exam Prep Mode menggantikan Daily Briefing selama H-14. Fokus penuh pada persiapan ujian.'
-    },
   ];
 
-export default function InfoView() {
+export default function InfoView({ onBackToSetup }: { onBackToSetup: () => void }) {
   const [activeSubTab, setActiveSubTab] = useState<'guides' | 'updates'>('guides');
   const [openGuides, setOpenGuides] = useState<Record<string, boolean>>({});
 
@@ -105,23 +77,23 @@ export default function InfoView() {
     {
       title: 'Fitur Utama', icon: Sparkles,
       items: [
-        { icon: Lightbulb, t: 'AI Assistant', d: 'Menganalisis progres dan memberi rekomendasi kelas yang perlu difokuskan.' },
+        { icon: Lightbulb, t: 'Kendali Pengajaran', d: 'Pantau materi, pertemuan, catatan berikutnya, dan kondisi sesi setiap kelas.' },
         { icon: TrendingUp, t: 'Laporan Mingguan', d: 'Ringkasan aktivitas mengajar mingguan yang siap disalin untuk laporan.' },
         { icon: BookOpen, t: 'Riwayat Sesi', d: 'Telusuri jejak mengajar berdasarkan bulan, kelas, dan materi.' },
       ]
     },
     {
-      title: 'Terbaru di v5.2', icon: Rocket,
+      title: 'Fitur yang tersedia', icon: Rocket,
       items: [
-        { icon: Zap, t: 'AI Auto-Pacing', d: 'Menyarankan tambah jadwal saat target ujian mulai berisiko.' },
-        { icon: ShieldCheck, t: 'Smart Rescheduler', d: 'Bantu atur sesi saat izin/cuti tanpa menata jadwal satu per satu.' },
-        { icon: TrendingUp, t: 'Prediksi Selesai', d: 'Bandingkan laju materi aktual dengan tanggal ujian.' },
+        { icon: Zap, t: 'Kondisi Sesi', d: 'Tampilkan kebutuhan dan ketersediaan sesi sebelum batas ujian.' },
+        { icon: ShieldCheck, t: 'Riwayat yang Dapat Dikoreksi', d: 'Telusuri pencatatan sesi saat perlu memperbaiki progres.' },
+        { icon: TrendingUp, t: 'Audit Kalender', d: 'Periksa status KBM per tanggal: selesai, sebagian, terlewat, atau libur.' },
       ]
     },
   ];
   const quickHelp = [
-    { icon: BookOpen, t: 'Mulai Setup', d: 'Ikuti urutan Kelas, Mapel, Materi, lalu Jadwal.' },
-    { icon: TrendingUp, t: 'Pantau Progres', d: 'Cek status mapel yang aman, mepet, atau perlu percepatan.' },
+    { icon: BookOpen, t: 'Kelola Data', d: 'Atur kelas, mapel, materi, jadwal, dan semester.' },
+    { icon: TrendingUp, t: 'Pantau Kendali', d: 'Cek status mapel yang aman, mepet, atau kurang sesi.' },
     { icon: DatabaseBackup, t: 'Backup Data', d: 'Export JSON berkala agar data lokal tetap aman.' },
   ];
   const guideIcons: Record<string, ElementType> = {
@@ -131,14 +103,13 @@ export default function InfoView() {
     g4: DatabaseBackup,
     g5: Sparkles,
     g6: BookOpen,
-    g7: Lightbulb,
-    g8: TrendingUp,
-    g9: TrendingUp,
-    g10: ShieldCheck,
   };
 
   return (
     <div className="pt-2">
+      <button onClick={onBackToSetup} className="mb-3 inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-primary/10 px-3 text-[12px] font-bold text-primary hover:bg-primary/15">
+        <span className="text-lg leading-none">‹</span> Kembali ke Kelola
+      </button>
       <div className="app-card p-5 mb-4 relative overflow-hidden">
         <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
         <div className="relative flex items-start gap-3">
@@ -146,8 +117,8 @@ export default function InfoView() {
             <HelpCircle className="h-6 w-6" />
           </div>
           <div>
-            <div className="font-display text-2xl font-black tracking-tight leading-none">Pusat Bantuan</div>
-            <div className="text-[13px] text-text2 leading-relaxed mt-2">Panduan singkat untuk setup, pantau progres, dan menjaga data EduTrack tetap aman.</div>
+            <div className="font-display text-2xl font-black tracking-tight leading-none">Tentang EduTrack</div>
+            <div className="text-[13px] text-text2 leading-relaxed mt-2">Bagian dari Kelola. Panduan operasional untuk mengatur data, memantau Kendali, dan menjaga backup tetap aman.</div>
           </div>
         </div>
         <div className="relative grid grid-cols-3 gap-2 mt-5">
@@ -201,9 +172,9 @@ export default function InfoView() {
               let proTitle = g.title;
               if (g.id === 'g1') proTitle = "Mengelola Tab 'Hari Ini'";
               if (g.id === 'g2') proTitle = "Memantau Kemajuan Pembelajaran";
-              if (g.id === 'g3') proTitle = "Langkah Awal Konfigurasi (Setup)";
+              if (g.id === 'g3') proTitle = "Langkah Awal di Kelola";
               if (g.id === 'g4') proTitle = "Keamanan & Pencadangan Data";
-              if (g.id === 'g5') proTitle = "Pembaruan & Fitur Unggulan";
+              if (g.id === 'g5') proTitle = "Fitur yang Tersedia";
               if (g.id === 'g6') proTitle = "Personalisasi & Setelan Lanjutan";
 
               const GuideIcon = guideIcons[g.id] || HelpCircle;
@@ -290,7 +261,7 @@ export default function InfoView() {
 
           {/* Capabilities Section */}
           <div className="px-1">
-            <div className="text-xs font-bold tracking-wide uppercase text-text3 mb-3">Semua Kemampuan</div>
+            <div className="text-xs font-bold tracking-wide uppercase text-text3 mb-3">Fitur yang tersedia</div>
             <div className="grid grid-cols-1 gap-3">
               {[
                 { icon: BookOpen, t: 'Jadwal Otomatis', d: 'Input jadwal sekali, sistem mendeteksi sesi berjalan otomatis.' },
@@ -311,11 +282,6 @@ export default function InfoView() {
             </div>
           </div>
 
-          <div className="text-center py-4 mt-2">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-full">
-              <span className="text-xs text-text3 font-medium uppercase tracking-widest">Terus Berinovasi untuk Guru Indonesia</span>
-            </div>
-          </div>
         </div>
       )}
 

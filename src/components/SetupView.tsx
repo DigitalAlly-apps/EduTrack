@@ -12,13 +12,15 @@ import {
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
-import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, Layers, Link2, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, HelpCircle, Layers, Link2, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
 
 interface SetupViewProps {
   onRefresh: () => void;
+  onOpenExamSettings: () => void;
+  onOpenInfo: () => void;
 }
 
-export default function SetupView({ onRefresh }: SetupViewProps) {
+export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }: SetupViewProps) {
   const data = getData();
   const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
   // Default to classes if first time, otherwise show menu
@@ -36,11 +38,11 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
     { id: 'classes', label: 'Daftar Kelas', desc: 'Atur rombongan belajar', icon: GraduationCap, group: 'akademik' },
     { id: 'subjects', label: 'Mata Pelajaran', desc: 'Daftar mapel yang diajar', icon: BookOpen, group: 'akademik' },
     { id: 'semesters', label: 'Semester & Ujian', desc: 'Batas UTS & UAS + hubungkan mapel', icon: Layers, group: 'akademik' },
-    { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: CalendarDays, group: 'akademik' },
+    { id: 'schedules', label: 'Jadwal Mengajar', desc: 'Atur jadwal mingguan', icon: CalendarDays, group: 'jadwal' },
     { id: 'materials', label: 'Materi & Silabus', desc: 'Atur urutan materi (bab)', icon: SlidersHorizontal, group: 'akademik' },
-    { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: Palmtree, group: 'sistem' },
-    { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: HeartPulse, group: 'sistem' },
-    { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: Database, group: 'sistem' },
+    { id: 'holidays', label: 'Hari Libur', desc: 'Kalender libur akademik', icon: Palmtree, group: 'jadwal' },
+    { id: 'leave', label: 'Izin Mengajar', desc: 'Titip tugas atau cuti', icon: HeartPulse, group: 'jadwal' },
+    { id: 'data', label: 'Backup & Data', desc: 'Export, import & hapus data', icon: Database, group: 'aplikasi' },
   ];
   const ActiveTabIcon = tab ? tabs.find(t => t.id === tab)?.icon : null;
 
@@ -119,7 +121,7 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
         <div className="animate-slide-up pb-10">
           <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0">
             <div>
-              <div className="app-section-title mb-2">Akademik &amp; Jadwal</div>
+              <div className="app-section-title mb-2">Akademik</div>
               <div className="app-card overflow-hidden">
                 {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => {
                   const Icon = t.icon;
@@ -147,9 +149,9 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
             </div>
 
             <div>
-              <div className="app-section-title mb-2">Sistem &amp; Lainnya</div>
+              <div className="app-section-title mb-2">Jadwal &amp; Kehadiran</div>
               <div className="app-card overflow-hidden">
-                {tabs.filter(t => t.group === 'sistem').map((t, idx, arr) => {
+                {tabs.filter(t => t.group === 'jadwal').map((t, idx, arr) => {
                   const Icon = t.icon;
                   return (
                   <button
@@ -171,6 +173,42 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
                     <span className="text-text3 text-lg opacity-50">›</span>
                   </button>
                 );})}
+              </div>
+            </div>
+
+            <div>
+              <div className="app-section-title mb-2">Aplikasi &amp; Data</div>
+              <div className="app-card overflow-hidden">
+                {tabs.filter(t => t.group === 'aplikasi').map((t, idx, arr) => {
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${idx !== arr.length - 1 ? 'border-b border-border/50' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><Icon className="h-5 w-5" /></div>
+                        <div><div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div><div className="text-[12px] text-text3 mt-0.5">{t.desc}</div></div>
+                      </div>
+                      <span className="text-text3 text-lg opacity-50">›</span>
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={onOpenExamSettings}
+                  className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 border-t border-border/50"
+                >
+                  <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><Bell className="h-5 w-5" /></div><div><div className="text-[14px] font-bold text-foreground leading-tight">Pengaturan Ujian</div><div className="text-[12px] text-text3 mt-0.5">Mode ujian dan pengingat</div></div></div>
+                  <span className="text-text3 text-lg opacity-50">›</span>
+                </button>
+                <button
+                  onClick={onOpenInfo}
+                  className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 border-t border-border/50"
+                >
+                  <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><HelpCircle className="h-5 w-5" /></div><div><div className="text-[14px] font-bold text-foreground leading-tight">Tentang EduTrack</div><div className="text-[12px] text-text3 mt-0.5">Panduan penggunaan dan informasi aplikasi</div></div></div>
+                  <span className="text-text3 text-lg opacity-50">›</span>
+                </button>
               </div>
             </div>
           </div>

@@ -14,17 +14,13 @@ import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
 
-interface ExamViewProps { refreshKey: number; onRefresh: () => void; }
-
 type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
 
-function getInitialExamTab(): ExamTab {
-  return 'agenda';
-}
+interface ExamViewProps { refreshKey: number; onRefresh: () => void; initialTab: ExamTab; }
 
-export default function ExamView({ onRefresh }: ExamViewProps) {
+export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const { toast } = useToast();
-  const [tab, setTab] = useState<ExamTab>(getInitialExamTab);
+  const [tab, setTab] = useState<ExamTab>(initialTab);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [examFormOpen, setExamFormOpen] = useState(false);
@@ -34,6 +30,10 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [examMode, setExamMode] = useState(getExamDayMode());
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
@@ -960,7 +960,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     { id: 'agenda', label: 'Agenda', emoji: '🗓️' },
     { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
     { id: 'riwayat', label: 'Riwayat', emoji: '📁' },
-    { id: 'settings', label: 'Atur', emoji: '⚙️' },
   ];
 
   return (
@@ -974,17 +973,16 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
               {correctionStats.pending > 0 ? `${correctionStats.pending} koreksi perlu dikerjakan` : 'Agenda ujian dan koreksi dalam satu alur'}
             </div>
           </div>
-          <button
-            onClick={() => { setTab('settings'); }}
+          <span
             className={`px-2.5 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide flex-shrink-0 ${
               examMode ? 'bg-amber/15 border-amber/30 text-amber' : 'bg-surface2 border-border2 text-text3'
             }`}
           >
             {examMode ? 'Mode Aktif' : 'KBM Normal'}
-          </button>
+          </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-3 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
           {tabItems.map(t => (
             <button
               key={t.id}

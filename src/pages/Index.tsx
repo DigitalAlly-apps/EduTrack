@@ -6,7 +6,7 @@ import { getData, loadDemo, pruneOldSessions, now } from '@/lib/data';
 import { normalizeProgressConsistency } from '@/lib/progressConsistency';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
-import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
+import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Moon, Sun } from 'lucide-react';
 import { supabase, type SupabaseUser } from '@/lib/supabase';
 import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime, REMOTE_SYNC_EVENT } from '@/lib/supabaseSync';
 import SyncModal from '@/components/SyncModal';
@@ -20,16 +20,16 @@ const Onboarding = lazy(() => import('@/components/Onboarding'));
 const QuickAddModal = lazy(() => import('@/components/QuickAddModal'));
 
 type AppView = ViewType;
+type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
 
 const isAppView = (value: string | null): value is AppView =>
   value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
 
 const desktopNavItems: { id: AppView; icon: React.ElementType; label: string; desc: string }[] = [
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Jurnal KBM harian' },
-  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Capaian & kalender' },
+  { id: 'progress', icon: ChartNoAxesCombined, label: 'Kendali',   desc: 'Pantau progres & risiko' },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Jadwal & pengawasan' },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Pengaturan', desc: 'Kelas, jadwal & materi' },
-  { id: 'info',     icon: Info,                label: 'Informasi', desc: 'Panduan & aplikasi' },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola', desc: 'Kelas, jadwal & data' },
 ];
 
 function ViewFallback() {
@@ -47,6 +47,7 @@ function AppInner() {
     const viewParam = new URLSearchParams(window.location.search).get('view');
     return isAppView(viewParam) ? viewParam : 'today';
   });
+  const [examTab, setExamTab] = useState<ExamTab>('agenda');
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -156,6 +157,7 @@ function AppInner() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as AppView;
       normalizeProgressConsistency();
+      setExamTab('agenda');
       setView(detail);
       setRefreshKey(k => k + 1);
     };
@@ -169,7 +171,21 @@ function AppInner() {
 
   const handleViewChange = (v: ViewType) => {
     normalizeProgressConsistency();
+    setExamTab('agenda');
     setView(v);
+    setRefreshKey(k => k + 1);
+  };
+
+  const openExamSettings = () => {
+    normalizeProgressConsistency();
+    setExamTab('settings');
+    setView('exam');
+    setRefreshKey(k => k + 1);
+  };
+
+  const returnToSetup = () => {
+    normalizeProgressConsistency();
+    setView('setup');
     setRefreshKey(k => k + 1);
   };
 
@@ -245,7 +261,7 @@ function AppInner() {
             <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-2 mb-2">Navigasi Utama</div>
             {desktopNavItems.map(item => {
               const Icon = item.icon;
-              const isActive = view === item.id;
+              const isActive = view === item.id || (view === 'info' && item.id === 'setup');
               return (
                 <button
                   key={item.id}
@@ -306,10 +322,10 @@ function AppInner() {
             <div>
               <h1 className="font-display font-black text-xl text-foreground tracking-tight leading-tight">
                 {view === 'today' && 'Jurnal KBM Hari Ini'}
-                {view === 'progress' && 'Capaian & Progres Pembelajaran'}
+                {view === 'progress' && 'Kendali Pembelajaran'}
                 {view === 'exam' && 'Jadwal & Pengawasan Ujian'}
-                {view === 'setup' && 'Pengaturan Akademik'}
-                {view === 'info' && 'Pusat Informasi & Panduan'}
+                {view === 'setup' && 'Kelola EduTrack'}
+                {view === 'info' && 'Tentang EduTrack'}
               </h1>
               <p className="text-[11px] text-text3 font-semibold mt-0.5">
                 {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -346,16 +362,16 @@ function AppInner() {
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
               {view === 'progress' && <ProgressView key={refreshKey} />}
-              {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
-              {view === 'setup'    && <SetupView onRefresh={refresh} />}
-              {view === 'info'     && <InfoView />}
+              {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} initialTab={examTab} />}
+              {view === 'setup'    && <SetupView onRefresh={refresh} onOpenExamSettings={openExamSettings} onOpenInfo={() => setView('info')} />}
+              {view === 'info'     && <InfoView onBackToSetup={returnToSetup} />}
             </Suspense>
           </div>
         </div>
 
         {/* Mobile Bottom Navigation (Hidden on lg:) */}
         <div className="lg:hidden">
-          <BottomNav currentView={view as ViewType} onViewChange={handleViewChange} />
+          <BottomNav currentView={(view === 'info' ? 'setup' : view) as ViewType} onViewChange={handleViewChange} />
         </div>
       </div>
 
