@@ -35,6 +35,14 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Pengaturan ujian dibuka dari Kelola; tab internal dipertahankan agar
+  // tautan/flow lama tetap berfungsi tanpa mengubah data ujian.
+  useEffect(() => {
+    const openSettings = () => setTab('settings');
+    window.addEventListener('edutrack-show-exam-settings', openSettings);
+    return () => window.removeEventListener('edutrack-show-exam-settings', openSettings);
+  }, []);
+
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
   const [eClassId, setEClassId] = useState('');
@@ -960,7 +968,6 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
     { id: 'agenda', label: 'Agenda', emoji: '🗓️' },
     { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
     { id: 'riwayat', label: 'Riwayat', emoji: '📁' },
-    { id: 'settings', label: 'Atur', emoji: '⚙️' },
   ];
 
   return (
@@ -984,7 +991,7 @@ export default function ExamView({ onRefresh }: ExamViewProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-3 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
           {tabItems.map(t => (
             <button
               key={t.id}

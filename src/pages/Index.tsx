@@ -6,7 +6,7 @@ import { getData, loadDemo, pruneOldSessions, now } from '@/lib/data';
 import { normalizeProgressConsistency } from '@/lib/progressConsistency';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
-import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Info, Moon, Sun, Cloud } from 'lucide-react';
+import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Moon, Sun } from 'lucide-react';
 import { supabase, type SupabaseUser } from '@/lib/supabase';
 import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime, REMOTE_SYNC_EVENT } from '@/lib/supabaseSync';
 import SyncModal from '@/components/SyncModal';
@@ -26,10 +26,9 @@ const isAppView = (value: string | null): value is AppView =>
 
 const desktopNavItems: { id: AppView; icon: React.ElementType; label: string; desc: string }[] = [
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Jurnal KBM harian' },
-  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Capaian & kalender' },
+  { id: 'progress', icon: ChartNoAxesCombined, label: 'Kendali',   desc: 'Pantau progres & risiko' },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Jadwal & pengawasan' },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Pengaturan', desc: 'Kelas, jadwal & materi' },
-  { id: 'info',     icon: Info,                label: 'Informasi', desc: 'Panduan & aplikasi' },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola', desc: 'Kelas, jadwal & data' },
 ];
 
 function ViewFallback() {
@@ -165,6 +164,19 @@ function AppInner() {
       window.removeEventListener('edutrack-nav', handler);
       window.removeEventListener('set-tab', handler);
     };
+  }, []);
+
+  // Kelola membuka konfigurasi Ujian tanpa menjadikan konfigurasi tersebut
+  // tab kerja utama. Dispatch kedua dilakukan setelah ExamView ter-mount.
+  useEffect(() => {
+    const openExamSettings = () => {
+      normalizeProgressConsistency();
+      setView('exam');
+      setRefreshKey(k => k + 1);
+      window.setTimeout(() => window.dispatchEvent(new Event('edutrack-show-exam-settings')), 0);
+    };
+    window.addEventListener('edutrack-open-exam-settings', openExamSettings);
+    return () => window.removeEventListener('edutrack-open-exam-settings', openExamSettings);
   }, []);
 
   const handleViewChange = (v: ViewType) => {
@@ -306,10 +318,10 @@ function AppInner() {
             <div>
               <h1 className="font-display font-black text-xl text-foreground tracking-tight leading-tight">
                 {view === 'today' && 'Jurnal KBM Hari Ini'}
-                {view === 'progress' && 'Capaian & Progres Pembelajaran'}
+                {view === 'progress' && 'Kendali Pembelajaran'}
                 {view === 'exam' && 'Jadwal & Pengawasan Ujian'}
-                {view === 'setup' && 'Pengaturan Akademik'}
-                {view === 'info' && 'Pusat Informasi & Panduan'}
+                {view === 'setup' && 'Kelola EduTrack'}
+                {view === 'info' && 'Tentang EduTrack'}
               </h1>
               <p className="text-[11px] text-text3 font-semibold mt-0.5">
                 {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}

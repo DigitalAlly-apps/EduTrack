@@ -29,15 +29,15 @@ const guides: Guide[] = [
       { t: 'Selesai lebih cepat', d: 'Jika estimasi awal 3 pertemuan tetapi selesai pada pertemuan ke-2, centang <strong>Materi selesai hari ini</strong>. Sesi berikutnya langsung berpindah ke materi selanjutnya.' },
       { t: 'Butuh waktu lebih banyak', d: 'Tekan <strong>Ubah estimasi pertemuan</strong> dari Hari Ini atau Progress, lalu naikkan jumlahnya. Riwayat yang sudah tersimpan tidak berubah.' },
       { t: 'Lupa mencatat', d: 'Jika ada jadwal lama tanpa catatan, gunakan panel <strong>Pertemuan belum dicatat</strong>. Tekan Catat untuk menyimpan dengan tanggal asli, atau Lewati jika kelas memang tidak berlangsung.' },
-      { t: 'Perbaiki salah input', d: 'Buka <strong>Progress → Riwayat → Edit</strong> untuk memperbaiki materi, status selesai, halaman terakhir, dan catatan pertemuan.' },
+      { t: 'Perbaiki salah input', d: 'Buka <strong>Kendali → Riwayat</strong> untuk menelusuri dan memperbaiki catatan sesi.' },
     ], tip: 'Estimasi adalah rencana, bukan aturan wajib. Progres mengikuti materi yang benar-benar diajarkan di kelas.'
   },
   {
-    id: 'g2', icon: '📈', title: 'Cara Membaca Tab Progres', steps: [
+    id: 'g2', icon: '📈', title: 'Cara Membaca Kendali', steps: [
       { t: 'Dikelompokkan Otomatis', d: 'Semua mata pelajaran sekarang dikelompokkan berdasarkan kelasnya masing-masing. Ketuk nama kelas untuk memperluas daftarnya.' },
       { t: 'Card progres per mapel', d: 'Status real-time: <strong>Sesuai jadwal</strong>, <strong>Mepet target</strong>, atau <strong>Perlu percepatan</strong>.' },
       { t: 'Angka statistik', d: 'Tiga angka di tengah: <strong>Selesai</strong> (bab yang sudah diajarkan), <strong>Tersisa</strong>, dan <strong>Total</strong> bab untuk mapel itu.' },
-      { t: 'Saran asisten AI', d: 'Tekan tombol <strong>↻</strong> pada kartu AI (paling atas) agar asisten menganalisis hambatan secara holistik.' },
+      { t: 'Prioritas tindakan', d: 'Mapel dengan status <strong>Kurang sesi</strong> atau <strong>Mepet</strong> ditampilkan lebih dahulu.' },
     ], tip: 'Status badge dihitung otomatis dari sisa materi dibagi estimasi sesi sebelum tanggal ujian.'
   },
   {
@@ -50,7 +50,7 @@ const guides: Guide[] = [
   },
   {
     id: 'g4', icon: '💾', title: 'Cara Backup & Restore Data', steps: [
-      { t: 'Export JSON (backup utama)', d: 'Di tab Pengaturan → Data → <strong>💾 Backup Full</strong>. Lakukan secara berkala sesuai kebutuhan.' },
+      { t: 'Export JSON (backup utama)', d: 'Di Kelola → Backup & Data → <strong>💾 Backup Full</strong>. Lakukan secara berkala sesuai kebutuhan.' },
       { t: 'Export CSV', d: 'Untuk melihat riwayat sesi mengajar di spreadsheet. Bisa dibuka di Excel atau Google Sheets.' },
       { t: 'Restore / Import JSON', d: 'Pilih <strong>📂 Upload JSON</strong> dan pilih file backup Anda. Semua data akan dikembalikan seperti semula.' },
     ], tip: 'Data tersimpan di localStorage browser. Jika ganti browser atau hapus cache, data bisa hilang. Selalu backup JSON!'
@@ -59,7 +59,7 @@ const guides: Guide[] = [
       id: 'g5', icon: '✨', title: 'Fitur Unggulan EduTrack', steps: [
         { t: 'Materi Drag-and-Drop', d: 'Anda sekarang bisa menekan ✏️ untuk mengubah nama, atau menahan ≡ untuk mengurutkan daftar materi.' },
         { t: 'Sistem Multijenjang', d: 'Dapat membedakan materi dan tanggal ujian secara massal untuk berbagai tingkat (SD, MTs, MA).' },
-        { t: 'Riwayat Sesi Bulanan', d: 'Buka tab <strong>Progres</strong> lalu tekan <strong>Riwayat Sesi</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
+        { t: 'Riwayat Sesi Bulanan', d: 'Buka <strong>Kendali → Riwayat</strong> untuk menelusuri kegiatan mengajar di waktu lampau.' },
         { t: 'Notifikasi Background (Web Push)', d: 'Aktifkan notifikasi, EduTrack akan mengingatkan Anda 5 menit sebelum sesi mengajar meskipun app ditutup.' },
       ], tip: 'PWA Shortcut HP juga tersedia! Tahan icon EduTrack di layar lalu tap "Jadwal Hari Ini".'
     },
