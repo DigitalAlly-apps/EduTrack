@@ -16,9 +16,11 @@ import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Do
 
 interface SetupViewProps {
   onRefresh: () => void;
+  onOpenExamSettings: () => void;
+  onOpenInfo: () => void;
 }
 
-export default function SetupView({ onRefresh }: SetupViewProps) {
+export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }: SetupViewProps) {
   const data = getData();
   const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
   // Default to classes if first time, otherwise show menu
@@ -194,16 +196,14 @@ export default function SetupView({ onRefresh }: SetupViewProps) {
                   );
                 })}
                 <button
-                  onClick={() => {
-                    window.dispatchEvent(new Event('edutrack-open-exam-settings'));
-                  }}
+                  onClick={onOpenExamSettings}
                   className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 border-t border-border/50"
                 >
                   <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><Bell className="h-5 w-5" /></div><div><div className="text-[14px] font-bold text-foreground leading-tight">Pengaturan Ujian</div><div className="text-[12px] text-text3 mt-0.5">Mode ujian dan pengingat</div></div></div>
                   <span className="text-text3 text-lg opacity-50">›</span>
                 </button>
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'info' }))}
+                  onClick={onOpenInfo}
                   className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 border-t border-border/50"
                 >
                   <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><HelpCircle className="h-5 w-5" /></div><div><div className="text-[14px] font-bold text-foreground leading-tight">Tentang EduTrack</div><div className="text-[12px] text-text3 mt-0.5">Panduan penggunaan dan informasi aplikasi</div></div></div>

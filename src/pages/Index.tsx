@@ -20,6 +20,7 @@ const Onboarding = lazy(() => import('@/components/Onboarding'));
 const QuickAddModal = lazy(() => import('@/components/QuickAddModal'));
 
 type AppView = ViewType;
+type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
 
 const isAppView = (value: string | null): value is AppView =>
   value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
@@ -46,6 +47,7 @@ function AppInner() {
     const viewParam = new URLSearchParams(window.location.search).get('view');
     return isAppView(viewParam) ? viewParam : 'today';
   });
+  const [examTab, setExamTab] = useState<ExamTab>('agenda');
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -155,6 +157,7 @@ function AppInner() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as AppView;
       normalizeProgressConsistency();
+      setExamTab('agenda');
       setView(detail);
       setRefreshKey(k => k + 1);
     };
@@ -166,22 +169,23 @@ function AppInner() {
     };
   }, []);
 
-  // Kelola membuka konfigurasi Ujian tanpa menjadikan konfigurasi tersebut
-  // tab kerja utama. Dispatch kedua dilakukan setelah ExamView ter-mount.
-  useEffect(() => {
-    const openExamSettings = () => {
-      normalizeProgressConsistency();
-      setView('exam');
-      setRefreshKey(k => k + 1);
-      window.setTimeout(() => window.dispatchEvent(new Event('edutrack-show-exam-settings')), 0);
-    };
-    window.addEventListener('edutrack-open-exam-settings', openExamSettings);
-    return () => window.removeEventListener('edutrack-open-exam-settings', openExamSettings);
-  }, []);
-
   const handleViewChange = (v: ViewType) => {
     normalizeProgressConsistency();
+    setExamTab('agenda');
     setView(v);
+    setRefreshKey(k => k + 1);
+  };
+
+  const openExamSettings = () => {
+    normalizeProgressConsistency();
+    setExamTab('settings');
+    setView('exam');
+    setRefreshKey(k => k + 1);
+  };
+
+  const returnToSetup = () => {
+    normalizeProgressConsistency();
+    setView('setup');
     setRefreshKey(k => k + 1);
   };
 
@@ -257,7 +261,7 @@ function AppInner() {
             <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-2 mb-2">Navigasi Utama</div>
             {desktopNavItems.map(item => {
               const Icon = item.icon;
-              const isActive = view === item.id;
+              const isActive = view === item.id || (view === 'info' && item.id === 'setup');
               return (
                 <button
                   key={item.id}
@@ -358,16 +362,16 @@ function AppInner() {
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
               {view === 'progress' && <ProgressView key={refreshKey} />}
-              {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} />}
-              {view === 'setup'    && <SetupView onRefresh={refresh} />}
-              {view === 'info'     && <InfoView />}
+              {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} initialTab={examTab} />}
+              {view === 'setup'    && <SetupView onRefresh={refresh} onOpenExamSettings={openExamSettings} onOpenInfo={() => setView('info')} />}
+              {view === 'info'     && <InfoView onBackToSetup={returnToSetup} />}
             </Suspense>
           </div>
         </div>
 
         {/* Mobile Bottom Navigation (Hidden on lg:) */}
         <div className="lg:hidden">
-          <BottomNav currentView={view as ViewType} onViewChange={handleViewChange} />
+          <BottomNav currentView={(view === 'info' ? 'setup' : view) as ViewType} onViewChange={handleViewChange} />
         </div>
       </div>
 
