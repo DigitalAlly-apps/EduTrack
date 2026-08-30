@@ -15,6 +15,8 @@ import {
   recordTeachingSession,
   splitSessionNote,
   undoLastSession,
+  updateSessionMaterial,
+  updateSessionNote,
   updateMaterial,
   updateMaterialEstimate,
   type DayStatus,
@@ -813,6 +815,7 @@ function SubjectCard({
 function HistoryTab({ revision, repairDate }: { revision: number; repairDate: string | null }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [retroactiveSheetOpen, setRetroactiveSheetOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const items = useMemo(() => getSessionHistory(month), [month, revision]);
   const data = useMemo(() => getData(), [revision]);
   const { toast } = useToast();
@@ -863,6 +866,13 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
                       <p className="mt-0.5 text-[11px] text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
                       {mainNote && <p className="mt-1 text-[11px] text-text3">Berikutnya: {mainNote}</p>}
                       {reminder && <p className="mt-1 text-[10px] font-semibold text-amber">📌 {reminder}</p>}
+                      {session.lastPageReached && <p className="mt-1 text-[11px] text-text3">Halaman pertemuan berikutnya: {session.lastPageReached}</p>}
+                      <button
+                        onClick={() => setEditingSessionId(session.id)}
+                        className="mt-3 flex min-h-[36px] items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-3 text-[11px] font-black text-primary transition-colors hover:bg-primary/15"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit sesi
+                      </button>
                     </div>
                   );
                 })}
@@ -883,7 +893,82 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
           toast({ title: 'Pertemuan tersimpan', description: 'Riwayat, kalender, dan progres materi sudah diperbarui.' });
         }}
       />
+      <EditRecordedSessionSheet
+        sessionId={editingSessionId}
+        revision={revision}
+        onClose={() => setEditingSessionId(null)}
+        onSaved={() => {
+          notifyDataChanged();
+          setEditingSessionId(null);
+          toast({ title: 'Perubahan sesi tersimpan', description: 'Riwayat dan progres materi sudah diperbarui.' });
+        }}
+      />
     </div>
+  );
+}
+
+function EditRecordedSessionSheet({
+  sessionId,
+  revision,
+  onClose,
+  onSaved,
+}: {
+  sessionId: string | null;
+  revision: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const session = useMemo(() => sessionId ? getData().sessions.find(item => item.id === sessionId) ?? null : null, [sessionId, revision]);
+  const [materialId, setMaterialId] = useState('');
+  const [materialCompleted, setMaterialCompleted] = useState(false);
+  const [note, setNote] = useState('');
+  const [lastPageReached, setLastPageReached] = useState('');
+  const materials = useMemo(() => session ? getMaterials(session.subjectId, session.classId) : [], [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    setMaterialId(session.materialId ?? '');
+    setMaterialCompleted(Boolean(session.materialCompleted));
+    setNote(session.note ?? '');
+    setLastPageReached(session.lastPageReached ?? '');
+  }, [session]);
+
+  if (!session) return null;
+
+  const data = getData();
+  const cls = data.classes.find(item => item.id === session.classId)?.name ?? '?';
+  const subject = data.subjects.find(item => item.id === session.subjectId)?.name ?? '?';
+  const save = () => {
+    updateSessionMaterial(session.id, materialId || null, materialCompleted);
+    updateSessionNote(session.id, note.trim(), lastPageReached);
+    onSaved();
+  };
+
+  return createPortal(
+    <div className="app-overlay z-[520]" onClick={onClose}>
+      <div className="app-bottom-sheet max-h-[calc(100dvh-1rem)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="edit-recorded-session-title" onClick={event => event.stopPropagation()}>
+        <div className="app-sheet-handle" />
+        <div id="edit-recorded-session-title" className="app-sheet-title mb-1">Edit Sesi Tercatat</div>
+        <p className="mb-4 text-[12px] leading-relaxed text-text2">{cls} · {subject} · {dateFromKey(session.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-material">Materi/Bab yang diajarkan</label>
+        <select id="edit-history-material" value={materialId} onChange={event => setMaterialId(event.target.value)} className="form-select-style mb-3">
+          <option value="">Belum memilih materi</option>
+          {materials.map(material => <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>)}
+        </select>
+        <label className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
+          <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
+          <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-[11px] text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
+        </label>
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
+        <input id="edit-history-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Catatan <span className="normal-case">(opsional)</span></label>
+        <textarea id="edit-history-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+        <button onClick={save} className="btn-primary-style bg-primary font-bold text-primary-foreground">Simpan Perubahan</button>
+        <button onClick={onClose} className="mt-1 w-full py-3 text-[13px] text-text2">Batal</button>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -911,6 +996,7 @@ function RetroactiveSessionSheet({
   const [materialId, setMaterialId] = useState('');
   const [materialCompleted, setMaterialCompleted] = useState(false);
   const [note, setNote] = useState('');
+  const [lastPageReached, setLastPageReached] = useState('');
   const [message, setMessage] = useState('');
   const audit = useMemo(() => date < dateKey() ? getCalendarDayAudit(date) : null, [date, revision]);
   const missingEntries = useMemo(() => audit?.entries.filter(entry => !entry.recorded) ?? [], [audit]);
@@ -927,6 +1013,7 @@ function RetroactiveSessionSheet({
     setMaterialId('');
     setMaterialCompleted(false);
     setNote('');
+    setLastPageReached('');
     setMessage('');
   }, [initialDate, open]);
 
@@ -954,7 +1041,7 @@ function RetroactiveSessionSheet({
       setMessage('Tidak ada KBM yang perlu dicatat pada tanggal ini.');
       return;
     }
-    const saved = recordTeachingSession(selectedEntry.schedule.id, date, materialId || null, materialCompleted, note.trim() || undefined);
+    const saved = recordTeachingSession(selectedEntry.schedule.id, date, materialId || null, materialCompleted, note.trim() || undefined, lastPageReached);
     if (!saved) {
       setMessage('KBM ini sudah tercatat.');
       return;
@@ -998,6 +1085,8 @@ function RetroactiveSessionSheet({
             </label>
             <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
             <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
+            <input id="retroactive-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
           </>
         )}
         {message && <p className="mb-3 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12px] text-red" role="alert">{message}</p>}

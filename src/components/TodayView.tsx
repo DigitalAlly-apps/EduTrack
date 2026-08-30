@@ -580,7 +580,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
                           <div className="flex items-center gap-2">
                             <span className="text-base">📄</span>
-                            <label className="text-[11px] font-bold text-primary" htmlFor={`last-page-${it.id}`}>Sampai halaman</label>
+                            <label className="text-[11px] font-bold text-primary" htmlFor={`last-page-${it.id}`}>Halaman pertemuan berikutnya</label>
                             <input
                               id={`last-page-${it.id}`}
                               type="number"
@@ -591,7 +591,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                               className="w-24 rounded-lg border border-primary/30 bg-surface px-2.5 py-1 text-[13px] font-bold focus:border-primary focus:outline-none"
                             />
                             {lastPageDraft && (
-                              <span className="text-[10px] font-semibold text-green">→ mulai {getNextStartPage(lastPageDraft).nextPage}</span>
+                              <span className="text-[10px] font-semibold text-green">→ tampil mulai {getNextStartPage(lastPageDraft).nextPage}</span>
                             )}
                           </div>
 
@@ -866,7 +866,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
                           <span className="text-[11px]">📄</span>
                           <span className="text-[12px] font-bold text-primary">Mulai hal. {nextPage}</span>
-                          <span className="text-[10px] text-text3">· lanjut dari hal. {lastPage}</span>
                         </div>
                       );
                     })()}
@@ -1299,7 +1298,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           <div className="inline-flex items-center gap-1 mt-0.5 bg-primary/8 border border-primary/20 rounded-full px-2 py-0.5 w-fit">
                             <span className="text-[10px]">📄</span>
                             <span className="text-[11px] font-bold text-primary">Mulai hal. {nextPage}</span>
-                            <span className="text-[10px] text-text3">(lanjut dari hal. {lastPage})</span>
                           </div>
                         );
                       })()}
@@ -1399,10 +1397,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     className="w-full bg-surface border border-border2 rounded-md p-2 text-[13px] min-h-[50px] resize-none focus:border-green focus:outline-none placeholder:text-text3"
                   />
                   
-                  {/* Input halaman terakhir */}
+                  {/* Input halaman untuk pertemuan berikutnya */}
                   <div className="mt-2.5 flex items-center gap-2">
                     <span className="text-base flex-shrink-0">📄</span>
-                    <span className="text-[11px] font-bold text-primary flex-shrink-0">Sampai halaman:</span>
+                    <span className="text-[11px] font-bold text-primary flex-shrink-0">Hal. pertemuan berikutnya:</span>
                     <input
                       type="number"
                       min="1"

@@ -904,7 +904,7 @@ export function undoLastSession(classId: string, subjectId: string): boolean {
 }
 
 /**
- * Ambil halaman terakhir yang diajarkan untuk pasangan kelas+mapel.
+ * Ambil halaman yang dicatat untuk pertemuan berikutnya pada pasangan kelas+mapel.
  * Mengembalikan string halaman (mis. "10") atau null jika belum pernah diisi.
  */
 export function getLastPageReached(classId: string, subjectId: string, data?: AppData): string | null {
@@ -916,16 +916,12 @@ export function getLastPageReached(classId: string, subjectId: string, data?: Ap
 }
 
 /**
- * Hitung halaman mulai berikutnya.
- * Jika lastPage adalah angka murni, kembalikan +1.
- * Jika bukan angka, kembalikan null (tampilkan lastPage apa adanya).
+ * Halaman pertemuan berikutnya selalu ditampilkan persis seperti yang dicatat guru.
+ * Nama fungsi dipertahankan demi kompatibilitas dengan pemanggil yang sudah ada.
  */
 export function getNextStartPage(lastPageReached: string): { nextPage: string; isNumeric: boolean } {
-  const num = parseInt(lastPageReached, 10);
-  if (!isNaN(num) && String(num) === lastPageReached.trim()) {
-    return { nextPage: String(num + 1), isNumeric: true };
-  }
-  return { nextPage: lastPageReached, isNumeric: false };
+  const nextPage = lastPageReached.trim();
+  return { nextPage, isNumeric: /^\d+$/.test(nextPage) };
 }
 
 export function postponeSchedule(scheduleId: string, diffMinutes: number) {

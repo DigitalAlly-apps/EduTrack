@@ -866,10 +866,10 @@ describe('lastPageReached feature', () => {
     expect(getLastPageReached('c1', 's1')).toBe('10');
   });
 
-  it('getNextStartPage — correctly increments numeric page strings', () => {
-    expect(getNextStartPage('10')).toEqual({ nextPage: '11', isNumeric: true });
-    expect(getNextStartPage(' 45 ')).toEqual({ nextPage: '46', isNumeric: true });
-    expect(getNextStartPage('0')).toEqual({ nextPage: '1', isNumeric: true });
+  it('getNextStartPage — keeps the recorded page unchanged for the next meeting', () => {
+    expect(getNextStartPage('10')).toEqual({ nextPage: '10', isNumeric: true });
+    expect(getNextStartPage(' 45 ')).toEqual({ nextPage: '45', isNumeric: true });
+    expect(getNextStartPage('0')).toEqual({ nextPage: '0', isNumeric: true });
   });
 
   it('getNextStartPage — handles non-numeric strings safely', () => {
