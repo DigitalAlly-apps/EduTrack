@@ -1,5 +1,5 @@
 import { dateFromKey, dateKey, getData, saveData } from './data';
-import type { AppData, Material, SubjectStatus } from './types';
+import type { AppData, Material, Schedule, Session, SubjectStatus } from './types';
 
 export type CalendarDayStatus = 'done' | 'partial' | 'missed' | 'holiday' | 'noclass' | 'future';
 
@@ -9,6 +9,16 @@ export type CalendarDaySummary = {
   sessionCount: number;
   schedCount: number;
   skippedCount: number;
+};
+
+export type CalendarAuditEntry = {
+  schedule: Schedule;
+  session?: Session;
+  recorded: boolean;
+};
+
+export type CalendarDayAudit = CalendarDaySummary & {
+  entries: CalendarAuditEntry[];
 };
 
 function getMaterialsFromSnapshot(data: AppData, subjectId: string, classId: string): Material[] {
@@ -118,21 +128,21 @@ export function getTrackerMessage(status: SubjectStatus): string {
  * (setelah libur + override) dengan sesi mengajar nyata. SKIPPED tidak dihitung
  * sebagai sesi selesai.
  */
-export function getReliableMonthCalendar(yearMonth: string): CalendarDaySummary[] {
+export function getCalendarDayAudit(date: string, classId?: string): CalendarDayAudit {
   const data = getData();
-  const [year, month] = yearMonth.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
   const today = dateKey();
-  const result: CalendarDaySummary[] = [];
+  const dayOfWeek = dateFromKey(date).getDay();
+  const isGlobalHoliday = (data.holidays ?? []).some(holiday =>
+    typeof holiday === 'string' ? holiday === date : holiday.date === date && !holiday.level
+  );
+  const baseSchedules = data.schedules.filter(schedule =>
+    (!classId || schedule.classId === classId) && schedule.days.includes(dayOfWeek)
+  );
+  const overrides = (data.scheduleOverrides ?? []).filter(override => override.date === date);
+  let holidayAffected = false;
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = `${yearMonth}-${String(day).padStart(2, '0')}`;
-    const dayOfWeek = dateFromKey(date).getDay();
-    const baseSchedules = data.schedules.filter(schedule => schedule.days.includes(dayOfWeek));
-    const overrides = (data.scheduleOverrides ?? []).filter(override => override.date === date);
-
-    let holidayAffected = false;
-    const regularExpected = baseSchedules.filter(schedule => {
+  const expectedSchedules = baseSchedules
+    .filter(schedule => {
       const subject = data.subjects.find(item => item.id === schedule.subjectId);
       if (isHolidayForSubject(data, date, subject?.level)) {
         holidayAffected = true;
@@ -140,45 +150,69 @@ export function getReliableMonthCalendar(yearMonth: string): CalendarDaySummary[
       }
       const override = overrides.find(item => item.scheduleId === schedule.id && !item.isExtra);
       return !override?.skipped;
+    })
+    .map(schedule => {
+      const override = overrides.find(item => item.scheduleId === schedule.id && !item.isExtra);
+      return override
+        ? { ...schedule, startTime: override.startTime, duration: override.durationOverride ?? schedule.duration }
+        : schedule;
     });
 
-    const extraExpected = overrides.filter(override => {
-      if (!override.isExtra || override.skipped) return false;
-      const schedule = data.schedules.find(item => item.id === override.scheduleId);
-      if (!schedule) return false;
-      const subject = data.subjects.find(item => item.id === schedule.subjectId);
-      return !isHolidayForSubject(data, date, subject?.level);
-    });
-
-    const schedCount = regularExpected.length + extraExpected.length;
-    const sessions = data.sessions.filter(session => session.date === date);
-    const taughtSessions = sessions.filter(session => session.materialId !== 'SKIPPED');
-    const skippedCount = sessions.length - taughtSessions.length;
-    const sessionCount = taughtSessions.length;
-
-    if (schedCount === 0 && holidayAffected) {
-      result.push({ date, status: 'holiday', sessionCount, schedCount, skippedCount });
+  for (const override of overrides) {
+    if (!override.isExtra || override.skipped) continue;
+    const schedule = data.schedules.find(item => item.id === override.scheduleId);
+    if (!schedule || (classId && schedule.classId !== classId)) continue;
+    const subject = data.subjects.find(item => item.id === schedule.subjectId);
+    if (isHolidayForSubject(data, date, subject?.level)) {
+      holidayAffected = true;
       continue;
     }
-
-    if (schedCount === 0) {
-      result.push({ date, status: 'noclass', sessionCount, schedCount, skippedCount });
-      continue;
-    }
-
-    if (date > today) {
-      result.push({ date, status: 'future', sessionCount, schedCount, skippedCount });
-      continue;
-    }
-
-    if (sessionCount === 0) {
-      result.push({ date, status: 'missed', sessionCount, schedCount, skippedCount });
-    } else if (sessionCount >= schedCount) {
-      result.push({ date, status: 'done', sessionCount, schedCount, skippedCount });
-    } else {
-      result.push({ date, status: 'partial', sessionCount, schedCount, skippedCount });
+    if (!expectedSchedules.some(item => item.id === schedule.id)) {
+      expectedSchedules.push({ ...schedule, startTime: override.startTime, duration: override.durationOverride ?? schedule.duration });
     }
   }
 
-  return result;
+  const entries = expectedSchedules
+    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+    .map(schedule => {
+      const session = data.sessions.find(item => item.scheduleId === schedule.id && item.date === date);
+      return { schedule, session, recorded: Boolean(session && session.materialId !== 'SKIPPED') };
+    });
+  const schedCount = entries.length;
+  const sessionCount = entries.filter(entry => entry.recorded).length;
+  const skippedCount = entries.filter(entry => entry.session?.materialId === 'SKIPPED').length;
+  const status: CalendarDayStatus = schedCount === 0
+    ? holidayAffected || isGlobalHoliday ? 'holiday' : 'noclass'
+    : date > today ? 'future'
+    : sessionCount === 0 ? 'missed'
+    : sessionCount >= schedCount ? 'done'
+    : 'partial';
+
+  return { date, status, sessionCount, schedCount, skippedCount, entries };
+}
+
+export function getCalendarHealthSummary(yearMonth: string, classId?: string) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = dateKey();
+  const days = Array.from({ length: daysInMonth }, (_, index) =>
+    getCalendarDayAudit(`${yearMonth}-${String(index + 1).padStart(2, '0')}`, classId)
+  );
+  const elapsedDays = days.filter(day => day.date <= today);
+  return {
+    days,
+    planned: elapsedDays.reduce((sum, day) => sum + day.schedCount, 0),
+    recorded: elapsedDays.reduce((sum, day) => sum + day.sessionCount, 0),
+    missing: elapsedDays.reduce((sum, day) => sum + day.schedCount - day.sessionCount, 0),
+    holidays: days.filter(day => day.status === 'holiday').length,
+    attention: elapsedDays.filter(day => day.schedCount > day.sessionCount),
+  };
+}
+
+export function getReliableMonthCalendar(yearMonth: string, classId?: string): CalendarDaySummary[] {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, index) =>
+    getCalendarDayAudit(`${yearMonth}-${String(index + 1).padStart(2, '0')}`, classId)
+  ).map(({ entries: _entries, ...summary }) => summary);
 }
