@@ -833,47 +833,58 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
 
   return (
     <div>
-      <button
-        onClick={() => setRetroactiveSheetOpen(true)}
-        className="mb-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-[13px] font-black text-primary transition-colors hover:bg-primary/15"
-      >
-        <Plus className="h-4 w-4" /> Catat KBM Terlupa
-      </button>
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-surface p-3">
-        <span className="text-[11px] font-black uppercase tracking-wide text-text3">Pilih bulan</span>
-        <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto px-3 py-1.5 text-xs font-bold" />
+      <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border/70 pb-3">
+        <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3" htmlFor="history-month">
+          <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-text3">Bulan</span>
+          <input id="history-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-xs font-bold shadow-none focus:ring-0" />
+        </label>
+        <button
+          onClick={() => setRetroactiveSheetOpen(true)}
+          className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3 text-[11px] font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> <span>Catat KBM Terlupa</span>
+        </button>
       </div>
       {!dates.length ? (
         <EmptyState title="Tidak ada riwayat" text="Belum ada sesi tercatat di bulan ini." />
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {dates.map(date => (
             <section key={date}>
-              <h3 className="mb-2 text-[11px] font-black text-primary">
+              <h3 className="mb-1.5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-primary before:h-px before:flex-1 before:bg-primary/20 after:h-px after:flex-1 after:bg-primary/20">
                 {dateFromKey(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h3>
-              <div className="space-y-2">
+              <div className="divide-y divide-border/70 border-y border-border/70">
                 {grouped[date].map(session => {
                   const cls = data.classes.find(i => i.id === session.classId)?.name ?? '?';
                   const subject = data.subjects.find(i => i.id === session.subjectId)?.name ?? '?';
                   const material = data.materials.find(i => i.id === session.materialId);
                   const { mainNote, reminder } = splitSessionNote(session.note);
                   return (
-                    <div key={session.id} className="rounded-xl border border-border bg-surface p-3">
-                      <p className="text-[13px] font-black">
-                        {cls} · {subject}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
-                      {mainNote && <p className="mt-1 text-[11px] text-text3">Berikutnya: {mainNote}</p>}
-                      {reminder && <p className="mt-1 text-[10px] font-semibold text-amber">📌 {reminder}</p>}
-                      {session.lastPageReached && <p className="mt-1 text-[11px] text-text3">Halaman pertemuan berikutnya: {session.lastPageReached}</p>}
-                      <button
-                        onClick={() => setEditingSessionId(session.id)}
-                        className="mt-3 flex min-h-[36px] items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-3 text-[11px] font-black text-primary transition-colors hover:bg-primary/15"
-                      >
-                        <Pencil className="h-3.5 w-3.5" /> Edit sesi
-                      </button>
-                    </div>
+                    <article key={session.id} className="bg-surface/30 px-1 py-2.5">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-black leading-snug text-foreground">
+                            {cls} <span className="text-text3" aria-hidden="true">·</span> {subject}
+                          </p>
+                          <p className="mt-0.5 text-[11px] leading-snug text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
+                        </div>
+                        <button
+                          onClick={() => setEditingSessionId(session.id)}
+                          aria-label={`Edit sesi ${cls}, ${subject}`}
+                          className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+                      {(mainNote || reminder || session.lastPageReached) && (
+                        <div className="mt-1.5 space-y-0.5 border-l-2 border-border/80 pl-2 text-[10px] leading-snug">
+                          {mainNote && <p className="text-text3">Berikutnya: {mainNote}</p>}
+                          {reminder && <p className="font-semibold text-amber">📌 {reminder}</p>}
+                          {session.lastPageReached && <p className="text-text3">Halaman pertemuan berikutnya: {session.lastPageReached}</p>}
+                        </div>
+                      )}
+                    </article>
                   );
                 })}
               </div>
