@@ -771,8 +771,9 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
-  if (!sched) return;
-  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return;
+  if (!sched) return false;
+  if (sessionDate > dateKey()) return false;
+  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return false;
   
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
@@ -793,6 +794,7 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
     data.progress.push(nextProg);
   }
   saveData(data);
+  return true;
 }
 
 export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {

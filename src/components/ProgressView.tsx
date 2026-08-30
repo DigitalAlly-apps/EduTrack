@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, Plus, RotateCcw, X } from 'lucide-react';
 import {
   composeSessionNote,
   dateFromKey,
   dateKey,
   getData,
   getMaterials,
-  getMonthCalendar,
   getSessionHistory,
   getSubjectStatus,
   getTeachingPosition,
   getTotalSessionsNeeded,
   markMaterialCompleted,
+  recordTeachingSession,
   splitSessionNote,
   undoLastSession,
   updateMaterial,
   updateMaterialEstimate,
   type DayStatus,
 } from '@/lib/data';
-import { normalizeProgressConsistency } from '@/lib/progressConsistency';
+import { getCalendarDayAudit, getCalendarHealthSummary, normalizeProgressConsistency } from '@/lib/progressConsistency';
 import { useToast } from '@/hooks/use-toast';
 import type { Material } from '@/lib/types';
 
@@ -54,6 +54,7 @@ function getEducationLevel(level?: string): EducationLevel {
 export default function ProgressView() {
   const [tab, setTab] = useState<Tab>('progress');
   const [revision, setRevision] = useState(0);
+  const [historyRepairDate, setHistoryRepairDate] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<EducationLevel>(() => (localStorage.getItem('edutrack-progress-level') as EducationLevel) || 'sd');
   const [selectedClassId, setSelectedClassId] = useState('');
 
@@ -98,8 +99,8 @@ export default function ProgressView() {
           setSelectedClassId={setSelectedClassId}
         />
       )}
-      {tab === 'kalender' && <CalendarTab revision={revision} classId={selectedClassId} />}
-      {tab === 'history' && <HistoryTab revision={revision} />}
+      {tab === 'kalender' && <CalendarTab revision={revision} classId={selectedClassId} onRepair={(date) => { setHistoryRepairDate(date); setTab('history'); }} />}
+      {tab === 'history' && <HistoryTab revision={revision} repairDate={historyRepairDate} />}
     </div>
   );
 }
@@ -809,18 +810,32 @@ function SubjectCard({
   );
 }
 
-function HistoryTab({ revision }: { revision: number }) {
+function HistoryTab({ revision, repairDate }: { revision: number; repairDate: string | null }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
+  const [retroactiveSheetOpen, setRetroactiveSheetOpen] = useState(false);
   const items = useMemo(() => getSessionHistory(month), [month, revision]);
   const data = useMemo(() => getData(), [revision]);
+  const { toast } = useToast();
   const grouped = items.reduce((r, s) => {
     (r[s.date] ||= []).push(s);
     return r;
   }, {} as Record<string, typeof items>);
   const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
+  useEffect(() => {
+    if (!repairDate) return;
+    setMonth(repairDate.slice(0, 7));
+    setRetroactiveSheetOpen(true);
+  }, [repairDate]);
+
   return (
     <div>
+      <button
+        onClick={() => setRetroactiveSheetOpen(true)}
+        className="mb-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-[13px] font-black text-primary transition-colors hover:bg-primary/15"
+      >
+        <Plus className="h-4 w-4" /> Catat KBM Terlupa
+      </button>
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-surface p-3">
         <span className="text-[11px] font-black uppercase tracking-wide text-text3">Pilih bulan</span>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto px-3 py-1.5 text-xs font-bold" />
@@ -856,14 +871,149 @@ function HistoryTab({ revision }: { revision: number }) {
           ))}
         </div>
       )}
+      <RetroactiveSessionSheet
+        open={retroactiveSheetOpen}
+        initialDate={repairDate}
+        revision={revision}
+        onClose={() => setRetroactiveSheetOpen(false)}
+        onSaved={(date) => {
+          setMonth(date.slice(0, 7));
+          notifyDataChanged();
+          setRetroactiveSheetOpen(false);
+          toast({ title: 'Pertemuan tersimpan', description: 'Riwayat, kalender, dan progres materi sudah diperbarui.' });
+        }}
+      />
     </div>
   );
 }
 
-function CalendarTab({ revision, classId }: { revision: number; classId?: string }) {
+function previousDateKey() {
+  const previous = dateFromKey(dateKey());
+  previous.setDate(previous.getDate() - 1);
+  return dateKey(previous);
+}
+
+function RetroactiveSessionSheet({
+  open,
+  initialDate,
+  revision,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  initialDate: string | null;
+  revision: number;
+  onClose: () => void;
+  onSaved: (date: string) => void;
+}) {
+  const [date, setDate] = useState(previousDateKey);
+  const [scheduleId, setScheduleId] = useState('');
+  const [materialId, setMaterialId] = useState('');
+  const [materialCompleted, setMaterialCompleted] = useState(false);
+  const [note, setNote] = useState('');
+  const [message, setMessage] = useState('');
+  const audit = useMemo(() => date < dateKey() ? getCalendarDayAudit(date) : null, [date, revision]);
+  const missingEntries = useMemo(() => audit?.entries.filter(entry => !entry.recorded) ?? [], [audit]);
+  const selectedEntry = missingEntries.find(entry => entry.schedule.id === scheduleId) ?? null;
+  const materials = useMemo(
+    () => selectedEntry ? getMaterials(selectedEntry.schedule.subjectId, selectedEntry.schedule.classId) : [],
+    [selectedEntry],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setDate(initialDate && initialDate < dateKey() ? initialDate : previousDateKey());
+    setScheduleId('');
+    setMaterialId('');
+    setMaterialCompleted(false);
+    setNote('');
+    setMessage('');
+  }, [initialDate, open]);
+
+  useEffect(() => {
+    setScheduleId(current => missingEntries.some(entry => entry.schedule.id === current) ? current : missingEntries[0]?.schedule.id ?? '');
+  }, [date, missingEntries]);
+
+  useEffect(() => {
+    if (!selectedEntry) {
+      setMaterialId('');
+      return;
+    }
+    const position = getTeachingPosition(selectedEntry.schedule.classId, selectedEntry.schedule.subjectId);
+    setMaterialId(current => materials.some(material => material.id === current) ? current : position.material?.id ?? materials[0]?.id ?? '');
+  }, [materials, selectedEntry]);
+
+  if (!open) return null;
+
+  const save = () => {
+    if (date >= dateKey()) {
+      setMessage('Pilih tanggal lampau. Untuk KBM hari ini, gunakan halaman Hari Ini.');
+      return;
+    }
+    if (!selectedEntry) {
+      setMessage('Tidak ada KBM yang perlu dicatat pada tanggal ini.');
+      return;
+    }
+    const saved = recordTeachingSession(selectedEntry.schedule.id, date, materialId || null, materialCompleted, note.trim() || undefined);
+    if (!saved) {
+      setMessage('KBM ini sudah tercatat.');
+      return;
+    }
+    onSaved(date);
+  };
+
+  const isHoliday = audit?.status === 'holiday';
+  return createPortal(
+    <div className="app-overlay z-[520]" onClick={onClose}>
+      <div className="app-bottom-sheet max-h-[calc(100dvh-1rem)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="retroactive-kbm-title" onClick={event => event.stopPropagation()}>
+        <div className="app-sheet-handle" />
+        <div id="retroactive-kbm-title" className="app-sheet-title mb-1">Catat KBM Terlupa</div>
+        <p className="mb-4 text-[12px] leading-relaxed text-text2">Pilih KBM yang sudah berlangsung tetapi belum sempat dicatat.</p>
+
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-date">Tanggal KBM</label>
+        <input id="retroactive-date" type="date" max={previousDateKey()} value={date} onChange={event => { setDate(event.target.value); setMessage(''); }} className="form-input-style mb-3" />
+
+        {date === dateKey() && <p className="mb-3 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-[12px] text-primary">Untuk pencatatan hari ini, gunakan halaman Hari Ini.</p>}
+        {isHoliday && <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber/30 bg-amber/10 px-3 py-2.5 text-[12px] text-amber"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>Tanggal ini tercatat sebagai hari libur. Tidak ada KBM reguler yang perlu dicatat.</span></div>}
+        {date < dateKey() && !isHoliday && !missingEntries.length && <p className="mb-3 rounded-xl border border-border bg-surface2/50 px-3 py-2 text-[12px] text-text2">Tidak ada KBM reguler yang belum tercatat pada tanggal ini.</p>}
+
+        {missingEntries.length > 0 && (
+          <>
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-schedule">KBM belum tercatat</label>
+            <select id="retroactive-schedule" value={scheduleId} onChange={event => { setScheduleId(event.target.value); setMessage(''); }} className="form-select-style mb-3">
+              {missingEntries.map(entry => {
+                const cls = getData().classes.find(item => item.id === entry.schedule.classId)?.name ?? '?';
+                const subject = getData().subjects.find(item => item.id === entry.schedule.subjectId)?.name ?? '?';
+                return <option key={entry.schedule.id} value={entry.schedule.id}>{entry.schedule.startTime} — {subject} · {cls}</option>;
+              })}
+            </select>
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-material">Materi/Bab yang diajarkan</label>
+            <select id="retroactive-material" value={materialId} onChange={event => setMaterialId(event.target.value)} className="form-select-style mb-3">
+              <option value="">Belum memilih materi</option>
+              {materials.map(material => <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>)}
+            </select>
+            <label className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
+              <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
+              <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-[11px] text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
+            </label>
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
+            <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+          </>
+        )}
+        {message && <p className="mb-3 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12px] text-red" role="alert">{message}</p>}
+        <button onClick={save} disabled={!selectedEntry} className="btn-primary-style bg-primary font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50">Simpan Pertemuan</button>
+        <button onClick={onClose} className="mt-1 w-full py-3 text-[13px] text-text2">Batal</button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function CalendarTab({ revision, classId, onRepair }: { revision: number; classId?: string; onRepair: (date: string) => void }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState(dateKey());
-  const days = useMemo(() => getMonthCalendar(month, classId), [month, classId, revision]);
+  const health = useMemo(() => getCalendarHealthSummary(month, classId), [month, classId, revision]);
+  const days = health.days;
   const data = useMemo(() => getData(), [revision]);
   const firstDay = new Date(`${month}-01T12:00:00`).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
@@ -902,9 +1052,6 @@ function CalendarTab({ revision, classId }: { revision: number; classId?: string
     },
   ];
   const selectedDay = days.find(day => day.date === selectedDate);
-  const selectedSessions = data.sessions.filter(session =>
-    session.date === selectedDate && (!classId || session.classId === classId),
-  );
   const selectedStatusLabel: Record<DayStatus, string> = {
     done: 'Selesai', partial: 'Sebagian', missed: 'Terlewat', holiday: 'Libur', noclass: 'Tidak ada jadwal', future: 'Mendatang',
   };
@@ -915,6 +1062,17 @@ function CalendarTab({ revision, classId }: { revision: number; classId?: string
         <span className="text-[11px] font-black uppercase tracking-wide text-text3">Bulan</span>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto px-3 py-1.5 text-xs font-bold" />
       </div>
+
+      <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-widest text-text3">Kesehatan KBM bulan ini</p>
+        <h3 className="mt-1 text-sm font-black">{dateFromKey(`${month}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</h3>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm">{health.planned}</strong><span className="text-[10px] text-text3">KBM direncanakan</span></div>
+          <div className="rounded-xl bg-green/10 px-2 py-2 text-green"><strong className="block text-sm">{health.recorded}</strong><span className="text-[10px]">Tercatat</span></div>
+          <div className="rounded-xl bg-amber/10 px-2 py-2 text-amber"><strong className="block text-sm">{health.missing}</strong><span className="text-[10px]">Belum tercatat</span></div>
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm">{health.holidays}</strong><span className="text-[10px] text-text3">Hari libur</span></div>
+        </div>
+      </section>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
         <div className="grid grid-cols-7 border-b border-border/50 bg-surface2/40">
@@ -954,17 +1112,46 @@ function CalendarTab({ revision, classId }: { revision: number; classId?: string
           <p className="mt-1 text-[12px] font-bold text-text2">
             {selectedStatusLabel[selectedDay.status]} · {selectedDay.sessionCount} dari {selectedDay.schedCount} KBM tercatat
           </p>
-          {selectedSessions.length > 0 ? (
+          {selectedDay.entries.length > 0 ? (
             <div className="mt-3 space-y-2">
-              {selectedSessions.map(session => {
-                const cls = data.classes.find(item => item.id === session.classId)?.name ?? '?';
-                const subject = data.subjects.find(item => item.id === session.subjectId)?.name ?? '?';
-                return <div key={session.id} className="rounded-xl border border-border/60 bg-surface2/40 px-3 py-2 text-[12px] font-bold">✓ {subject} — {cls}</div>;
+              {selectedDay.entries.map(entry => {
+                const cls = data.classes.find(item => item.id === entry.schedule.classId)?.name ?? '?';
+                const subject = data.subjects.find(item => item.id === entry.schedule.subjectId)?.name ?? '?';
+                return entry.recorded ? (
+                  <div key={entry.schedule.id} className="rounded-xl border border-border/60 bg-surface2/40 px-3 py-2 text-[12px] font-bold">✓ {subject} — {cls}</div>
+                ) : (
+                  <div key={entry.schedule.id} className="flex items-center justify-between gap-2 rounded-xl border border-amber/25 bg-amber/10 px-3 py-2 text-[12px]">
+                    <span className="flex items-start gap-1.5 font-bold text-amber"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{subject} — {cls}<span className="block text-[10px] font-medium text-text3">Belum dicatat</span></span></span>
+                    {selectedDay.date < dateKey() && <button onClick={() => onRepair(selectedDay.date)} className="min-h-[36px] shrink-0 rounded-lg border border-primary/25 bg-surface px-2.5 text-[10px] font-black text-primary">Perbaiki di Riwayat</button>}
+                  </div>
+                );
               })}
             </div>
           ) : selectedDay.schedCount > 0 ? (
             <p className="mt-3 rounded-xl bg-surface2/50 px-3 py-2 text-[12px] text-text3">Belum ada KBM yang tercatat pada tanggal ini.</p>
           ) : null}
+        </section>
+      )}
+
+      {health.attention.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-amber/25 bg-amber/5 p-4 shadow-sm">
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-amber">Perlu Perhatian</h3>
+          <div className="mt-3 space-y-2">
+            {health.attention.map(day => {
+              const missing = day.entries.filter(entry => !entry.recorded);
+              const labels = missing.map(entry => {
+                const cls = data.classes.find(item => item.id === entry.schedule.classId)?.name ?? '?';
+                const subject = data.subjects.find(item => item.id === entry.schedule.subjectId)?.name ?? '?';
+                return `${subject} ${cls}`;
+              });
+              return (
+                <div key={day.date} className="flex items-center justify-between gap-3 rounded-xl border border-amber/20 bg-surface/70 px-3 py-2.5">
+                  <div className="min-w-0"><p className="text-[12px] font-black">{dateFromKey(day.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · {missing.length} KBM belum tercatat</p><p className="mt-0.5 text-[10px] text-text3">{labels.join(' · ')}</p></div>
+                  <button onClick={() => onRepair(day.date)} className="min-h-[36px] shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-[10px] font-black text-primary">Perbaiki di Riwayat</button>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
