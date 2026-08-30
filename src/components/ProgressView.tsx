@@ -75,7 +75,7 @@ export default function ProgressView() {
 
   return (
     <div className="pt-1">
-      <div className="mb-[18px] flex gap-1 rounded-2xl border border-border/60 bg-surface/50 p-1 shadow-sm backdrop-blur-md">
+      <div className="mb-4 flex gap-1 rounded-2xl border border-border/60 bg-surface/70 p-1 shadow-sm backdrop-blur-md" aria-label="Kendali pengajaran">
         {tabs.map(item => {
           const Icon = item.icon;
           const active = tab === item.id;
@@ -83,7 +83,8 @@ export default function ProgressView() {
             <button
               key={item.id}
               onClick={() => setTab(item.id)}
-              className={`flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition ${
+              aria-pressed={active}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:bg-surface2/50 hover:text-foreground'
               }`}
             >
@@ -173,8 +174,8 @@ function ProgressTab({
   return (
     <div className="space-y-4">
       {/* Selection Card */}
-      <section className="app-card p-3.5 sm:p-4">
-        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text3">Pilih jenjang</p>
+      <section className="app-card border-border/70 p-3 sm:p-4">
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text3">Tampilkan progres</p>
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface2/70 p-1">
           {(
             [
@@ -187,7 +188,7 @@ function ProgressTab({
               key={level}
               disabled={!levels.includes(level)}
               onClick={() => selectLevel(level)}
-              className={`min-h-[40px] rounded-lg px-2 text-xs font-black transition-all ${
+              className={`min-h-[44px] rounded-lg px-2 text-xs font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 selectedLevel === level ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 disabled:opacity-35'
               }`}
             >
@@ -195,11 +196,12 @@ function ProgressTab({
             </button>
           ))}
         </div>
-        <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-text3">Kelas</label>
+        <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-text3" htmlFor="progress-class">Kelas</label>
         <select
+          id="progress-class"
           value={selectedClassId}
           onChange={e => selectClass(e.target.value)}
-          className="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-bold outline-none focus:border-primary"
+          className="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-bold outline-none transition-colors focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/30"
         >
           {classes.map(c => (
             <option key={c.id} value={c.id}>
@@ -211,22 +213,22 @@ function ProgressTab({
 
       {/* 1. Mini Summary Strip Banner */}
       {subjects.length > 0 && (
-        <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-surface/80 p-2.5 shadow-xs">
-          <div className="flex items-center gap-2 rounded-xl bg-green/10 border border-green/20 px-2.5 py-2">
+        <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-surface/80 p-2 shadow-xs" aria-label="Ringkasan kondisi mata pelajaran">
+          <div className="flex items-center gap-2 rounded-xl border border-green/20 bg-green/10 px-2.5 py-2">
             <span className="h-2.5 w-2.5 rounded-full bg-green flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-green leading-tight">{onTrackCount} Mapel</span>
               <span className="block text-[9px] font-bold text-text3 truncate">Aman</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-amber/10 border border-amber/20 px-2.5 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-amber/20 bg-amber/10 px-2.5 py-2">
             <span className="h-2.5 w-2.5 rounded-full bg-amber flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-amber leading-tight">{tightCount} Mapel</span>
               <span className="block text-[9px] font-bold text-text3 truncate">Mepet</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-red/10 border border-red/20 px-2.5 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-red/20 bg-red/10 px-2.5 py-2">
             <span className="h-2.5 w-2.5 rounded-full bg-red flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-red leading-tight">{behindCount} Mapel</span>
@@ -245,10 +247,11 @@ function ProgressTab({
           </div>
 
           {/* 2. View Mode Toggle (Ringkasan vs Detail) */}
-          <div className="flex items-center gap-1 rounded-xl bg-surface2/80 p-1 border border-border/50">
+          <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-surface2/80 p-1" role="group" aria-label="Mode tampilan progres">
             <button
               onClick={() => setMode('compact')}
-              className={`min-h-[34px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-all ${
+              aria-pressed={viewMode === 'compact'}
+              className={`min-h-[40px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 viewMode === 'compact' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
@@ -256,7 +259,8 @@ function ProgressTab({
             </button>
             <button
               onClick={() => setMode('detailed')}
-              className={`min-h-[34px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-all ${
+              aria-pressed={viewMode === 'detailed'}
+              className={`min-h-[40px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 viewMode === 'detailed' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
@@ -400,7 +404,7 @@ function SubjectCard({
 
   return (
     <>
-      <article className={`overflow-hidden rounded-2xl bg-surface/90 shadow-md transition-all ${borderAccent}`}>
+      <article className={`overflow-hidden rounded-2xl bg-surface/90 shadow-sm transition-colors ${borderAccent}`}>
         <div className="p-4 sm:p-5 space-y-3.5">
           {/* Header Mapel & Status Badge */}
           <div className="flex items-start justify-between gap-3">
@@ -472,13 +476,13 @@ function SubjectCard({
                     setTeachingNoteDraft(reminder);
                     setEditingNote(true);
                   }}
-                  className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 text-xs font-bold text-primary hover:bg-primary/20 transition-all shadow-xs"
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 text-xs font-bold text-primary shadow-xs transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <Pencil className="h-3.5 w-3.5" /> Edit Catatan
                 </button>
                 <button
                   onClick={() => setConfirmMaterial(activeMaterial)}
-                  className="flex-1 min-h-[42px] flex items-center justify-center gap-1.5 rounded-xl border border-amber/30 bg-amber/10 text-xs font-black text-amber hover:bg-amber/20 transition-all shadow-xs"
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-amber/30 bg-amber/10 text-xs font-black text-amber shadow-xs transition-colors hover:bg-amber/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
                 >
                   ⚡ Selesaikan Bab
                 </button>
@@ -502,7 +506,7 @@ function SubjectCard({
                           setTeachingNoteDraft(reminder);
                           setEditingNote(true);
                         }}
-                        className="min-h-[38px] flex items-center gap-1.5 rounded-xl border border-primary/30 bg-surface px-3 py-1 text-[11px] font-bold text-primary shadow-xs hover:bg-primary/10 transition-colors"
+                        className="min-h-[44px] flex items-center gap-1.5 rounded-xl border border-primary/30 bg-surface px-3 py-1 text-[11px] font-bold text-primary shadow-xs transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
                         <Pencil className="h-3.5 w-3.5" /> Edit catatan
                       </button>
@@ -532,7 +536,8 @@ function SubjectCard({
               {/* Collapsible Header: Rencana Bab & Edit */}
               <button
                 onClick={() => setExpanded(v => !v)}
-                className="min-h-[42px] flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3.5 py-2 text-left text-[11px] font-black text-text2 hover:bg-surface2/60 transition-colors"
+                aria-expanded={expanded}
+                className="min-h-[44px] flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3.5 py-2 text-left text-[11px] font-black text-text2 transition-colors hover:bg-surface2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <span>Rencana Bab & Edit Pertemuan</span>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
@@ -834,7 +839,7 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border/70 pb-3">
-        <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3" htmlFor="history-month">
+        <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-primary/30" htmlFor="history-month">
           <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-text3">Bulan</span>
           <input id="history-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-xs font-bold shadow-none focus:ring-0" />
         </label>
@@ -880,7 +885,7 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
                       {(mainNote || reminder || session.lastPageReached) && (
                         <div className="mt-1.5 space-y-0.5 border-l-2 border-border/80 pl-2 text-[10px] leading-snug">
                           {mainNote && <p className="text-text3">Berikutnya: {mainNote}</p>}
-                          {reminder && <p className="font-semibold text-amber">📌 {reminder}</p>}
+                          {reminder && <p className="font-semibold text-amber"><span className="mr-1 text-[9px] font-black uppercase tracking-wide">Pengingat:</span>{reminder}</p>}
                           {session.lastPageReached && <p className="text-text3">Halaman pertemuan berikutnya: {session.lastPageReached}</p>}
                         </div>
                       )}
@@ -1158,19 +1163,19 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-surface p-3 shadow-xs">
-        <span className="text-[11px] font-black uppercase tracking-wide text-text3">Bulan</span>
-        <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto px-3 py-1.5 text-xs font-bold" />
+      <div className="mb-3 flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface px-3 shadow-xs focus-within:ring-2 focus-within:ring-primary/30">
+        <label className="text-[10px] font-black uppercase tracking-wide text-text3" htmlFor="calendar-month">Bulan</label>
+        <input id="calendar-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto border-0 bg-transparent px-0 py-1.5 text-right text-xs font-bold shadow-none focus:ring-0" />
       </div>
 
-      <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+      <section className="mb-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm">
         <p className="text-[10px] font-black uppercase tracking-widest text-text3">Kesehatan KBM bulan ini</p>
         <h3 className="mt-1 text-sm font-black">{dateFromKey(`${month}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</h3>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm">{health.planned}</strong><span className="text-[10px] text-text3">KBM direncanakan</span></div>
-          <div className="rounded-xl bg-green/10 px-2 py-2 text-green"><strong className="block text-sm">{health.recorded}</strong><span className="text-[10px]">Tercatat</span></div>
-          <div className="rounded-xl bg-amber/10 px-2 py-2 text-amber"><strong className="block text-sm">{health.missing}</strong><span className="text-[10px]">Belum tercatat</span></div>
-          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm">{health.holidays}</strong><span className="text-[10px] text-text3">Hari libur</span></div>
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.planned}</strong><span className="text-[10px] text-text3">Direncanakan</span></div>
+          <div className="rounded-xl bg-green/10 px-2 py-2 text-green"><strong className="block text-sm tabular-nums">{health.recorded}</strong><span className="text-[10px]">Tercatat</span></div>
+          <div className="rounded-xl bg-amber/10 px-2 py-2 text-amber"><strong className="block text-sm tabular-nums">{health.missing}</strong><span className="text-[10px]">Belum tercatat</span></div>
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.holidays}</strong><span className="text-[10px] text-text3">Libur</span></div>
         </div>
       </section>
 
@@ -1182,7 +1187,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 p-1.5 gap-0.5">
+        <div className="grid grid-cols-7 gap-0.5 p-1.5">
           {Array.from({ length: offset }).map((_, i) => (
             <div key={`empty-${i}`} />
           ))}
@@ -1191,7 +1196,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
               key={day.date}
               onClick={() => setSelectedDate(day.date)}
               aria-pressed={selectedDate === day.date}
-              className={`m-0.5 grid min-h-10 place-items-center rounded-xl text-xs font-black transition-all ${tones[day.status]} ${
+              className={`m-0.5 grid min-h-[44px] place-items-center rounded-xl text-xs font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${tones[day.status]} ${
                 day.date === dateKey() ? 'ring-2 ring-primary shadow-sm' : ''
               } ${
                 selectedDate === day.date ? 'outline outline-2 outline-offset-1 outline-primary' : ''
@@ -1204,7 +1209,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
       </div>
 
       {selectedDay && (
-        <section className="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-sm">
+        <section className="mt-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-widest text-text3">Audit pengajaran</p>
           <h3 className="mt-1 text-sm font-black">
             {dateFromKey(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -1222,7 +1227,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
                 ) : (
                   <div key={entry.schedule.id} className="flex items-center justify-between gap-2 rounded-xl border border-amber/25 bg-amber/10 px-3 py-2 text-[12px]">
                     <span className="flex items-start gap-1.5 font-bold text-amber"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{subject} — {cls}<span className="block text-[10px] font-medium text-text3">Belum dicatat</span></span></span>
-                    {selectedDay.date < dateKey() && <button onClick={() => onRepair(selectedDay.date)} className="min-h-[36px] shrink-0 rounded-lg border border-primary/25 bg-surface px-2.5 text-[10px] font-black text-primary">Perbaiki di Riwayat</button>}
+                    {selectedDay.date < dateKey() && <button onClick={() => onRepair(selectedDay.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-surface px-2.5 text-[10px] font-black text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>}
                   </div>
                 );
               })}
@@ -1234,7 +1239,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
       )}
 
       {health.attention.length > 0 && (
-        <section className="mt-4 rounded-2xl border border-amber/25 bg-amber/5 p-4 shadow-sm">
+        <section className="mt-3 rounded-2xl border border-amber/25 bg-amber/5 p-3.5 shadow-sm">
           <h3 className="text-[11px] font-black uppercase tracking-widest text-amber">Perlu Perhatian</h3>
           <div className="mt-3 space-y-2">
             {health.attention.map(day => {
@@ -1247,7 +1252,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
               return (
                 <div key={day.date} className="flex items-center justify-between gap-3 rounded-xl border border-amber/20 bg-surface/70 px-3 py-2.5">
                   <div className="min-w-0"><p className="text-[12px] font-black">{dateFromKey(day.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · {missing.length} KBM belum tercatat</p><p className="mt-0.5 text-[10px] text-text3">{labels.join(' · ')}</p></div>
-                  <button onClick={() => onRepair(day.date)} className="min-h-[36px] shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-[10px] font-black text-primary">Perbaiki di Riwayat</button>
+                  <button onClick={() => onRepair(day.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-[10px] font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>
                 </div>
               );
             })}
@@ -1256,7 +1261,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
       )}
 
       {/* Keterangan Warna Kalender */}
-      <div className="mt-4 rounded-2xl border border-border/70 bg-surface/80 p-4 shadow-sm space-y-3">
+      <div className="mt-3 space-y-3 rounded-2xl border border-border/70 bg-surface/80 p-3.5 shadow-sm">
         <div className="flex items-center justify-between">
           <h4 className="text-[11px] font-black uppercase tracking-wider text-text3">Keterangan Warna Kalender</h4>
           <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
@@ -1285,7 +1290,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
 function EmptyState({ title, text }: { title: string; text: string }) {
   return (
     <div className="px-6 py-12 text-center">
-      <span className="mb-3 block text-4xl opacity-60">📈</span>
+      <span className="mb-3 block text-[11px] font-black uppercase tracking-[0.2em] text-primary/70">Kendali Pengajaran</span>
       <h2 className="font-display text-xl font-bold">{title}</h2>
       <p className="mx-auto mt-1 max-w-[280px] text-sm text-text2">{text}</p>
     </div>

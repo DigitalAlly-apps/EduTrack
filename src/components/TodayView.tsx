@@ -287,19 +287,19 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="px-2 pb-2 relative z-10 space-y-2.5">
             <button
               onClick={handleOpenExam}
-              className="w-full min-h-[54px] rounded-2xl bg-gradient-to-r from-amber to-amber-600 text-amber-950 font-black text-[14px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber/20 active:translate-y-0.5 active:shadow-none hover:brightness-105"
+              className="w-full min-h-[54px] rounded-2xl bg-gradient-to-r from-amber to-amber-600 text-amber-950 font-black text-[14px] flex items-center justify-center gap-2 shadow-lg shadow-amber/20 transition-all hover:brightness-105 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
             >
               📖 Buka Agenda Ujian
             </button>
             <button
               onClick={() => setShowKbmDuringExam(true)}
-              className="w-full min-h-[48px] rounded-xl bg-surface border border-primary/30 text-[12px] font-bold text-primary flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+              className="w-full min-h-[48px] rounded-xl bg-surface border border-primary/30 text-[12px] font-bold text-primary flex items-center justify-center gap-2 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               📅 Tampilkan Jadwal KBM
             </button>
             <button
               onClick={handleTurnOffExamMode}
-              className="w-full min-h-[48px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-2 hover:bg-surface2 transition-all"
+              className="w-full min-h-[48px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-2 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               🔄 Kembali ke KBM Normal
             </button>
@@ -385,7 +385,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="mt-4">
             <button
               onClick={() => setAgendaBesokOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+              aria-expanded={agendaBesokOpen}
+              className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <span>
                 📅 Agenda Besok
@@ -476,7 +477,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'setup' }))}
-          className="mt-6 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-[12px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+          className="mt-6 min-h-[44px] rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-[12px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           + Atur jadwal mengajar
         </button>
@@ -558,7 +559,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         {it.sessionId && (
                           <button
                             onClick={() => isEditing ? closeNoteEditor() : openNoteEditor(it)}
-                            className="flex-shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            className="min-h-[36px] flex-shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                           >
                             {isEditing ? 'Tutup' : 'Edit'}
                           </button>
@@ -670,7 +671,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
           <button
             onClick={() => setShowKbmDuringExam(false)}
-            className="flex-shrink-0 rounded-lg border border-amber/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-amber hover:bg-amber/10"
+            className="min-h-[44px] flex-shrink-0 rounded-lg border border-amber/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
           >
             Fokus ujian
           </button>
@@ -684,7 +685,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
           <button
             onClick={() => setShowCompletedSchedule(false)}
-            className="flex-shrink-0 rounded-lg border border-green/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-green transition-colors hover:bg-green/10"
+            className="min-h-[44px] flex-shrink-0 rounded-lg border border-green/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-green transition-colors hover:bg-green/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green focus-visible:ring-offset-2"
           >
             Ringkasan
           </button>
@@ -696,7 +697,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button
           onClick={() => setStatusBarOpen(o => !o)}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left"
+          aria-expanded={statusBarOpen}
+          className="w-full min-h-[44px] flex items-center gap-2.5 px-3.5 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
         >
           {/* Counts */}
           <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
@@ -756,10 +758,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               </div>
             </div>
             <div className="flex gap-2 relative">
-              <button onClick={() => { handleHeroDone(endedBanner); }} className="text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-all flex items-center justify-center min-w-[80px]">
+              <button onClick={() => { handleHeroDone(endedBanner); }} className="min-h-[44px] text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-colors flex items-center justify-center min-w-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                 ✓ Selesai
               </button>
-              <button onClick={() => setEndedBanner(null)} className="text-[11px] text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors">✕ Tutup</button>
+              <button onClick={() => setEndedBanner(null)} className="min-h-[44px] text-[11px] text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">✕ Tutup</button>
             </div>
           </div>
         );
@@ -853,8 +855,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
                     {activeMaterial && (
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1">Ubah estimasi</button>
-                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1">⚡ Selesaikan bab ini</button>
+                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="min-h-[36px] text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Ubah estimasi</button>
+                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="min-h-[36px] text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">⚡ Selesaikan bab ini</button>
                       </div>
                     )}
                     {/* Info halaman dari sesi sebelumnya */}
@@ -878,7 +880,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                  <div className="flex gap-2 relative">
                    <button
                       onClick={() => handleHeroDone(active.id)}
-                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20 active:translate-y-0.5 active:shadow-none hover:brightness-105 ${
+                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:brightness-105 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                         isOvertime 
                           ? 'bg-red text-white' 
                           : 'bg-primary text-primary-foreground'
@@ -889,7 +891,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                    {/* Skip — now opens confirmation sheet */}
                    <button
                      onClick={() => setSkipConfirm(active)}
-                      className="app-icon-button w-[58px] h-[58px] flex-shrink-0 shadow-sm"
+                      className="app-icon-button w-[58px] h-[58px] flex-shrink-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       title="Lewati sesi ini"
                     >
                       <SkipForward className="h-5 w-5" />
@@ -903,7 +905,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         setSubjectDismissClassId('');
                         setSubjectDismissSheet(true);
                       }}
-                       className="w-full min-h-[38px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 hover:bg-surface2 transition-colors"
+                       className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                       <SkipForward className="h-4 w-4" /> Libur
                     </button>
@@ -1025,7 +1027,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="rounded-xl border border-amber/20 bg-amber/5 overflow-hidden">
                 <button
                   onClick={() => setAttentionOpen(open => !open)}
-                  className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left"
+                  className="w-full min-h-[44px] flex items-center justify-between gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-inset"
                   aria-expanded={attentionOpen}
                 >
                   <span className="text-[11px] font-bold text-amber">💡 Perlu diperhatikan ({attention.length})</span>
@@ -1038,7 +1040,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
                 <button
                   onClick={() => setSuggestionsOpen(open => !open)}
-                  className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left"
+                  className="w-full min-h-[44px] flex items-center justify-between gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                   aria-expanded={suggestionsOpen}
                 >
                   <span className="text-[11px] font-bold text-primary">📌 Disarankan hari ini ({suggestions.length})</span>
@@ -1056,7 +1058,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="order-20 mb-4 animate-slide-up-delay-2">
           <button
             onClick={() => setTasksOpen(open => !open)}
-            className="w-full rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 flex items-center justify-between"
+            className="w-full min-h-[44px] rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 flex items-center justify-between"
             aria-expanded={tasksOpen}
           >
             <span>Tugas tertunda ({pendingTasks.length})</span>
@@ -1069,7 +1071,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 const sub = getData().subjects.find(s => s.id === t.subjectId);
                 return (
                   <div key={t.id} className={`p-3 flex items-start gap-3 ${i < pendingTasks.length - 1 ? 'border-b border-border2' : ''}`}>
-                    <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} aria-label={`Tandai tugas ${t.title} selesai`} className="mt-[2px] w-5 h-5 rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent hover:border-amber transition-colors">
+                    <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} aria-label={`Tandai tugas ${t.title} selesai`} className="mt-[2px] min-h-[36px] min-w-[36px] rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent transition-colors hover:border-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">
                       <span className="text-[12px]">✓</span>
                     </button>
                     <div>
@@ -1088,7 +1090,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       <div className="order-20 bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
         <button
           onClick={() => setAdminActionsOpen(open => !open)}
-          className="w-full flex items-center justify-between px-1 py-1 text-[11px] font-semibold text-text2"
+          className="w-full min-h-[44px] flex items-center justify-between px-1 py-1 text-[11px] font-semibold text-text2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
           aria-expanded={adminActionsOpen}
         >
           <span>Aksi hari ini</span>
@@ -1354,7 +1356,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           else openNoteEditor(item);
                         }}
                         aria-label={`${expandedNoteId === item.id ? 'Tutup' : 'Edit'} catatan ${item.className} ${item.subjectName}`}
-                        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all ${
+                        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                           item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
                         }`}
                       >
@@ -1365,7 +1367,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     <button
                       onClick={() => handleTLDone(item.id)}
                       aria-label={`Tandai sesi ${item.className} ${item.subjectName} selesai`}
-                      className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95"
+                      className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold flex items-center justify-center shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                       <span>✓</span>
                     </button>
@@ -1541,7 +1543,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="order-20 mt-2 mb-3">
           <button
             onClick={() => setAgendaBesokOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+            aria-expanded={agendaBesokOpen}
+            className="w-full min-h-[44px] flex items-center justify-between px-4 py-2.5 bg-surface/60 border border-border2 rounded-2xl text-xs font-semibold text-text2 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <span>
               📅 Agenda Besok
