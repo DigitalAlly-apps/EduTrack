@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, Plus, RotateCcw, X } from 'lucide-react';
 import {
   composeSessionNote,
   dateFromKey,
@@ -8,11 +8,15 @@ import {
   getData,
   getMaterials,
   getMonthCalendar,
+  getRegularSchedulesForDate,
   getSessionHistory,
   getSubjectStatus,
   getTeachingPosition,
   getTotalSessionsNeeded,
+  hasTeachingSession,
+  isDateHolidayForSubject,
   markMaterialCompleted,
+  recordTeachingSession,
   splitSessionNote,
   undoLastSession,
   updateMaterial,
@@ -811,6 +815,8 @@ function SubjectCard({
 
 function HistoryTab({ revision }: { revision: number }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
+  const [retroactiveSheetOpen, setRetroactiveSheetOpen] = useState(false);
+  const { toast } = useToast();
   const items = useMemo(() => getSessionHistory(month), [month, revision]);
   const data = useMemo(() => getData(), [revision]);
   const grouped = items.reduce((r, s) => {
@@ -821,6 +827,12 @@ function HistoryTab({ revision }: { revision: number }) {
 
   return (
     <div>
+      <button
+        onClick={() => setRetroactiveSheetOpen(true)}
+        className="mb-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/10 px-4 py-3 text-[13px] font-black text-primary transition-colors hover:bg-primary/15"
+      >
+        <Plus className="h-4 w-4" /> Catat KBM Terlupa
+      </button>
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-surface p-3">
         <span className="text-[11px] font-black uppercase tracking-wide text-text3">Pilih bulan</span>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto px-3 py-1.5 text-xs font-bold" />
@@ -856,7 +868,164 @@ function HistoryTab({ revision }: { revision: number }) {
           ))}
         </div>
       )}
+      <RetroactiveSessionSheet
+        open={retroactiveSheetOpen}
+        revision={revision}
+        onClose={() => setRetroactiveSheetOpen(false)}
+        onSaved={(date) => {
+          setMonth(date.slice(0, 7));
+          notifyDataChanged();
+          setRetroactiveSheetOpen(false);
+          toast({ title: 'Pertemuan tersimpan', description: `KBM ${date} sudah masuk ke riwayat dan progres materi diperbarui.` });
+        }}
+      />
     </div>
+  );
+}
+
+function previousDateKey() {
+  const previous = dateFromKey(dateKey());
+  previous.setDate(previous.getDate() - 1);
+  return dateKey(previous);
+}
+
+function RetroactiveSessionSheet({
+  open,
+  revision,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  revision: number;
+  onClose: () => void;
+  onSaved: (date: string) => void;
+}) {
+  const [date, setDate] = useState(previousDateKey);
+  const [scheduleId, setScheduleId] = useState('');
+  const [materialId, setMaterialId] = useState('');
+  const [materialCompleted, setMaterialCompleted] = useState(false);
+  const [note, setNote] = useState('');
+  const [message, setMessage] = useState('');
+  const schedules = useMemo(() => date < dateKey() ? getRegularSchedulesForDate(date) : [], [date, revision]);
+  const data = useMemo(() => getData(), [date, revision]);
+  const selectedSchedule = schedules.find(schedule => schedule.id === scheduleId) ?? null;
+  const selectedSubject = selectedSchedule ? data.subjects.find(item => item.id === selectedSchedule.subjectId) : null;
+  const isHoliday = Boolean(selectedSubject && isDateHolidayForSubject(date, selectedSubject.level));
+  const duplicate = Boolean(selectedSchedule && hasTeachingSession(selectedSchedule.id, date));
+  const materials = useMemo(
+    () => selectedSchedule ? getMaterials(selectedSchedule.subjectId, selectedSchedule.classId) : [],
+    [selectedSchedule],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setDate(previousDateKey());
+    setScheduleId('');
+    setMaterialId('');
+    setMaterialCompleted(false);
+    setNote('');
+    setMessage('');
+  }, [open]);
+
+  useEffect(() => {
+    if (!schedules.length) {
+      setScheduleId('');
+      setMaterialId('');
+      return;
+    }
+    setScheduleId(current => schedules.some(schedule => schedule.id === current) ? current : schedules[0].id);
+  }, [date, schedules]);
+
+  useEffect(() => {
+    if (!selectedSchedule) return;
+    const position = getTeachingPosition(selectedSchedule.classId, selectedSchedule.subjectId);
+    setMaterialId(current => materials.some(material => material.id === current) ? current : position.material?.id ?? materials[0]?.id ?? '');
+  }, [materials, selectedSchedule]);
+
+  if (!open) return null;
+
+  const save = () => {
+    if (date >= dateKey()) {
+      setMessage('Pilih tanggal lampau. Untuk KBM hari ini, gunakan halaman Hari Ini.');
+      return;
+    }
+    if (!selectedSchedule) {
+      setMessage('Pilih salah satu jadwal reguler yang ditemukan.');
+      return;
+    }
+    if (duplicate) {
+      setMessage('KBM ini sudah tercatat.');
+      return;
+    }
+    const saved = recordTeachingSession(selectedSchedule.id, date, materialId || null, materialCompleted, note.trim() || undefined);
+    if (!saved) {
+      setMessage('KBM ini sudah tercatat.');
+      return;
+    }
+    onSaved(date);
+  };
+
+  return createPortal(
+    <div className="app-overlay z-[520]" onClick={onClose}>
+      <div className="app-bottom-sheet max-h-[calc(100dvh-1rem)] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="retroactive-kbm-title" onClick={event => event.stopPropagation()}>
+        <div className="app-sheet-handle" />
+        <div id="retroactive-kbm-title" className="app-sheet-title mb-1">Catat KBM Terlupa</div>
+        <p className="mb-4 text-[12px] leading-relaxed text-text2">Gunakan untuk pertemuan yang benar-benar sudah berlangsung, tetapi belum sempat dicatat.</p>
+
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-date">Tanggal KBM</label>
+        <input
+          id="retroactive-date"
+          type="date"
+          max={previousDateKey()}
+          value={date}
+          onChange={event => { setDate(event.target.value); setMessage(''); }}
+          className="form-input-style mb-3"
+        />
+
+        {date === dateKey() && <p className="mb-3 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-[12px] text-primary">Untuk pencatatan hari ini, gunakan halaman Hari Ini.</p>}
+        {date < dateKey() && !schedules.length && <p className="mb-3 rounded-xl border border-border bg-surface2/50 px-3 py-2 text-[12px] text-text2">Tidak ada jadwal reguler pada tanggal ini.</p>}
+
+        {schedules.length > 0 && (
+          <>
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-schedule">Kelas & mata pelajaran</label>
+            <select id="retroactive-schedule" value={scheduleId} onChange={event => { setScheduleId(event.target.value); setMessage(''); }} className="form-select-style mb-3">
+              {schedules.map(schedule => {
+                const cls = data.classes.find(item => item.id === schedule.classId)?.name ?? '?';
+                const subject = data.subjects.find(item => item.id === schedule.subjectId)?.name ?? '?';
+                return <option key={schedule.id} value={schedule.id}>{schedule.startTime} — {subject} · {cls}</option>;
+              })}
+            </select>
+
+            {isHoliday && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber/30 bg-amber/10 px-3 py-2.5 text-[12px] text-amber">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Tanggal ini tercatat sebagai hari libur. Pastikan KBM memang berlangsung sebelum menyimpan.</span>
+              </div>
+            )}
+            {duplicate && <p className="mb-3 rounded-xl border border-amber/30 bg-amber/10 px-3 py-2 text-[12px] text-amber">KBM ini sudah tercatat.</p>}
+
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-material">Materi/Bab yang diajarkan</label>
+            <select id="retroactive-material" value={materialId} onChange={event => setMaterialId(event.target.value)} className="form-select-style mb-3">
+              <option value="">Belum memilih materi</option>
+              {materials.map(material => <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>)}
+            </select>
+
+            <label className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
+              <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
+              <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-[11px] text-text3">Posisi materi akan langsung lanjut ke bab berikutnya.</span></span>
+            </label>
+
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
+            <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+          </>
+        )}
+
+        {message && <p className="mb-3 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12px] text-red" role="alert">{message}</p>}
+        <button onClick={save} disabled={!selectedSchedule || duplicate} className="btn-primary-style bg-primary font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50">Simpan Pertemuan</button>
+        <button onClick={onClose} className="mt-1 w-full py-3 text-[13px] text-text2">Batal</button>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

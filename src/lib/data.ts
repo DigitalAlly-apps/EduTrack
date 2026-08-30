@@ -771,8 +771,8 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
-  if (!sched) return;
-  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return;
+  if (!sched) return false;
+  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return false;
   
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
@@ -793,6 +793,7 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
     data.progress.push(nextProg);
   }
   saveData(data);
+  return true;
 }
 
 export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {
@@ -839,6 +840,36 @@ export function getMissingTeachingSessions(daysBack = 60): MissingTeachingSessio
     }
   }
   return result.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Jadwal reguler yang berlaku pada sebuah tanggal lampau. Override waktu dan
+ * pembatalan dihormati, tetapi hari libur sengaja tidak menyembunyikan jadwal:
+ * UI pencatatan retroaktif perlu dapat memberi peringatan yang eksplisit.
+ */
+export function getRegularSchedulesForDate(sessionDate: string): Schedule[] {
+  const data = getData();
+  const day = dateFromKey(sessionDate).getDay();
+  return data.schedules
+    .filter(schedule => {
+      if (!schedule.days.includes(day)) return false;
+      return !data.scheduleOverrides?.some(override =>
+        override.scheduleId === schedule.id && override.date === sessionDate && override.skipped
+      );
+    })
+    .map(schedule => {
+      const override = data.scheduleOverrides?.find(item =>
+        item.scheduleId === schedule.id && item.date === sessionDate && !item.isExtra
+      );
+      return override
+        ? { ...schedule, startTime: override.startTime, duration: override.durationOverride ?? schedule.duration }
+        : schedule;
+    })
+    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
+
+export function hasTeachingSession(scheduleId: string, sessionDate: string): boolean {
+  return getData().sessions.some(session => session.scheduleId === scheduleId && session.date === sessionDate);
 }
 
 export function skipSessionForDate(scheduleId: string, sessionDate: string) {

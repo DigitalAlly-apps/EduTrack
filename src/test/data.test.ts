@@ -11,11 +11,14 @@ import {
   dateKey,
   exportJSON,
   getData,
+  getRegularSchedulesForDate,
   getMaterials,
   getDailyPriorities,
   getPredictiveFinishes,
   getTodaySchedules,
   getTeachingPosition,
+  getSessionHistory,
+  hasTeachingSession,
   recordTeachingSession,
   getMissingTeachingSessions,
   importJSON,
@@ -35,6 +38,7 @@ import {
 import { addExamSchedule, deleteExamSchedule, getExamReminderSettings, getExamSchedules, getTodayExamItems, updateExamReminderSetting, getCorrectionQueue, getCorrectionStats, upsertCorrection } from '@/lib/examData';
 import { AppData } from '@/lib/types';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
+import { getReliableMonthCalendar, normalizeProgressConsistency } from '@/lib/progressConsistency';
 
 const baseData = (day = new Date().getDay()): AppData => ({
   teacherName: 'Guru Test',
@@ -194,6 +198,39 @@ describe('materials scoping', () => {
 });
 
 describe('session actions', () => {
+  it('records a forgotten past KBM once, advances the existing progress, and persists its calendar/history state', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 30, 10, 0, 0));
+    const data = baseData(4); // Kamis, 27 Agustus 2026
+    data.classes[0].name = '8A';
+    data.subjects[0].name = 'Akhlak';
+    data.materials[0] = { id: 'm1', subjectId: 's1', classId: 'c1', name: 'Akhlak Terpuji', order: 1, sessions: 2 };
+    saveData(data);
+
+    const pastDate = '2026-08-27';
+    expect(getRegularSchedulesForDate(pastDate)).toEqual([expect.objectContaining({ id: 'sc1', startTime: '08:00' })]);
+    expect(getReliableMonthCalendar('2026-08').find(day => day.date === pastDate)).toMatchObject({ status: 'missed', sessionCount: 0, schedCount: 1 });
+
+    expect(recordTeachingSession('sc1', pastDate, 'm1', false, 'Diskusi adab')).toBe(true);
+    expect(getData().sessions).toEqual([expect.objectContaining({ scheduleId: 'sc1', date: pastDate, materialId: 'm1', note: 'Diskusi adab' })]);
+    expect(getData().progress[0].materialsDone).toBe(1);
+    expect(getTeachingPosition('c1', 's1')).toMatchObject({ material: { id: 'm1' }, sessionIndex: 2, totalSessionsDone: 1 });
+    expect(getSessionHistory('2026-08')).toEqual([expect.objectContaining({ date: pastDate, scheduleId: 'sc1' })]);
+    expect(getReliableMonthCalendar('2026-08').find(day => day.date === pastDate)).toMatchObject({ status: 'done', sessionCount: 1, schedCount: 1 });
+
+    expect(hasTeachingSession('sc1', pastDate)).toBe(true);
+    expect(recordTeachingSession('sc1', pastDate, 'm1')).toBe(false);
+    expect(getData().sessions).toHaveLength(1);
+
+    const snapshot = localStorage.getItem('pengajar_v4');
+    localStorage.clear();
+    localStorage.setItem('pengajar_v4', snapshot!);
+    normalizeProgressConsistency();
+    expect(getData().progress[0].materialsDone).toBe(1);
+    expect(getTeachingPosition('c1', 's1').totalSessionsDone).toBe(1);
+    vi.useRealTimers();
+  });
+
   it('markDone records a session and advances progress, while skipSession does not advance progress', () => {
     const data = baseData();
     data.schedules.push({ id: 'sc2', classId: 'c1', subjectId: 's1', days: [new Date().getDay()], startTime: '09:00', duration: 45 });
