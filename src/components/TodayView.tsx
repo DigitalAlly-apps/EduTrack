@@ -74,7 +74,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [recordSheet, setRecordSheet] = useState<{ scheduleId: string; date: string; classId: string; subjectId: string; className: string; subjectName: string } | null>(null);
   const [recordMaterialId, setRecordMaterialId] = useState('');
   const [recordMaterialCompleted, setRecordMaterialCompleted] = useState(false);
-  const [recordNote, setRecordNote] = useState('');
+  const [recordNextTopic, setRecordNextTopic] = useState('');
+  const [recordLastPage, setRecordLastPage] = useState('');
+  const [recordSupportingNote, setRecordSupportingNote] = useState('');
   const [estimateSheet, setEstimateSheet] = useState<Material | null>(null);
   const [estimateDraft, setEstimateDraft] = useState('1');
   const [finishBabConfirm, setFinishBabConfirm] = useState<{ schedule: TodayScheduleItem; material: any } | null>(null);
@@ -163,12 +165,21 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     setRecordSheet({ scheduleId: source.id, date, classId: source.classId, subjectId: source.subjectId, className: source.className, subjectName: source.subjectName });
     setRecordMaterialId(position.material?.id ?? '');
     setRecordMaterialCompleted(false);
-    setRecordNote('');
+    setRecordNextTopic('');
+    setRecordLastPage('');
+    setRecordSupportingNote('');
   }, []);
 
   const saveRecordedSession = () => {
     if (!recordSheet) return;
-    recordTeachingSession(recordSheet.scheduleId, recordSheet.date, recordMaterialId || null, recordMaterialCompleted, recordNote);
+    recordTeachingSession(
+      recordSheet.scheduleId,
+      recordSheet.date,
+      recordMaterialId || null,
+      recordMaterialCompleted,
+      composeSessionNote(recordNextTopic, recordSupportingNote),
+      recordLastPage,
+    );
     setRecordSheet(null);
     onRefresh();
     toast({ title: '✓ Pertemuan tersimpan', description: recordSheet.date === dateKey() ? 'Progres materi diperbarui.' : 'Pertemuan lama berhasil dicatat.' });
@@ -1772,7 +1783,39 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
               <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
             </label>
-            <textarea value={recordNote} onChange={e => setRecordNote(e.target.value)} className="form-input-style min-h-[68px] resize-none mb-4" placeholder="Catatan opsional..." />
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi selanjutnya</label>
+                <textarea
+                  value={recordNextTopic}
+                  onChange={e => setRecordNextTopic(e.target.value)}
+                  className="form-input-style min-h-[58px] resize-none"
+                  placeholder="Mis. Lanjut subbab adab kepada guru..."
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2" htmlFor="record-next-page">Pertemuan selanjutnya hal.</label>
+                <input
+                  id="record-next-page"
+                  type="number"
+                  min="1"
+                  value={recordLastPage}
+                  onChange={e => setRecordLastPage(e.target.value)}
+                  className="form-input-style"
+                  placeholder="Mis. 10"
+                />
+                {recordLastPage && <p className="mt-1.5 text-[11px] font-semibold text-green">→ tampil mulai hal. {getNextStartPage(recordLastPage).nextPage}</p>}
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Informasi selain materi</label>
+                <textarea
+                  value={recordSupportingNote}
+                  onChange={e => setRecordSupportingNote(e.target.value)}
+                  className="form-input-style min-h-[58px] resize-none"
+                  placeholder="Mis. Fulan belum kumpul soal, bahas PR hal. 15..."
+                />
+              </div>
+            </div>
             <button onClick={saveRecordedSession} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Pertemuan</button>
             <button onClick={() => setRecordSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
           </div>
