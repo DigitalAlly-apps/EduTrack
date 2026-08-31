@@ -1784,7 +1784,28 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
               <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
             </label>
-            <textarea value={recordNote} onChange={e => setRecordNote(e.target.value)} className="form-input-style min-h-[68px] resize-none mb-4" placeholder="Catatan opsional..." />
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-1.5">Materi selanjutnya</label>
+            <textarea value={recordNote} onChange={e => setRecordNote(e.target.value)} className="form-input-style min-h-[60px] resize-none mb-3" placeholder="Mis. Lanjut subbab adab kepada guru..." />
+
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-1.5" htmlFor="record-last-page">Pertemuan selanjutnya hal.</label>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                id="record-last-page"
+                type="number"
+                min="1"
+                value={recordLastPage}
+                onChange={e => setRecordLastPage(e.target.value)}
+                placeholder="mis. 10"
+                className="w-28 rounded-lg border border-primary/30 bg-surface px-2.5 py-2 text-[13px] font-bold focus:border-primary focus:outline-none"
+              />
+              {recordLastPage && (
+                <span className="text-[10px] font-semibold text-green">→ tampil mulai {getNextStartPage(recordLastPage).nextPage}</span>
+              )}
+            </div>
+
+            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-1.5">Informasi selain materi</label>
+            <textarea value={recordSupportingNote} onChange={e => setRecordSupportingNote(e.target.value)} className="form-input-style min-h-[60px] resize-none mb-4" placeholder="Mis. siswa belum mengumpulkan tugas atau perlu membahas PR." />
+
             <button onClick={saveRecordedSession} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Pertemuan</button>
             <button onClick={() => setRecordSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
           </div>
