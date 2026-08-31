@@ -75,6 +75,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [recordMaterialId, setRecordMaterialId] = useState('');
   const [recordMaterialCompleted, setRecordMaterialCompleted] = useState(false);
   const [recordNote, setRecordNote] = useState('');
+  const [recordSupportingNote, setRecordSupportingNote] = useState('');
+  const [recordLastPage, setRecordLastPage] = useState('');
   const [estimateSheet, setEstimateSheet] = useState<Material | null>(null);
   const [estimateDraft, setEstimateDraft] = useState('1');
   const [finishBabConfirm, setFinishBabConfirm] = useState<{ schedule: TodayScheduleItem; material: any } | null>(null);
