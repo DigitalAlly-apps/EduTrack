@@ -1766,30 +1766,41 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {recordSheet && (
         <div className="app-overlay z-[520]" onClick={() => setRecordSheet(null)}>
-          <div className="app-bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="app-sheet-handle" />
-            <div className="app-sheet-title mb-1">Catat Posisi Materi</div>
-            <p className="text-[12px] text-text2 mb-4">
-              {recordSheet.className} · {recordSheet.subjectName} · {new Date(`${recordSheet.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi yang diajarkan</label>
-            <select value={recordMaterialId} onChange={e => setRecordMaterialId(e.target.value)} className="form-select-style mb-3">
-              <option value="">Belum memilih materi</option>
-              {getMaterials(recordSheet.subjectId, recordSheet.classId).map(material => (
-                <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>
-              ))}
-            </select>
-            <label className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2 mb-3">
-              <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
-              <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
-            </label>
-            <div className="space-y-3 mb-4">
+          <div className="app-bottom-sheet !max-h-[92dvh] !overflow-hidden !p-0 flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="shrink-0 border-b border-border/70 px-5 pt-4 pb-3 bg-surface2">
+              <div className="app-sheet-handle !mb-3" />
+              <div className="app-sheet-title mb-1">Catat Posisi Materi</div>
+              <p className="text-[12px] text-text2 leading-snug">
+                {recordSheet.className} · {recordSheet.subjectName} · {new Date(`${recordSheet.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+
+            <div className="min-h-0 overflow-y-auto px-5 py-4 space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi yang diajarkan</label>
+                <select value={recordMaterialId} onChange={e => setRecordMaterialId(e.target.value)} className="form-select-style">
+                  <option value="">Belum memilih materi</option>
+                  {getMaterials(recordSheet.subjectId, recordSheet.classId).map(material => (
+                    <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
+                <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
+                <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
+              </label>
+
+              <section className="rounded-2xl border border-border2 bg-surface/50 p-3 space-y-3" aria-labelledby="next-meeting-title">
+                <div>
+                  <h3 id="next-meeting-title" className="text-[11px] font-black uppercase tracking-wide text-primary">Pertemuan berikutnya</h3>
+                  <p className="mt-0.5 text-[11px] leading-snug text-text3">Opsional — akan ditampilkan saat kelas ini berlangsung lagi.</p>
+                </div>
               <div>
                 <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi selanjutnya</label>
                 <textarea
                   value={recordNextTopic}
                   onChange={e => setRecordNextTopic(e.target.value)}
-                  className="form-input-style min-h-[58px] resize-none"
+                  className="form-input-style min-h-[52px] resize-none"
                   placeholder="Mis. Lanjut subbab adab kepada guru..."
                 />
               </div>
@@ -1811,13 +1822,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <textarea
                   value={recordSupportingNote}
                   onChange={e => setRecordSupportingNote(e.target.value)}
-                  className="form-input-style min-h-[58px] resize-none"
+                  className="form-input-style min-h-[52px] resize-none"
                   placeholder="Mis. Fulan belum kumpul soal, bahas PR hal. 15..."
                 />
               </div>
+              </section>
             </div>
-            <button onClick={saveRecordedSession} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Pertemuan</button>
-            <button onClick={() => setRecordSheet(null)} className="w-full py-3 text-text2 text-[13px] mt-1">Batal</button>
+            <div className="shrink-0 border-t border-border/70 bg-surface2 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+              <button onClick={saveRecordedSession} className="btn-primary-style bg-primary text-primary-foreground font-bold">Simpan Pertemuan</button>
+              <button onClick={() => setRecordSheet(null)} className="w-full py-2.5 text-text2 text-[13px] mt-1">Batal</button>
+            </div>
           </div>
         </div>
       )}
