@@ -166,15 +166,25 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     setRecordMaterialId(position.material?.id ?? '');
     setRecordMaterialCompleted(false);
     setRecordNote('');
+    setRecordSupportingNote('');
+    setRecordLastPage('');
   }, []);
 
   const saveRecordedSession = () => {
     if (!recordSheet) return;
-    recordTeachingSession(recordSheet.scheduleId, recordSheet.date, recordMaterialId || null, recordMaterialCompleted, recordNote);
+    recordTeachingSession(
+      recordSheet.scheduleId,
+      recordSheet.date,
+      recordMaterialId || null,
+      recordMaterialCompleted,
+      composeSessionNote(recordNote, recordSupportingNote),
+      recordLastPage.trim() || undefined,
+    );
     setRecordSheet(null);
     onRefresh();
     toast({ title: '✓ Pertemuan tersimpan', description: recordSheet.date === dateKey() ? 'Progres materi diperbarui.' : 'Pertemuan lama berhasil dicatat.' });
   };
+
 
   const handleHeroDone = useCallback((id: string) => {
     const item = items.find(x => x.id === id);
