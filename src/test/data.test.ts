@@ -851,7 +851,7 @@ describe('exam period bulk assignment', () => {
   });
 });
 
-import { getLastPageReached, getNextStartPage, updateSessionNote } from '@/lib/data';
+import { getLastPageReached, getNextStartPage, markDone, updateSessionNote } from '@/lib/data';
 
 describe('lastPageReached feature', () => {
   it('getLastPageReached — returns null when no session has lastPageReached', () => {

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { getData, now, getTeacherStreak } from '@/lib/data';
 import InfoView from '@/components/InfoView';
 import { Info, Moon, Sun } from 'lucide-react';
@@ -20,7 +19,6 @@ interface HeaderProps {
 }
 
 export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user, onOpenSync }: HeaderProps) {
-  const [infoOpen, setInfoOpen] = useState(false);
   const data = getData();
   const rawName = data.teacherName || 'Guru';
   // Hapus gelar akademik (S.H, M.Pd, S.Pd, dll) untuk header
@@ -82,7 +80,7 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
             </span>
           </button>
 
-          <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+          <Dialog>
             <DialogTrigger asChild>
               <button className="app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm" aria-label="Buka panduan EduTrack">
                 <Info className="h-4 w-4" />
@@ -100,7 +98,7 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
                 </DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-6 scrollbar-thin">
-                <InfoView onBackToSetup={() => setInfoOpen(false)} />
+                <InfoView />
               </div>
             </DialogContent>
           </Dialog>
