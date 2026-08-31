@@ -98,7 +98,7 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
                 </DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-6 scrollbar-thin">
-                <InfoView />
+                <InfoView onBackToSetup={() => setInfoOpen(false)} />
               </div>
             </DialogContent>
           </Dialog>

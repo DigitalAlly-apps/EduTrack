@@ -56,6 +56,7 @@ export type MaterialDetails = {
 export type MaterialDraft = MaterialDetails & {
   name: string;
   sessions?: number;
+  examPeriod?: 'UTS' | 'UAS' | null;
 };
 
 function cleanOptionalText(value: string | undefined) {
@@ -301,7 +302,7 @@ function getMaterialForSession(mats: import('./types').Material[], sessionsDone:
 
 export function getTeachingPosition(classId: string, subjectId: string, data: AppData = getData()) {
   const mats = getMaterialsFromData(data, subjectId, classId);
-  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0, completedMaterialIds: [] as string[] };
   const totalSessionsAll = getTotalSessionsNeeded(mats);
   const hasExplicitCompletion = Boolean(prog.completedMaterialIds?.length || data.sessions.some(s => s.classId === classId && s.subjectId === subjectId && s.materialCompleted));
   if (hasExplicitCompletion) {
@@ -385,7 +386,7 @@ export function getTodaySchedules(): TodayScheduleItem[] {
   const buildItem = (s: Schedule, override?: NonNullable<AppData['scheduleOverrides']>[number]): TodayScheduleItem | null => {
     const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
     const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
+    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0, completedMaterialIds: [] as string[] };
     const mats = getMaterialsFromData(data, s.subjectId, s.classId);
     const { material } = getMaterialForSession(mats, prog.materialsDone);
 
@@ -458,7 +459,7 @@ export function getTomorrowKbmSchedules(): TodayScheduleItem[] {
   const buildItem = (s: Schedule, override?: NonNullable<AppData['scheduleOverrides']>[number]): TodayScheduleItem | null => {
     const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
     const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0 };
+    const prog = data.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId) || { materialsDone: 0, completedMaterialIds: [] as string[] };
     const mats = getMaterialsFromData(data, s.subjectId, s.classId);
     const { material } = getMaterialForSession(mats, prog.materialsDone);
 
@@ -635,7 +636,7 @@ export function getInsights(): Insight[] {
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (sched.length === 0) return;
 
-      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0, completedMaterialIds: [] as string[] };
       const totalSess = getTotalSessionsNeeded(mats);
       const remainingSess = totalSess - prog.materialsDone;
       if (remainingSess <= 0) return;
@@ -692,7 +693,7 @@ export function getNextScheduleForClass(classId: string, subjectId: string) {
 export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): SubjectStatus {
   const allMats = getMaterials(sub.id, cls.id);
   if (!allMats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
-  const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+  const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0, completedMaterialIds: [] as string[] };
 
   // ── Tentukan deadline & set materi berdasarkan fase UTS/UAS ──────────────────
   let effectiveDeadline: string | null = null;
@@ -1879,7 +1880,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       if (!effectiveDeadline) return;
 
-      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0, completedMaterialIds: [] as string[] };
       const totalSessNeeded = getTotalSessionsNeeded(mats);
       const remainingSess = Math.max(0, totalSessNeeded - prog.materialsDone);
       const daysToExam = daysUntilDateKey(effectiveDeadline);
@@ -1958,7 +1959,7 @@ export function getExamPrepItems(): ExamPrepItem[] {
       const daysToExam = Math.ceil((dateFromKey(effectiveDeadline).getTime() - today.getTime()) / 864e5);
       if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
 
-      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
+      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0, completedMaterialIds: [] as string[] };
       const totalSess = getTotalSessionsNeeded(mats);
       const remainingSess = Math.max(0, totalSess - prog.materialsDone);
       const progressPct = totalSess > 0 ? Math.round((prog.materialsDone / totalSess) * 100) : 100;
@@ -2035,7 +2036,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
   const mats = getMaterials(subjectId, classId);
   if (!mats.length) return null;
 
-  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0, completedMaterialIds: [] as string[] };
   const totalSess = getTotalSessionsNeeded(mats);
   const doneSess = prog.materialsDone;
   const remainingSess = totalSess - doneSess;
