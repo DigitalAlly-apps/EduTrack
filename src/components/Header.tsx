@@ -80,7 +80,7 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
             </span>
           </button>
 
-          <Dialog>
+          <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
             <DialogTrigger asChild>
               <button className="app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm" aria-label="Buka panduan EduTrack">
                 <Info className="h-4 w-4" />
