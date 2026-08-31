@@ -590,21 +590,25 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                             />
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">📄</span>
-                            <label className="text-[11px] font-bold text-primary" htmlFor={`last-page-${it.id}`}>Halaman pertemuan berikutnya</label>
-                            <input
-                              id={`last-page-${it.id}`}
-                              type="number"
-                              min="1"
-                              value={lastPageDraft}
-                              onChange={e => setLastPageDraft(e.target.value)}
-                              placeholder="mis. 10"
-                              className="w-24 rounded-lg border border-primary/30 bg-surface px-2.5 py-1 text-[13px] font-bold focus:border-primary focus:outline-none"
-                            />
-                            {lastPageDraft && (
-                              <span className="text-[10px] font-semibold text-green">→ tampil mulai {getNextStartPage(lastPageDraft).nextPage}</span>
-                            )}
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-[11px] font-bold text-primary" htmlFor={`last-page-${it.id}`}>
+                              <span className="text-base" aria-hidden="true">📄</span>
+                              Halaman pertemuan berikutnya
+                            </label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input
+                                id={`last-page-${it.id}`}
+                                type="number"
+                                min="1"
+                                value={lastPageDraft}
+                                onChange={e => setLastPageDraft(e.target.value)}
+                                placeholder="mis. 10"
+                                className="w-full sm:w-24 rounded-lg border border-primary/30 bg-surface px-2.5 py-1 text-[13px] font-bold focus:border-primary focus:outline-none"
+                              />
+                              {lastPageDraft && (
+                                <span className="min-w-0 text-[10px] font-semibold text-green">→ tampil mulai {getNextStartPage(lastPageDraft).nextPage}</span>
+                              )}
+                            </div>
                           </div>
 
                           <div>
@@ -1411,22 +1415,27 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   />
                   
                   {/* Input halaman untuk pertemuan berikutnya */}
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <span className="text-base flex-shrink-0">📄</span>
-                    <span className="text-[11px] font-bold text-primary flex-shrink-0">Hal. pertemuan berikutnya:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={lastPageDraft}
-                      onChange={e => setLastPageDraft(e.target.value)}
-                      placeholder="mis. 10"
-                      className="w-24 bg-surface border border-primary/30 rounded-lg px-2.5 py-1 text-[13px] font-bold text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
-                    />
-                    {lastPageDraft && (
-                      <span className="text-[11px] text-green font-semibold">
-                        → minggu depan mulai hal. {getNextStartPage(lastPageDraft).nextPage}
-                      </span>
-                    )}
+                  <div className="mt-2.5 space-y-1.5">
+                    <label className="flex items-center gap-2 text-[11px] font-bold text-primary" htmlFor={`next-page-${item.id}`}>
+                      <span className="text-base" aria-hidden="true">📄</span>
+                      Halaman pertemuan berikutnya
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        id={`next-page-${item.id}`}
+                        type="number"
+                        min="1"
+                        value={lastPageDraft}
+                        onChange={e => setLastPageDraft(e.target.value)}
+                        placeholder="mis. 10"
+                        className="w-full sm:w-24 bg-surface border border-primary/30 rounded-lg px-2.5 py-1 text-[13px] font-bold text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
+                      />
+                      {lastPageDraft && (
+                        <span className="min-w-0 text-[11px] text-green font-semibold">
+                          → minggu depan mulai hal. {getNextStartPage(lastPageDraft).nextPage}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Reminder Pertemuan Depan */}
