@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getData, now, getTeacherStreak } from '@/lib/data';
 import InfoView from '@/components/InfoView';
 import { Info, Moon, Sun } from 'lucide-react';
@@ -19,6 +20,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user, onOpenSync }: HeaderProps) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const data = getData();
   const rawName = data.teacherName || 'Guru';
   // Hapus gelar akademik (S.H, M.Pd, S.Pd, dll) untuk header
