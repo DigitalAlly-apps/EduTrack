@@ -8,7 +8,7 @@ import {
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
   recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted,
 } from '@/lib/data';
-import { TodayScheduleItem, MissingTeachingSession } from '@/lib/types';
+import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import SmartReschedulerModal from './SmartReschedulerModal';
 import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
