@@ -56,6 +56,7 @@ export type MaterialDetails = {
 export type MaterialDraft = MaterialDetails & {
   name: string;
   sessions?: number;
+  examPeriod?: 'UTS' | 'UAS' | null;
 };
 
 function cleanOptionalText(value: string | undefined) {
@@ -301,7 +302,7 @@ function getMaterialForSession(mats: import('./types').Material[], sessionsDone:
 
 export function getTeachingPosition(classId: string, subjectId: string, data: AppData = getData()) {
   const mats = getMaterialsFromData(data, subjectId, classId);
-  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
+  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0, completedMaterialIds: [] as string[] };
   const totalSessionsAll = getTotalSessionsNeeded(mats);
   const hasExplicitCompletion = Boolean(prog.completedMaterialIds?.length || data.sessions.some(s => s.classId === classId && s.subjectId === subjectId && s.materialCompleted));
   if (hasExplicitCompletion) {

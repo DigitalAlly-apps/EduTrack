@@ -1,4 +1,5 @@
-import { Suspense, lazy, useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Suspense, lazy, useState, useCallback, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { ViewType } from '@/lib/types';
@@ -6,7 +7,7 @@ import { getData, loadDemo, pruneOldSessions, now } from '@/lib/data';
 import { normalizeProgressConsistency } from '@/lib/progressConsistency';
 import { initNotifications } from '@/lib/notifications';
 import InfoView from '@/components/InfoView';
-import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Moon, Sun } from 'lucide-react';
+import { CalendarCheck2, ChartNoAxesCombined, ClipboardList, SlidersHorizontal, Moon, Sun, GraduationCap, Cloud, Info } from 'lucide-react';
 import { supabase, type SupabaseUser } from '@/lib/supabase';
 import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime, REMOTE_SYNC_EVENT } from '@/lib/supabaseSync';
 import SyncModal from '@/components/SyncModal';
@@ -27,7 +28,7 @@ const isAppView = (value: string | null): value is AppView =>
 
 const desktopNavItems: { id: AppView; icon: React.ElementType; label: string; desc: string }[] = [
   { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Jurnal KBM harian' },
-  { id: 'progress', icon: ChartNoAxesCombined, label: 'Kendali',   desc: 'Pantau progres & risiko' },
+  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Pantau progres & risiko' },
   { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Jadwal & pengawasan' },
   { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola', desc: 'Kelas, jadwal & data' },
 ];
@@ -43,16 +44,30 @@ function ViewFallback() {
 }
 
 function AppInner() {
-  const [view, setView] = useState<AppView>(() => {
-    const viewParam = new URLSearchParams(window.location.search).get('view');
-    return isAppView(viewParam) ? viewParam : 'today';
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const view: AppView = isAppView(requestedView) ? requestedView : 'today';
+  const setView = useCallback((next: AppView) => {
+    setSearchParams(previous => {
+      const params = new URLSearchParams(previous);
+      params.set('view', next);
+      return params;
+    });
+  }, [setSearchParams]);
+  const contentRef = useRef<HTMLElement>(null);
+  const previousView = useRef(view);
+  useEffect(() => {
+    if (previousView.current === view) return;
+    contentRef.current?.scrollTo({ top: 0 });
+    contentRef.current?.focus({ preventScroll: true });
+    previousView.current = view;
+  }, [view]);
   const [examTab, setExamTab] = useState<ExamTab>('agenda');
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'connected' | 'syncing' | 'offline'>('idle');
   const { toast } = useToast();
@@ -155,7 +170,8 @@ function AppInner() {
   // Listen for custom nav events (from LandingPage footer, AuthModal links)
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as AppView;
+      const detail = (e as CustomEvent).detail;
+      if (!isAppView(detail)) return;
       normalizeProgressConsistency();
       setExamTab('agenda');
       setView(detail);
@@ -167,7 +183,7 @@ function AppInner() {
       window.removeEventListener('edutrack-nav', handler);
       window.removeEventListener('set-tab', handler);
     };
-  }, []);
+  }, [setView]);
 
   const handleViewChange = (v: ViewType) => {
     normalizeProgressConsistency();
@@ -201,9 +217,8 @@ function AppInner() {
 
   // ── Main App Shell ─────────────────────────────────────────────────────────
   return (
-    <div className="app-frame max-w-[430px] mx-auto h-dvh min-h-svh flex flex-col overflow-hidden relative shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:my-3 sm:rounded-[36px] sm:border sm:border-border/70 lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[280px_1fr]">
-      <div className="absolute inset-x-6 top-0 h-24 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute -right-10 top-32 h-40 w-40 rounded-full bg-teal/10 blur-3xl pointer-events-none" />
+    <div className="app-frame w-full mx-auto h-dvh flex flex-col overflow-hidden relative lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[256px_1fr]">
+      <a href="#main-content" className="skip-link">Langsung ke konten</a>
 
       {/* ── DESKTOP SIDEBAR (Visible only on lg: screens) ── */}
       <aside className="hidden lg:flex flex-col justify-between p-6 border-r border-border/60 bg-surface/30 backdrop-blur-xl relative z-20 overflow-y-auto">
@@ -211,23 +226,23 @@ function AppInner() {
           {/* Brand Header */}
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-teal flex items-center justify-center text-primary-foreground font-black text-xl shadow-primary">
-              🎓
+              <GraduationCap aria-hidden="true" className="h-6 w-6" />
             </div>
             <div>
               <div className="font-display font-bold text-xl leading-none text-foreground">EduTrack</div>
-              <div className="text-[11px] text-text3 font-semibold mt-1">Pelacak KBM & Agenda</div>
+              <div className="text-xs text-text3 font-semibold mt-1">Pelacak KBM & Agenda</div>
             </div>
           </div>
 
           {/* Teacher info card */}
           <div className="glass-panel p-3.5 rounded-2xl border-border/60">
-            <div className="text-[10px] font-black uppercase text-primary tracking-wider mb-1">
+            <div className="text-xs font-black uppercase text-primary tracking-wider mb-1">
               {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
             </div>
             <div className="font-display font-bold text-base text-foreground truncate">
               {teacherName}
             </div>
-            <div className="text-[11px] text-text3 mt-1 flex items-center gap-2">
+            <div className="text-xs text-text3 mt-1 flex items-center gap-2">
               <span>{teacherData.classes.length} Kelas Aktif</span>
               <span className="opacity-40">•</span>
               <span>{teacherData.subjects.length} Mapel</span>
@@ -244,12 +259,12 @@ function AppInner() {
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-lg flex-shrink-0">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
+              <Cloud aria-hidden="true" className="h-5 w-5 flex-shrink-0" />
               <div className="min-w-0">
                 <div className="text-[12px] font-bold leading-tight truncate">
                   {syncStatus === 'connected' ? 'Sinkronisasi aktif' : 'Hubungkan perangkat'}
                 </div>
-                <div className="text-[10px] text-text3 truncate">
+                <div className="text-xs text-text3 truncate">
                   {user ? user.email : 'Masuk dengan Google'}
                 </div>
               </div>
@@ -258,7 +273,7 @@ function AppInner() {
 
           {/* Nav Menu */}
           <nav className="space-y-1.5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-2 mb-2">Navigasi Utama</div>
+            <div className="text-xs font-black uppercase tracking-widest text-text3 px-2 mb-2">Navigasi Utama</div>
             {desktopNavItems.map(item => {
               const Icon = item.icon;
               const isActive = view === item.id || (view === 'info' && item.id === 'setup');
@@ -266,16 +281,17 @@ function AppInner() {
                 <button
                   key={item.id}
                   onClick={() => handleViewChange(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-left transition-all duration-200 ${
                     isActive
-                      ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20 scale-[1.02]'
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
                       : 'text-text2 hover:text-foreground hover:bg-surface2/60 font-semibold'
                   }`}
                 >
                   <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-text3'}`} />
                   <div className="min-w-0">
                     <div className="text-[13px] leading-tight">{item.label}</div>
-                    <div className={`text-[10px] truncate ${isActive ? 'text-primary-foreground/80' : 'text-text3'}`}>{item.desc}</div>
+                    <div className={`text-xs truncate ${isActive ? 'text-primary-foreground/80' : 'text-text3'}`}>{item.desc}</div>
                   </div>
                 </button>
               );
@@ -285,13 +301,13 @@ function AppInner() {
 
         {/* Sidebar Bottom Controls */}
         <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-          <div className="text-[11px] font-medium text-text3">EduTrack v4.0</div>
+          <div className="text-xs font-medium text-text3">EduTrack v4.0</div>
           <button
             onClick={toggleTheme}
-            className="w-9 h-9 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-text2 hover:text-foreground transition-all"
-            title="Ganti Tema"
+            className="w-11 h-11 rounded-xl bg-surface2 border border-border2 flex items-center justify-center text-text2 hover:text-foreground transition-all"
+            aria-label={theme === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'}
           >
-            {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         </div>
       </aside>
@@ -313,21 +329,21 @@ function AppInner() {
         <header className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-border/50 bg-surface/40 backdrop-blur-xl flex-shrink-0 relative z-20">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xl shadow-inner flex-shrink-0">
-              {view === 'today' && '📅'}
-              {view === 'progress' && '📈'}
-              {view === 'exam' && '📋'}
-              {view === 'setup' && '⚙️'}
-              {view === 'info' && 'ℹ️'}
+              {view === 'today' && <CalendarCheck2 aria-hidden="true" className="h-5 w-5" />}
+              {view === 'progress' && <ChartNoAxesCombined aria-hidden="true" className="h-5 w-5" />}
+              {view === 'exam' && <ClipboardList aria-hidden="true" className="h-5 w-5" />}
+              {view === 'setup' && <SlidersHorizontal aria-hidden="true" className="h-5 w-5" />}
+              {view === 'info' && <Info aria-hidden="true" className="h-5 w-5" />}
             </div>
             <div>
               <h1 className="font-display font-black text-xl text-foreground tracking-tight leading-tight">
                 {view === 'today' && 'Jurnal KBM Hari Ini'}
-                {view === 'progress' && 'Kendali Pembelajaran'}
+                {view === 'progress' && 'Progres Pembelajaran'}
                 {view === 'exam' && 'Jadwal & Pengawasan Ujian'}
                 {view === 'setup' && 'Kelola EduTrack'}
                 {view === 'info' && 'Tentang EduTrack'}
               </h1>
-              <p className="text-[11px] text-text3 font-semibold mt-0.5">
+              <p className="text-xs text-text3 font-semibold mt-0.5">
                 {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
             </div>
@@ -342,23 +358,27 @@ function AppInner() {
                   : 'bg-surface2/60 border-border text-text2 hover:border-primary/40'
               }`}
             >
-              <span className="text-base">{syncStatus === 'connected' ? '🟢' : '☁️'}</span>
+              <Cloud aria-hidden="true" className="h-4 w-4" />
               <span>{syncStatus === 'connected' ? (user?.email || 'Tersambung') : 'Hubungkan perangkat'}</span>
             </button>
 
             <button
               onClick={toggleTheme}
-              className="w-10 h-10 rounded-2xl bg-surface2 border border-border flex items-center justify-center text-text2 hover:text-foreground transition-all shadow-sm"
-              title="Ganti Tema"
+              className="w-11 h-11 rounded-2xl bg-surface2 border border-border flex items-center justify-center text-text2 hover:text-foreground transition-all shadow-sm"
+              aria-label={theme === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'}
             >
-              {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
         </header>
 
         {/* Content view container. Jangan buat stacking-context sendiri: modal view harus bisa mengalahkan floating nav. */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
-          <div className="max-w-7xl mx-auto w-full">
+        <main id="main-content" ref={contentRef} tabIndex={-1} aria-label={desktopNavItems.find(item => item.id === view)?.label || 'Panduan'} className="app-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
+          <div className="max-w-5xl mx-auto w-full">
+            <div className="lg:hidden mb-5">
+              <h1 className="font-display text-2xl font-bold">{desktopNavItems.find(item => item.id === view)?.label || 'Panduan'}</h1>
+              <p className="text-sm text-text2 mt-1">{desktopNavItems.find(item => item.id === view)?.desc || 'Kenali fitur dan cara menggunakan EduTrack.'}</p>
+            </div>
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
               {view === 'progress' && <ProgressView key={refreshKey} />}
@@ -367,7 +387,7 @@ function AppInner() {
               {view === 'info'     && <InfoView onBackToSetup={returnToSetup} />}
             </Suspense>
           </div>
-        </div>
+        </main>
 
         {/* Mobile Bottom Navigation (Hidden on lg:) */}
         <div className="lg:hidden">

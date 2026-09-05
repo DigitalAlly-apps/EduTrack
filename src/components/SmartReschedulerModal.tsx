@@ -78,9 +78,9 @@ export default function SmartReschedulerModal({ open, onOpenChange, dateStr, onS
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <div className="text-[13px] font-bold text-foreground">{className} • {subjectName}</div>
-                      <div className="text-[11px] text-text3 mt-0.5 flex items-center gap-1"><Clock3 className="h-3 w-3" /> {time}</div>
+                      <div className="text-xs text-text3 mt-0.5 flex items-center gap-1"><Clock3 className="h-3 w-3" /> {time}</div>
                     </div>
-                    <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded text-nowrap">{s.reason}</span>
+                    <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded text-nowrap">{s.reason}</span>
                   </div>
 
                   <select

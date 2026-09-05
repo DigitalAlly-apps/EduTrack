@@ -90,7 +90,7 @@ export default function SyncModal({ open, onClose, onRefresh, syncStatus, user, 
           <div>
             <div className={`text-[12px] font-bold ${statusConfig.color}`}>{statusConfig.label}</div>
             {user && (
-              <div className="text-[11px] text-text3 mt-0.5">{user.email}</div>
+              <div className="text-xs text-text3 mt-0.5">{user.email}</div>
             )}
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function SyncModal({ open, onClose, onRefresh, syncStatus, user, 
               {loading ? 'Mengalihkan...' : 'Masuk dengan Google'}
             </button>
 
-            <p className="text-[11px] text-text3 text-center leading-relaxed">
+            <p className="text-xs text-text3 text-center leading-relaxed">
               Data Anda yang sudah ada di perangkat ini akan tetap aman dan otomatis diunggah ke akun Anda setelah masuk.
             </p>
           </div>
@@ -127,7 +127,7 @@ export default function SyncModal({ open, onClose, onRefresh, syncStatus, user, 
               )}
               <div className="min-w-0">
                 <div className="font-bold text-[14px] text-foreground truncate">{user.name || 'Pengguna'}</div>
-                <div className="text-[11px] text-text3 truncate">{user.email}</div>
+                <div className="text-xs text-text3 truncate">{user.email}</div>
               </div>
             </div>
 
@@ -141,7 +141,7 @@ export default function SyncModal({ open, onClose, onRefresh, syncStatus, user, 
               {loading ? 'Menyinkronkan...' : 'Kirim Data Lokal ke Cloud Sekarang'}
             </button>
 
-            <div className="text-[11px] text-text3 leading-relaxed p-3 rounded-xl bg-surface2/50 border border-border">
+            <div className="text-xs text-text3 leading-relaxed p-3 rounded-xl bg-surface2/50 border border-border">
               💡 <span className="font-bold text-foreground">Cara pakai di perangkat lain:</span><br />
               Buka EduTrack di Laptop, klik ikon ☁️, lalu masuk dengan akun Google yang sama. Data akan otomatis tersinkron!
             </div>

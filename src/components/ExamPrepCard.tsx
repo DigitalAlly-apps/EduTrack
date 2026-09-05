@@ -21,14 +21,14 @@ export default function ExamPrepCard({ items }: ExamPrepCardProps) {
           </div>
           <div className="flex gap-1.5">
             {criticalCount > 0 && (
-              <span className="text-[9px] font-bold bg-red text-white px-2 py-0.5 rounded-full">{criticalCount} Critical</span>
+              <span className="text-xs font-bold bg-red text-white px-2 py-0.5 rounded-full">{criticalCount} Critical</span>
             )}
             {warningCount > 0 && (
-              <span className="text-[9px] font-bold bg-amber text-white px-2 py-0.5 rounded-full">{warningCount} Warning</span>
+              <span className="text-xs font-bold bg-amber text-white px-2 py-0.5 rounded-full">{warningCount} Warning</span>
             )}
           </div>
         </div>
-        <div className="text-[11px] text-text2">
+        <div className="text-xs text-text2">
           {items.length} ujian mendatang. Fokus pada materi yang belum siap.
         </div>
       </div>
@@ -50,12 +50,12 @@ export default function ExamPrepCard({ items }: ExamPrepCardProps) {
                 <div className="text-[12px] font-bold text-foreground">
                   {item.className} • {item.subjectName}
                 </div>
-                <div className="text-[10px] text-text3 mt-0.5">
+                <div className="text-xs text-text3 mt-0.5">
                   Ujian dalam {item.daysLeft} hari • {item.progressPct}% selesai
                 </div>
               </div>
               <div
-                className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase flex items-center gap-1 ${
+                className={`text-xs font-bold px-2 py-1 rounded-full uppercase flex items-center gap-1 ${
                   item.status === 'critical'
                     ? 'bg-red text-white'
                     : item.status === 'warning'
@@ -83,7 +83,7 @@ export default function ExamPrepCard({ items }: ExamPrepCardProps) {
               <div className="space-y-1">
                 {item.recommendedActions.map((action, i) => {
                   return (
-                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-text2">
+                    <div key={i} className="flex items-start gap-1.5 text-xs text-text2">
                       <Target className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber" />
                       <span>{action}</span>
                     </div>

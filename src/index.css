@@ -6,9 +6,9 @@
 
 @layer base {
   :root {
-    --background: 235 28% 7%;
-    --bg2: 242 34% 4%;
-    --foreground: 44 45% 94%;
+    --background: 222 28% 9%;
+    --bg2: 222 28% 9%;
+    --foreground: 210 25% 95%;
     --card: 235 24% 10%;
     --card-foreground: 44 45% 94%;
     --popover: 235 24% 10%;
@@ -23,7 +23,7 @@
     --secondary: 234 22% 13%;
     --secondary-foreground: 44 45% 94%;
     --muted: 234 22% 13%;
-    --muted-foreground: 40 12% 62%;
+    --muted-foreground: 215 13% 68%;
     --accent: 205 78% 58%;
     --accent-foreground: 235 34% 8%;
     --destructive: 356 82% 66%;
@@ -36,12 +36,12 @@
     --ring: 188 58% 48%;
     --radius: 1rem;
     
-    --surface: 235 24% 12% / 0.72;
-    --surface2: 235 22% 15% / 0.82;
-    --surface3: 235 18% 20% / 0.9;
+    --surface: 222 23% 13%;
+    --surface2: 222 22% 16%;
+    --surface3: 222 20% 21%;
     
-    --text2: 40 16% 72%;
-    --text3: 38 10% 52%;
+    --text2: 215 16% 78%;
+    --text3: 215 13% 68%;
     
     --teal: 172 50% 52%;
     --teal-dim: 172 50% 52% / 0.13;
@@ -55,7 +55,7 @@
     
     --nav-bg: 235 24% 9% / 0.78;
     --header-bg: 235 26% 8% / 0.78;
-    --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.16);
     --nav-h: 68px;
 
     --sidebar-background: 0 0% 98%;
@@ -69,12 +69,12 @@
   }
 
   .light {
-    --background: 38 70% 96%;
-    --bg2: 33 78% 92%;
+    --background: 210 25% 97%;
+    --bg2: 210 25% 97%;
     --foreground: 236 35% 13%;
-    --card: 35 80% 98%;
+    --card: 0 0% 100%;
     --card-foreground: 236 35% 13%;
-    --popover: 35 80% 98%;
+    --popover: 0 0% 100%;
     --popover-foreground: 236 35% 13%;
     
     --primary: 190 64% 36%;
@@ -83,41 +83,41 @@
     --primary-glow: 190 64% 36% / 0.10;
     --primary-border: 190 64% 36% / 0.20;
     
-    --secondary: 35 55% 91%;
+    --secondary: 210 22% 94%;
     --secondary-foreground: 236 35% 13%;
-    --muted: 35 55% 91%;
+    --muted: 210 22% 94%;
     --muted-foreground: 236 12% 44%;
     --accent: 198 80% 47%;
     --accent-foreground: 35 80% 98%;
     --destructive: 0 80% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 31 40% 84%;
-    --border2: 31 38% 78%;
-    --border3: 31 34% 70%;
-    --input: 31 40% 84%;
+    --border: 214 22% 87%;
+    --border2: 214 18% 78%;
+    --border3: 214 16% 65%;
+    --input: 214 18% 78%;
     --ring: 190 64% 36%;
     
-    --surface: 35 80% 99% / 0.84;
-    --surface2: 34 67% 96% / 0.92;
-    --surface3: 32 56% 90% / 0.96;
+    --surface: 0 0% 100%;
+    --surface2: 210 25% 96%;
+    --surface3: 210 22% 92%;
     
     --text2: 236 14% 38%;
-    --text3: 236 10% 54%;
+    --text3: 215 15% 43%;
     
-    --teal: 176 48% 38%;
+    --teal: 176 60% 29%;
     --teal-dim: 176 48% 38% / 0.1;
     --teal-glow: 176 48% 38% / 0.12;
     --teal-border: 176 48% 38% / 0.18;
     
-    --green: 150 60% 40%;
+    --green: 150 65% 29%;
     --green-dim: 150 60% 40% / 0.08;
-    --amber: 36 70% 45%;
-    --red: 0 80% 60%;
+    --amber: 32 85% 32%;
+    --red: 0 70% 44%;
     
-    --nav-bg: 35 80% 98% / 0.82;
-    --header-bg: 35 80% 98% / 0.78;
-    --shadow: 0 18px 48px rgba(80, 50, 30, 0.12);
+    --nav-bg: 0 0% 100% / 0.97;
+    --header-bg: 0 0% 100% / 0.97;
+    --shadow: 0 4px 20px rgba(30, 50, 70, 0.05);
   }
 }
 
@@ -133,11 +133,9 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    background:
-      radial-gradient(circle at 18% -8%, hsl(var(--primary-glow)) 0, transparent 34%),
-      radial-gradient(circle at 92% 12%, hsl(var(--teal-glow)) 0, transparent 30%),
-      linear-gradient(145deg, hsl(var(--background)), hsl(var(--bg2)) 70%);
+    touch-action: manipulation;
+    background: hsl(var(--background));
+    line-height: 1.6;
   }
   html {
     overflow-x: hidden;
@@ -148,7 +146,7 @@
     overflow-x: hidden;
   }
   ::-webkit-scrollbar {
-    width: 2px;
+    width: 6px;
   }
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border2));
@@ -159,29 +157,10 @@
 @layer utilities {
   .font-display {
     font-family: 'Space Grotesk', sans-serif;
-    letter-spacing: -0.045em;
+    letter-spacing: -0.025em;
   }
 
-  .app-frame {
-    background:
-      linear-gradient(180deg, hsl(var(--surface)) 0%, transparent 28%),
-      radial-gradient(circle at 12% 8%, hsl(var(--primary-dim)) 0, transparent 34%),
-      radial-gradient(circle at 88% 26%, hsl(var(--teal-dim)) 0, transparent 38%),
-      hsl(var(--background));
-  }
-
-  .app-frame::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.34;
-    background-image:
-      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
-    background-size: 26px 26px;
-    mask-image: linear-gradient(to bottom, black, transparent 70%);
-  }
+  .app-frame { background: hsl(var(--background)); }
 
   .glass-panel {
     background: hsl(var(--surface));
@@ -275,7 +254,7 @@
 
 /* Shared form styles */
 .form-input-style {
-  @apply w-full bg-surface border border-border2 rounded-2xl px-[14px] py-[13px] text-sm transition-all min-h-[48px];
+  @apply w-full bg-surface border border-border2 rounded-2xl px-[14px] py-[13px] text-base transition-colors min-h-[48px];
 }
 .form-input-style:focus {
   border-color: hsl(var(--primary));
@@ -283,7 +262,7 @@
   box-shadow: 0 0 0 3px hsl(var(--primary-dim));
 }
 .form-select-style {
-  @apply w-full bg-surface border border-border2 rounded-2xl px-[14px] py-[13px] text-sm appearance-none cursor-pointer min-h-[48px] transition-all;
+  @apply w-full bg-surface border border-border2 rounded-2xl px-[14px] py-[13px] text-base appearance-none cursor-pointer min-h-[48px] transition-all;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237A8899' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
@@ -298,7 +277,7 @@
 }
 .btn-primary-style {
   @apply w-full py-[14px] rounded-2xl text-sm font-extrabold transition-all min-h-[48px];
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--teal)));
+  background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   box-shadow: 0 12px 28px hsl(var(--primary-glow));
 }
@@ -323,7 +302,7 @@
   border-color: hsl(var(--border2));
 }
 .app-section-title {
-  @apply text-[11px] font-black uppercase tracking-[0.16em] text-text3 px-1;
+  @apply text-xs font-bold tracking-wide text-text3 px-1;
 }
 .app-icon-button {
   @apply rounded-2xl bg-surface2 border border-border2 text-text2 grid place-items-center transition-all active:scale-95;
@@ -355,4 +334,30 @@
 }
 .data-btn-style:hover {
   border-color: hsl(var(--border3));
+}
+
+/* Shared interaction rules keep every view readable and keyboard accessible. */
+@layer base {
+  :root { color-scheme: dark; }
+  .light { color-scheme: light; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button { touch-action: manipulation; }
+  button:disabled { cursor: not-allowed; opacity: .55; }
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+  input, select, textarea { scroll-margin-block: 24px; }
+}
+.app-content { scroll-padding-block: 24px 110px; }
+.app-icon-button { min-width: 44px; min-height: 44px; }
+.app-bottom-sheet { background: hsl(var(--card)); }
+.skip-link { position: fixed; top: 12px; left: 12px; z-index: 1000; transform: translateY(-160%); padding: 12px 20px; border-radius: 12px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.skip-link:focus { transform: translateY(0); }
+@media (min-width: 640px) {
+  .app-overlay { align-items: center; padding: 24px; }
+  .app-bottom-sheet { max-width: 520px; border-radius: 24px; padding-bottom: 24px; border: 1px solid hsl(var(--border)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

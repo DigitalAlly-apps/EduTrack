@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { getData, now, getTeacherStreak } from '@/lib/data';
 import InfoView from '@/components/InfoView';
-import { Info, Moon, Sun } from 'lucide-react';
+import { Info, Moon, Sun, Cloud, CloudOff, LoaderCircle, BookOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user, onOpenSync }: HeaderProps) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const data = getData();
   const rawName = data.teacherName || 'Guru';
   // Hapus gelar akademik (S.H, M.Pd, S.Pd, dll) untuk header
@@ -34,20 +36,20 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
   const streak = getTeacherStreak();
 
   return (
-    <div className="flex-shrink-0 px-4 pt-4 pb-3 sticky top-0 z-40 transition-all">
-      <div className="glass-panel rounded-3xl px-4 py-3 flex items-center justify-between overflow-hidden relative">
-        <div className="absolute -left-8 -top-10 h-24 w-24 rounded-full bg-primary/15 blur-2xl pointer-events-none" />
+    <div className="flex-shrink-0 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 sticky top-0 z-40 transition-all">
+      <div className="flex flex-col gap-4 border-b border-border pb-4 relative">
+
         <div className="min-w-0 pr-2 relative z-10">
           <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_16px_hsl(var(--primary))]" />
-            <span className="text-[10px] text-text3 font-black tracking-[0.16em] uppercase">
+            <span className="text-xs text-text3 font-medium">
               {dateStr}
             </span>
           </div>
-          <div className={`font-display font-bold text-foreground leading-none truncate max-w-[190px] ${displayName.length > 15 ? 'text-[18px]' : displayName.length > 10 ? 'text-[21px]' : 'text-2xl'}`}>
+          <div className={`font-display font-bold text-foreground leading-none truncate max-w-full ${displayName.length > 15 ? 'text-[18px]' : displayName.length > 10 ? 'text-[21px]' : 'text-2xl'}`}>
             {displayName}
           </div>
-          <div className="text-[10px] font-black text-primary mt-2 flex items-center gap-1.5 uppercase tracking-[0.14em]">
+          <div className="text-xs font-semibold text-text2 mt-2 flex flex-wrap items-center gap-1.5">
             {activeClassCount > 0 ? (
               <>
                 {activeClassCount} Kelas Aktif
@@ -55,7 +57,7 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
                   <>
                     <span className="opacity-30">•</span>
                     <span className="flex items-center gap-0.5 text-amber">
-                      {streak} Hari Streak
+                      {streak} hari konsisten
                     </span>
                   </>
                 )}
@@ -64,33 +66,30 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
           </div>
         </div>
 
-        <div className="flex items-center gap-2 relative z-10">
+        <div className="grid grid-cols-3 gap-2 relative z-10">
           <button
             onClick={onOpenSync}
             className={`app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm transition-all ${
               syncStatus === 'connected' ? 'border-green/40 bg-green/10 text-green' : ''
             }`}
+            aria-label="Sinkronisasi antar perangkat"
             title={user ? `Sinkronisasi aktif (${user.email})` : 'Sinkronisasi antar perangkat'}
           >
-            <span className="text-base leading-none">
-              {syncStatus === 'syncing' ? '🔄' : syncStatus === 'connected' ? '☁️' : '☁️'}
-            </span>
-            <span className="text-[11px] font-bold tracking-wider hidden sm:inline">
-              Sinkron
-            </span>
+            {syncStatus === 'syncing' ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : syncStatus === 'connected' ? <Cloud aria-hidden="true" className="h-4 w-4" /> : syncStatus === 'offline' ? <CloudOff aria-hidden="true" className="h-4 w-4" /> : <Cloud aria-hidden="true" className="h-4 w-4" />}
+            <span className="text-xs font-semibold">{syncStatus === 'syncing' ? 'Proses…' : syncStatus === 'offline' ? 'Offline' : 'Sinkron'}</span>
           </button>
 
-          <Dialog>
+          <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
             <DialogTrigger asChild>
               <button className="app-icon-button h-11 px-3 flex items-center justify-center gap-1.5 shadow-sm" aria-label="Buka panduan EduTrack">
-                <Info className="h-4 w-4" />
-                <span className="text-[11px] font-bold tracking-wider hidden sm:inline">Info</span>
+                <Info aria-hidden="true" className="h-4 w-4" />
+                <span className="text-xs font-semibold">Panduan</span>
               </button>
             </DialogTrigger>
             <DialogContent className="max-w-[420px] h-[85vh] overflow-hidden flex flex-col rounded-3xl border-border/40 bg-background/95 backdrop-blur-xl p-0">
               <DialogHeader className="p-6 pb-2">
                 <DialogTitle className="flex items-center gap-4 font-display">
-                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl">📖</div>
+                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl"><BookOpen aria-hidden="true" className="h-6 w-6" /></div>
                   <div>
                     <div className="text-2xl font-black tracking-tight">EduTrack</div>
                     <div className="text-[10px] text-text3 font-bold tracking-widest uppercase opacity-60">Pusat Informasi & Panduan</div>
@@ -98,17 +97,18 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
                 </DialogTitle>
               </DialogHeader>
               <div className="flex-1 overflow-y-auto px-6 scrollbar-thin">
-                <InfoView />
+                <InfoView backLabel="Tutup panduan" onBackToSetup={() => setInfoOpen(false)} />
               </div>
             </DialogContent>
           </Dialog>
 
           <button
             onClick={onToggleTheme}
-            className="w-11 h-11 rounded-2xl bg-primary text-primary-foreground border border-primary-border flex items-center justify-center transition-all active:scale-95 shadow-primary hover:brightness-105"
-            title="Ganti Tema"
+            className="app-icon-button h-11 flex items-center justify-center gap-1.5"
+            aria-label={theme === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'}
           >
-            {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun aria-hidden="true" className="h-4 w-4" /> : <Moon aria-hidden="true" className="h-4 w-4" />}
+            <span className="text-xs font-semibold">Tema</span>
           </button>
         </div>
       </div>

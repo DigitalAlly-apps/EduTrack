@@ -26,8 +26,8 @@ export default function WeeklyReviewCard() {
             <LineChart className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-text3">Laporan Minggu Ini</div>
-            <div className="text-[10px] text-text3 opacity-60">{dateLabel}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-text3">Laporan Minggu Ini</div>
+            <div className="text-xs text-text3 opacity-60">{dateLabel}</div>
           </div>
         </div>
         <button
@@ -36,7 +36,7 @@ export default function WeeklyReviewCard() {
             navigator.clipboard.writeText(text);
             toast({ title: '📋 Jurnal Disalin!' });
           }}
-          className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded-xl hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+          className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded-xl hover:bg-primary/20 transition-colors flex items-center gap-1.5"
         >
           <ClipboardCopy className="h-3.5 w-3.5" /> Salin
         </button>
@@ -46,29 +46,29 @@ export default function WeeklyReviewCard() {
         {/* Completed */}
         <div className="bg-green/10 border border-green/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-green leading-none mb-0.5">{st.completed}</div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Selesai</div>
-          <div className={`text-[9px] font-bold mt-0.5 ${diffColor}`}>{diffLabel}</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text3">Selesai</div>
+          <div className={`text-xs font-bold mt-0.5 ${diffColor}`}>{diffLabel}</div>
         </div>
 
         {/* Skipped */}
         <div className="bg-amber/10 border border-amber/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-amber leading-none mb-0.5">{st.skipped}</div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Dilewati</div>
-          <div className="text-[9px] text-text3 mt-0.5">{st.total > 0 ? Math.round((st.skipped / st.total) * 100) : 0}% dari total</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text3">Dilewati</div>
+          <div className="text-xs text-text3 mt-0.5">{st.total > 0 ? Math.round((st.skipped / st.total) * 100) : 0}% dari total</div>
         </div>
 
         {/* Materials */}
         <div className="bg-primary/10 border border-primary/20 rounded-xl p-2.5 text-center">
           <div className="text-2xl font-black text-primary leading-none mb-0.5">{st.materialsCovered}</div>
-          <div className="text-[9px] font-bold uppercase tracking-wider text-text3">Materi</div>
-          <div className="text-[9px] text-text3 mt-0.5">{st.uniqueClasses} kelas aktif</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text3">Materi</div>
+          <div className="text-xs text-text3 mt-0.5">{st.uniqueClasses} kelas aktif</div>
         </div>
       </div>
 
       {/* Progress bar */}
       {st.total > 0 && (
         <div className="mt-3">
-          <div className="flex justify-between text-[10px] text-text3 mb-1">
+          <div className="flex justify-between text-xs text-text3 mb-1">
             <span>Tingkat Kehadiran</span>
             <span className="font-bold text-foreground">{Math.round((st.completed / st.total) * 100)}%</span>
           </div>

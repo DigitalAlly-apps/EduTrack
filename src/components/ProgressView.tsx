@@ -75,7 +75,7 @@ export default function ProgressView() {
 
   return (
     <div className="pt-1">
-      <div className="mb-4 flex gap-1 rounded-2xl border border-border/60 bg-surface/70 p-1 shadow-sm backdrop-blur-md" aria-label="Kendali pengajaran">
+      <div className="mb-4 flex gap-1 rounded-2xl border border-border/60 bg-surface/70 p-1 shadow-sm backdrop-blur-md" aria-label="Progres pengajaran">
         {tabs.map(item => {
           const Icon = item.icon;
           const active = tab === item.id;
@@ -84,7 +84,7 @@ export default function ProgressView() {
               key={item.id}
               onClick={() => setTab(item.id)}
               aria-pressed={active}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:bg-surface2/50 hover:text-foreground'
               }`}
             >
@@ -175,7 +175,7 @@ function ProgressTab({
     <div className="space-y-4">
       {/* Selection Card */}
       <section className="app-card border-border/70 p-3 sm:p-4">
-        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text3">Tampilkan progres</p>
+        <p className="mb-2 text-xs font-black uppercase tracking-widest text-text3">Tampilkan progres</p>
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface2/70 p-1">
           {(
             [
@@ -196,7 +196,7 @@ function ProgressTab({
             </button>
           ))}
         </div>
-        <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-text3" htmlFor="progress-class">Kelas</label>
+        <label className="mt-3 block text-xs font-black uppercase tracking-widest text-text3" htmlFor="progress-class">Kelas</label>
         <select
           id="progress-class"
           value={selectedClassId}
@@ -218,21 +218,21 @@ function ProgressTab({
             <span className="h-2.5 w-2.5 rounded-full bg-green flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-green leading-tight">{onTrackCount} Mapel</span>
-              <span className="block text-[9px] font-bold text-text3 truncate">Aman</span>
+              <span className="block text-xs font-medium text-text3 leading-snug">Aman</span>
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-amber/20 bg-amber/10 px-2.5 py-2">
             <span className="h-2.5 w-2.5 rounded-full bg-amber flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-amber leading-tight">{tightCount} Mapel</span>
-              <span className="block text-[9px] font-bold text-text3 truncate">Mepet</span>
+              <span className="block text-xs font-medium text-text3 leading-snug">Mepet</span>
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-red/20 bg-red/10 px-2.5 py-2">
             <span className="h-2.5 w-2.5 rounded-full bg-red flex-shrink-0" />
             <div className="min-w-0">
               <span className="block text-xs font-black text-red leading-tight">{behindCount} Mapel</span>
-              <span className="block text-[9px] font-bold text-text3 truncate">Kurang Sesi</span>
+              <span className="block text-xs font-medium text-text3 leading-snug">Kurang Sesi</span>
             </div>
           </div>
         </section>
@@ -242,7 +242,7 @@ function ProgressTab({
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-text3">Kendali kelas</p>
+            <p className="text-xs font-black uppercase tracking-widest text-text3">Progres kelas</p>
             <h2 className="mt-0.5 font-display text-xl font-bold">{selectedClass?.name ?? 'Pilih kelas'}</h2>
           </div>
 
@@ -251,7 +251,7 @@ function ProgressTab({
             <button
               onClick={() => setMode('compact')}
               aria-pressed={viewMode === 'compact'}
-              className={`min-h-[40px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`min-h-[40px] px-2.5 py-1 text-xs font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 viewMode === 'compact' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
@@ -260,7 +260,7 @@ function ProgressTab({
             <button
               onClick={() => setMode('detailed')}
               aria-pressed={viewMode === 'detailed'}
-              className={`min-h-[40px] px-2.5 py-1 text-[10px] font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`min-h-[40px] px-2.5 py-1 text-xs font-black rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 viewMode === 'detailed' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'
               }`}
             >
@@ -410,12 +410,12 @@ function SubjectCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="truncate text-base font-black tracking-tight text-foreground">{subjectName}</h3>
-              <p className="mt-0.5 text-[11px] font-bold text-text3">
+              <p className="mt-0.5 text-xs font-bold text-text3">
                 {sessionsDone}/{sessionsTotal} pertemuan selesai · {progressPct}%
               </p>
             </div>
             <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-black flex-shrink-0 ${
+              className={`rounded-full border px-2.5 py-1 text-xs font-black flex-shrink-0 ${
                 tone === 'red'
                   ? 'border-red/20 bg-red/10 text-red'
                   : tone === 'amber'
@@ -441,13 +441,13 @@ function SubjectCard({
 
           {/* BAB SAAT INI (High Contrast Visual Anchor) */}
           <div className="rounded-xl border border-border/70 bg-surface2/50 p-3.5 shadow-inner">
-            <p className="text-[9px] font-black uppercase tracking-widest text-text3">Bab Saat Ini</p>
+            <p className="text-xs font-black uppercase tracking-widest text-text3">Bab Saat Ini</p>
             {position.isComplete ? (
               <p className="mt-1 text-sm font-black text-green flex items-center gap-1">✓ Semua bab selesai 🎉</p>
             ) : activeMaterial ? (
               <>
                 <p className="mt-1 text-[15px] font-black leading-snug text-foreground">{activeMaterial.name}</p>
-                <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[11px]">
+                <div className="mt-1.5 flex items-center gap-2 flex-wrap text-xs">
                   <span className="font-black text-primary bg-primary/10 border border-primary/25 rounded-lg px-2.5 py-1 shadow-xs">
                     Pertemuan {position.sessionIndex} dari {position.totalSessionsInMaterial}
                   </span>
@@ -496,7 +496,7 @@ function SubjectCard({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs">📌</span>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-primary">Pertemuan Berikutnya</p>
+                      <p className="text-xs font-black uppercase tracking-wider text-primary">Pertemuan Berikutnya</p>
                     </div>
                     {!editingNote && (
                       <button
@@ -506,7 +506,7 @@ function SubjectCard({
                           setTeachingNoteDraft(reminder);
                           setEditingNote(true);
                         }}
-                        className="min-h-[44px] flex items-center gap-1.5 rounded-xl border border-primary/30 bg-surface px-3 py-1 text-[11px] font-bold text-primary shadow-xs transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        className="min-h-[44px] flex items-center gap-1.5 rounded-xl border border-primary/30 bg-surface px-3 py-1 text-xs font-bold text-primary shadow-xs transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
                         <Pencil className="h-3.5 w-3.5" /> Edit catatan
                       </button>
@@ -516,18 +516,18 @@ function SubjectCard({
                   <div className="mt-2.5 space-y-2 text-xs">
                     {parsedNote.mainNote && (
                       <div className="rounded-lg bg-surface/70 p-2.5 border border-border/50">
-                        <span className="block text-[9px] font-black uppercase tracking-wider text-text3">Topik / Yang Akan Dilakukan</span>
+                        <span className="block text-xs font-black uppercase tracking-wider text-text3">Topik / Yang Akan Dilakukan</span>
                         <p className="mt-0.5 font-bold text-foreground leading-snug">{parsedNote.mainNote}</p>
                       </div>
                     )}
                     {parsedNote.reminder && (
                       <div className="rounded-lg bg-surface/70 p-2.5 border border-border/50">
-                        <span className="block text-[9px] font-black uppercase tracking-wider text-amber">Catatan Mengajar</span>
+                        <span className="block text-xs font-black uppercase tracking-wider text-amber">Catatan Mengajar</span>
                         <p className="mt-0.5 font-medium text-text2 whitespace-pre-wrap leading-snug">{parsedNote.reminder}</p>
                       </div>
                     )}
                     {!parsedNote.mainNote && !parsedNote.reminder && (
-                      <p className="italic text-text3 text-[11px]">Belum ada catatan pertemuan berikutnya. Klik edit untuk menambahkan.</p>
+                      <p className="italic text-text3 text-xs">Belum ada catatan pertemuan berikutnya. Klik edit untuk menambahkan.</p>
                     )}
                   </div>
                 </div>
@@ -537,7 +537,7 @@ function SubjectCard({
               <button
                 onClick={() => setExpanded(v => !v)}
                 aria-expanded={expanded}
-                className="min-h-[44px] flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3.5 py-2 text-left text-[11px] font-black text-text2 transition-colors hover:bg-surface2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="min-h-[44px] flex w-full items-center justify-between rounded-xl border border-border/60 bg-surface px-3.5 py-2 text-left text-xs font-black text-text2 transition-colors hover:bg-surface2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <span>Rencana Bab & Edit Pertemuan</span>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
@@ -578,7 +578,7 @@ function SubjectCard({
                                 setEditingSessionsMaterial(m);
                                 setSessionDraft(String(count));
                               }}
-                              className="min-h-[36px] rounded-lg border border-border bg-surface2 px-3 py-1 text-[10px] font-bold text-text2 hover:border-primary/40 transition-colors flex items-center gap-1"
+                              className="min-h-[36px] rounded-lg border border-border bg-surface2 px-3 py-1 text-xs font-bold text-text2 hover:border-primary/40 transition-colors flex items-center gap-1"
                             >
                               {count} pertemuan ✏️
                             </button>
@@ -586,7 +586,7 @@ function SubjectCard({
                             {current && (
                               <button
                                 onClick={() => setConfirmMaterial(m)}
-                                className="min-h-[36px] rounded-lg border border-amber/30 bg-amber/10 px-3 py-1 text-[10px] font-black text-amber hover:bg-amber/20 transition-colors flex items-center gap-1"
+                                className="min-h-[36px] rounded-lg border border-amber/30 bg-amber/10 px-3 py-1 text-xs font-black text-amber hover:bg-amber/20 transition-colors flex items-center gap-1"
                               >
                                 ⚡ Selesaikan bab sekarang
                               </button>
@@ -604,28 +604,28 @@ function SubjectCard({
             <div className="border-t border-border/50 pt-3 space-y-3">
               <button
                 onClick={() => setAnalysisOpen(v => !v)}
-                className="flex w-full items-center justify-between text-left text-[11px] font-bold text-text3 hover:text-foreground"
+                className="flex w-full items-center justify-between text-left text-xs font-bold text-text3 hover:text-foreground"
               >
                 <span>Analisis Tracker Sesi (Detail)</span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${analysisOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {analysisOpen && (
-                <div className="rounded-xl bg-surface/80 border border-border/60 p-3 text-[11px] animate-fade-in">
+                <div className="rounded-xl bg-surface/80 border border-border/60 p-3 text-xs animate-fade-in">
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
                       <b className="block text-sm font-black">{needed}</b>
-                      <span className="text-text3 text-[10px]">dibutuhkan</span>
+                      <span className="text-text3 text-xs">dibutuhkan</span>
                     </div>
                     <div>
                       <b className="block text-sm font-black">{available}</b>
-                      <span className="text-text3 text-[10px]">tersedia</span>
+                      <span className="text-text3 text-xs">tersedia</span>
                     </div>
                     <div>
                       <b className={`block text-sm font-black ${deficit ? 'text-red' : 'text-green'}`}>
                         {deficit ? `-${deficit}` : 'Aman'}
                       </b>
-                      <span className="text-text3 text-[10px]">kondisi</span>
+                      <span className="text-text3 text-xs">kondisi</span>
                     </div>
                   </div>
                   {status.rec && <p className="mt-2.5 border-t border-border/40 pt-2 leading-relaxed text-text2">{status.rec}</p>}
@@ -634,10 +634,10 @@ function SubjectCard({
 
               {sessionsDone > 0 && (
                 <div className="flex items-center justify-between border-t border-border/50 pt-3">
-                  <span className="text-[10px] text-text3">Salah input progres?</span>
+                  <span className="text-xs text-text3">Salah input progres?</span>
                   <button
                     onClick={undo}
-                    className="min-h-[36px] rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-[10px] font-black text-amber hover:bg-amber/20 transition-colors flex items-center gap-1"
+                    className="min-h-[36px] rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-black text-amber hover:bg-amber/20 transition-colors flex items-center gap-1"
                   >
                     <RotateCcw className="h-3 w-3" /> Mundur 1 sesi
                   </button>
@@ -661,7 +661,7 @@ function SubjectCard({
 
               <div className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-text3 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-text3 mb-1.5">
                     Materi / Topik Pertemuan Berikutnya
                   </label>
                   <select
@@ -697,7 +697,7 @@ function SubjectCard({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-text3 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-text3 mb-1.5">
                     Catatan Mengajar / Instruksi Untuk Saya
                   </label>
                   <textarea
@@ -742,7 +742,7 @@ function SubjectCard({
 
               <div className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-text3 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-text3 mb-1.5">
                     Dibutuhkan Berapa Pertemuan?
                   </label>
                   <input
@@ -840,12 +840,12 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border/70 pb-3">
         <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-primary/30" htmlFor="history-month">
-          <span className="shrink-0 text-[10px] font-black uppercase tracking-wide text-text3">Bulan</span>
+          <span className="shrink-0 text-xs font-black uppercase tracking-wide text-text3">Bulan</span>
           <input id="history-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-xs font-bold shadow-none focus:ring-0" />
         </label>
         <button
           onClick={() => setRetroactiveSheetOpen(true)}
-          className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3 text-[11px] font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3 text-xs font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> <span>Catat KBM Terlupa</span>
         </button>
@@ -856,7 +856,7 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
         <div className="space-y-4">
           {dates.map(date => (
             <section key={date}>
-              <h3 className="mb-1.5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-primary before:h-px before:flex-1 before:bg-primary/20 after:h-px after:flex-1 after:bg-primary/20">
+              <h3 className="mb-1.5 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-primary before:h-px before:flex-1 before:bg-primary/20 after:h-px after:flex-1 after:bg-primary/20">
                 {dateFromKey(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h3>
               <div className="divide-y divide-border/70 border-y border-border/70">
@@ -872,7 +872,7 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
                           <p className="text-[13px] font-black leading-snug text-foreground">
                             {cls} <span className="text-text3" aria-hidden="true">·</span> {subject}
                           </p>
-                          <p className="mt-0.5 text-[11px] leading-snug text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
+                          <p className="mt-0.5 text-xs leading-snug text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
                         </div>
                         <button
                           onClick={() => setEditingSessionId(session.id)}
@@ -883,9 +883,9 @@ function HistoryTab({ revision, repairDate }: { revision: number; repairDate: st
                         </button>
                       </div>
                       {(mainNote || reminder || session.lastPageReached) && (
-                        <div className="mt-1.5 space-y-0.5 border-l-2 border-border/80 pl-2 text-[10px] leading-snug">
+                        <div className="mt-1.5 space-y-0.5 border-l-2 border-border/80 pl-2 text-xs leading-snug">
                           {mainNote && <p className="text-text3">Berikutnya: {mainNote}</p>}
-                          {reminder && <p className="font-semibold text-amber"><span className="mr-1 text-[9px] font-black uppercase tracking-wide">Pengingat:</span>{reminder}</p>}
+                          {reminder && <p className="font-semibold text-amber"><span className="mr-1 text-xs font-black uppercase tracking-wide">Pengingat:</span>{reminder}</p>}
                           {session.lastPageReached && <p className="text-text3">Halaman pertemuan berikutnya: {session.lastPageReached}</p>}
                         </div>
                       )}
@@ -967,18 +967,18 @@ function EditRecordedSessionSheet({
         <div id="edit-recorded-session-title" className="app-sheet-title mb-1">Edit Sesi Tercatat</div>
         <p className="mb-4 text-[12px] leading-relaxed text-text2">{cls} · {subject} · {dateFromKey(session.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
-        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-material">Materi/Bab yang diajarkan</label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-material">Materi/Bab yang diajarkan</label>
         <select id="edit-history-material" value={materialId} onChange={event => setMaterialId(event.target.value)} className="form-select-style mb-3">
           <option value="">Belum memilih materi</option>
           {materials.map(material => <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>)}
         </select>
         <label className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
           <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
-          <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-[11px] text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
+          <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-xs text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
         </label>
-        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
         <input id="edit-history-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
-        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Catatan <span className="normal-case">(opsional)</span></label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Catatan <span className="normal-case">(opsional)</span></label>
         <textarea id="edit-history-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
         <button onClick={save} className="btn-primary-style bg-primary font-bold text-primary-foreground">Simpan Perubahan</button>
         <button onClick={onClose} className="mt-1 w-full py-3 text-[13px] text-text2">Batal</button>
@@ -1073,7 +1073,7 @@ function RetroactiveSessionSheet({
         <div id="retroactive-kbm-title" className="app-sheet-title mb-1">Catat KBM Terlupa</div>
         <p className="mb-4 text-[12px] leading-relaxed text-text2">Pilih KBM yang sudah berlangsung tetapi belum sempat dicatat.</p>
 
-        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-date">Tanggal KBM</label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-date">Tanggal KBM</label>
         <input id="retroactive-date" type="date" max={previousDateKey()} value={date} onChange={event => { setDate(event.target.value); setMessage(''); }} className="form-input-style mb-3" />
 
         {date === dateKey() && <p className="mb-3 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-[12px] text-primary">Untuk pencatatan hari ini, gunakan halaman Hari Ini.</p>}
@@ -1082,7 +1082,7 @@ function RetroactiveSessionSheet({
 
         {missingEntries.length > 0 && (
           <>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-schedule">KBM belum tercatat</label>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-schedule">KBM belum tercatat</label>
             <select id="retroactive-schedule" value={scheduleId} onChange={event => { setScheduleId(event.target.value); setMessage(''); }} className="form-select-style mb-3">
               {missingEntries.map(entry => {
                 const cls = getData().classes.find(item => item.id === entry.schedule.classId)?.name ?? '?';
@@ -1090,18 +1090,18 @@ function RetroactiveSessionSheet({
                 return <option key={entry.schedule.id} value={entry.schedule.id}>{entry.schedule.startTime} — {subject} · {cls}</option>;
               })}
             </select>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-material">Materi/Bab yang diajarkan</label>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-material">Materi/Bab yang diajarkan</label>
             <select id="retroactive-material" value={materialId} onChange={event => setMaterialId(event.target.value)} className="form-select-style mb-3">
               <option value="">Belum memilih materi</option>
               {materials.map(material => <option key={material.id} value={material.id}>{material.name} · {material.sessions ?? 1} pertemuan</option>)}
             </select>
             <label className="mb-3 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
               <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
-              <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-[11px] text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
+              <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-xs text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
             </label>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
             <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
             <input id="retroactive-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
           </>
         )}
@@ -1164,25 +1164,25 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
   return (
     <div>
       <div className="mb-3 flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface px-3 shadow-xs focus-within:ring-2 focus-within:ring-primary/30">
-        <label className="text-[10px] font-black uppercase tracking-wide text-text3" htmlFor="calendar-month">Bulan</label>
+        <label className="text-xs font-black uppercase tracking-wide text-text3" htmlFor="calendar-month">Bulan</label>
         <input id="calendar-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 w-auto border-0 bg-transparent px-0 py-1.5 text-right text-xs font-bold shadow-none focus:ring-0" />
       </div>
 
       <section className="mb-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-widest text-text3">Kesehatan KBM bulan ini</p>
+        <p className="text-xs font-black uppercase tracking-widest text-text3">Kesehatan KBM bulan ini</p>
         <h3 className="mt-1 text-sm font-black">{dateFromKey(`${month}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</h3>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.planned}</strong><span className="text-[10px] text-text3">Direncanakan</span></div>
-          <div className="rounded-xl bg-green/10 px-2 py-2 text-green"><strong className="block text-sm tabular-nums">{health.recorded}</strong><span className="text-[10px]">Tercatat</span></div>
-          <div className="rounded-xl bg-amber/10 px-2 py-2 text-amber"><strong className="block text-sm tabular-nums">{health.missing}</strong><span className="text-[10px]">Belum tercatat</span></div>
-          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.holidays}</strong><span className="text-[10px] text-text3">Libur</span></div>
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.planned}</strong><span className="text-xs text-text3">Direncanakan</span></div>
+          <div className="rounded-xl bg-green/10 px-2 py-2 text-green"><strong className="block text-sm tabular-nums">{health.recorded}</strong><span className="text-xs">Tercatat</span></div>
+          <div className="rounded-xl bg-amber/10 px-2 py-2 text-amber"><strong className="block text-sm tabular-nums">{health.missing}</strong><span className="text-xs">Belum tercatat</span></div>
+          <div className="rounded-xl bg-surface2/60 px-2 py-2"><strong className="block text-sm tabular-nums">{health.holidays}</strong><span className="text-xs text-text3">Libur</span></div>
         </div>
       </section>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
         <div className="grid grid-cols-7 border-b border-border/50 bg-surface2/40">
           {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => (
-            <div key={day} className="py-2.5 text-center text-[10px] font-black uppercase tracking-wider text-text3">
+            <div key={day} className="py-2.5 text-center text-xs font-black uppercase tracking-wider text-text3">
               {day}
             </div>
           ))}
@@ -1210,7 +1210,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
 
       {selectedDay && (
         <section className="mt-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-text3">Audit pengajaran</p>
+          <p className="text-xs font-black uppercase tracking-widest text-text3">Audit pengajaran</p>
           <h3 className="mt-1 text-sm font-black">
             {dateFromKey(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
           </h3>
@@ -1226,8 +1226,8 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
                   <div key={entry.schedule.id} className="rounded-xl border border-border/60 bg-surface2/40 px-3 py-2 text-[12px] font-bold">✓ {subject} — {cls}</div>
                 ) : (
                   <div key={entry.schedule.id} className="flex items-center justify-between gap-2 rounded-xl border border-amber/25 bg-amber/10 px-3 py-2 text-[12px]">
-                    <span className="flex items-start gap-1.5 font-bold text-amber"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{subject} — {cls}<span className="block text-[10px] font-medium text-text3">Belum dicatat</span></span></span>
-                    {selectedDay.date < dateKey() && <button onClick={() => onRepair(selectedDay.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-surface px-2.5 text-[10px] font-black text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>}
+                    <span className="flex items-start gap-1.5 font-bold text-amber"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{subject} — {cls}<span className="block text-xs font-medium text-text3">Belum dicatat</span></span></span>
+                    {selectedDay.date < dateKey() && <button onClick={() => onRepair(selectedDay.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-surface px-2.5 text-xs font-black text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>}
                   </div>
                 );
               })}
@@ -1240,7 +1240,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
 
       {health.attention.length > 0 && (
         <section className="mt-3 rounded-2xl border border-amber/25 bg-amber/5 p-3.5 shadow-sm">
-          <h3 className="text-[11px] font-black uppercase tracking-widest text-amber">Perlu Perhatian</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest text-amber">Perlu Perhatian</h3>
           <div className="mt-3 space-y-2">
             {health.attention.map(day => {
               const missing = day.entries.filter(entry => !entry.recorded);
@@ -1251,8 +1251,8 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
               });
               return (
                 <div key={day.date} className="flex items-center justify-between gap-3 rounded-xl border border-amber/20 bg-surface/70 px-3 py-2.5">
-                  <div className="min-w-0"><p className="text-[12px] font-black">{dateFromKey(day.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · {missing.length} KBM belum tercatat</p><p className="mt-0.5 text-[10px] text-text3">{labels.join(' · ')}</p></div>
-                  <button onClick={() => onRepair(day.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-[10px] font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>
+                  <div className="min-w-0"><p className="text-[12px] font-black">{dateFromKey(day.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · {missing.length} KBM belum tercatat</p><p className="mt-0.5 text-xs text-text3">{labels.join(' · ')}</p></div>
+                  <button onClick={() => onRepair(day.date)} className="min-h-[44px] shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-xs font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Perbaiki di Riwayat</button>
                 </div>
               );
             })}
@@ -1263,8 +1263,8 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
       {/* Keterangan Warna Kalender */}
       <div className="mt-3 space-y-3 rounded-2xl border border-border/70 bg-surface/80 p-3.5 shadow-sm">
         <div className="flex items-center justify-between">
-          <h4 className="text-[11px] font-black uppercase tracking-wider text-text3">Keterangan Warna Kalender</h4>
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+          <h4 className="text-xs font-black uppercase tracking-wider text-text3">Keterangan Warna Kalender</h4>
+          <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
             Lingkaran biru = Hari Ini
           </span>
         </div>
@@ -1276,8 +1276,8 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
                 <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
               </span>
               <div>
-                <span className="block text-[11px] font-bold text-foreground">{item.label}</span>
-                <span className="block text-[10px] text-text3 leading-snug">{item.desc}</span>
+                <span className="block text-xs font-bold text-foreground">{item.label}</span>
+                <span className="block text-xs text-text3 leading-snug">{item.desc}</span>
               </div>
             </div>
           ))}
@@ -1290,7 +1290,7 @@ function CalendarTab({ revision, classId, onRepair }: { revision: number; classI
 function EmptyState({ title, text }: { title: string; text: string }) {
   return (
     <div className="px-6 py-12 text-center">
-      <span className="mb-3 block text-[11px] font-black uppercase tracking-[0.2em] text-primary/70">Kendali Pengajaran</span>
+      <span className="mb-3 block text-xs font-black uppercase tracking-[0.2em] text-primary/70">Progres Pengajaran</span>
       <h2 className="font-display text-xl font-bold">{title}</h2>
       <p className="mx-auto mt-1 max-w-[280px] text-sm text-text2">{text}</p>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 import {
   getAllExamSubjects,
   upsertCorrection, getExamDayMode, setExamDayMode,
@@ -12,7 +12,7 @@ import {
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History } from 'lucide-react';
 
 type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
 
@@ -167,8 +167,8 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            {isActive && <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isDone && <span className="text-[9px] font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
+            {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
+            {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
           </div>
           <div className="text-sm font-bold">{s.subjectName}</div>
           <div className="text-xs text-text2">
@@ -176,12 +176,12 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             {fmt(s.startTime)} – {fmt(s.endTime)}
             {s.location && ` · ${s.location}`}
           </div>
-          {s.note && <div className="text-[11px] text-text3 mt-0.5 italic">{s.note}</div>}
+          {s.note && <div className="text-xs text-text3 mt-0.5 italic">{s.note}</div>}
         </div>
         {showDelete && (
           <button
             onClick={() => handleDeleteProctor(s.id)}
-            className="w-8 h-8 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
+            className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
             aria-label="Hapus sesi ngawas"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -202,7 +202,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const isDone = isToday && curMin >= endMin;
 
     const examTypeBadge = s.examType
-      ? <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+      ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
           s.examType === 'UTS' ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
           : s.examType === 'UAS' ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
           : 'bg-surface3 border-border3 text-text2'
@@ -216,19 +216,19 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             {examTypeBadge}
-            {isActive && <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isDone && <span className="text-[9px] font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
+            {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
+            {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
           </div>
           <div className="text-sm font-bold">{cls?.name || '?'} · {sub?.name || '?'}</div>
           <div className="text-xs text-text2">
             {fmtDate(s.date)} · {fmt(s.startTime)} – {fmt(s.endTime)}
             {s.location && ` · ${s.location}`}
           </div>
-          {s.note && <div className="text-[11px] text-text3 mt-0.5 italic">{s.note}</div>}
+          {s.note && <div className="text-xs text-text3 mt-0.5 italic">{s.note}</div>}
         </div>
         <button
           onClick={() => handleDeleteExam(s.id)}
-          className="w-8 h-8 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
+          className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
           aria-label="Hapus jadwal ujian"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -258,7 +258,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               <div key={`${cls.classId}-${cls.startTime || ''}`} className="py-1.5">
                 <div className="text-sm font-semibold">{cls.className}</div>
                 {(cls.startTime || cls.location || cls.note) && (
-                  <div className="text-[11px] text-text3 leading-snug mt-0.5">
+                  <div className="text-xs text-text3 leading-snug mt-0.5">
                     {cls.startTime && cls.endTime && <span>{fmt(cls.startTime)}–{fmt(cls.endTime)}</span>}
                     {cls.location && <span>{cls.startTime && cls.endTime ? ' · ' : ''}{cls.location}</span>}
                     {cls.note && <span>{(cls.startTime && cls.endTime) || cls.location ? ' · ' : ''}{cls.note}</span>}
@@ -284,15 +284,15 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             {item.isOverdue && corrSt !== 'selesai' && (
-              <span className="text-[9px] font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
+              <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
             )}
             {item.daysLeft === 0 && (
-              <span className="text-[9px] font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+              <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
             )}
           </div>
           <div className="text-sm font-bold leading-snug">{item.className}</div>
           <div className="text-xs text-text2">{item.subjectName}</div>
-          <div className="text-[11px] text-text3 mt-0.5">
+          <div className="text-xs text-text3 mt-0.5">
             {fmtDate(item.examDate)}
             {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft)}</span>}
           </div>
@@ -333,7 +333,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       >
         <div className="min-w-0">
           <div className="text-[12px] font-bold leading-tight">{title}</div>
-          <div className="text-[10px] text-text3 mt-0.5 leading-snug">{desc}</div>
+          <div className="text-xs text-text3 mt-0.5 leading-snug">{desc}</div>
         </div>
         <span className={`w-10 h-6 rounded-full border flex-shrink-0 relative transition-all ${active && !disabled ? 'bg-primary border-primary' : 'bg-surface border-border2'}`}>
           <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all ${active && !disabled ? 'left-[18px]' : 'left-0.5'}`} />
@@ -370,7 +370,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               <span className="w-9 h-9 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary"><Plus className="h-4 w-4" /></span>
               <div>
                 <div className="text-[13px] font-bold">Tambah ujian</div>
-                <div className="text-[11px] text-text3 mt-0.5">Atur kelas, mapel, tanggal, dan jam</div>
+                <div className="text-xs text-text3 mt-0.5">Atur kelas, mapel, tanggal, dan jam</div>
               </div>
             </div>
             <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
@@ -379,20 +379,20 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
           {examFormOpen && (
             <div className="border-t border-border2/60 px-4 py-4 space-y-3">
               {noPrereq ? (
-                <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mapel dulu di Atur Akademik.</div>
+                <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mata pelajaran terlebih dahulu di menu Kelola.</div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
-                      <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-sm h-10 w-full">
+                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
+                      <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style min-w-0 w-full">
                         <option value="">Pilih kelas</option>
                         {data.classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
-                      <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-sm h-10 w-full">
+                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
+                      <select aria-label="Mata pelajaran ujian" value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style min-w-0 w-full">
                         <option value="">Pilih mapel</option>
                         {data.subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
                       </select>
@@ -400,25 +400,25 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
-                      <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+                      <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tipe</label>
-                      <select value={eType} onChange={e => setEType(e.target.value as typeof eType)} className="form-input-style text-sm h-10 w-full">
+                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tipe</label>
+                      <select aria-label="Tipe ujian" value={eType} onChange={e => setEType(e.target.value as typeof eType)} className="form-input-style min-w-0 w-full">
                         <option value="UTS">UTS</option><option value="UAS">UAS</option><option value="Umum">Umum</option>
                       </select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style text-sm h-10 w-full" /></div>
-                    <div><label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" /></div>
+                    <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" aria-label="Jam mulai ujian" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
+                    <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" aria-label="Jam selesai ujian" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
                   </div>
                   <details className="rounded-xl border border-border2 bg-surface2/30 px-3 py-2">
                     <summary className="cursor-pointer text-xs font-semibold text-text2">Ruangan dan catatan (opsional)</summary>
                     <div className="space-y-2 pt-3">
-                      <input value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="Ruangan" className="form-input-style text-sm h-10 w-full" />
-                      <input value={eNote} onChange={e => setENote(e.target.value)} placeholder="Catatan" className="form-input-style text-sm h-10 w-full" />
+                      <input aria-label="Ruangan ujian" value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="Ruangan" className="form-input-style min-w-0 w-full" />
+                      <input aria-label="Catatan ujian" value={eNote} onChange={e => setENote(e.target.value)} placeholder="Catatan" className="form-input-style min-w-0 w-full" />
                     </div>
                   </details>
                   <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold active:scale-[0.98]">Simpan ujian</button>
@@ -430,13 +430,13 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
         {examSchedules.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
-            <div className="text-4xl mb-3">🗓️</div>
+            <CalendarDays aria-hidden="true" className="h-10 w-10 mx-auto mb-4 text-primary" />
             <div className="text-sm font-bold">Belum ada agenda ujian</div>
             <div className="text-xs text-text3 mt-1">Tambah jadwal agar agenda dan antrean koreksi tersusun otomatis.</div>
           </div>
         ) : groups.map(group => group.items.length > 0 && (
           <section key={group.label} className="space-y-2">
-            <div className="text-[10px] font-black uppercase tracking-widest text-text3 px-1">{group.label} · {group.items.length} ujian</div>
+            <div className="text-xs font-black uppercase tracking-widest text-text3 px-1">{group.label} · {group.items.length} ujian</div>
             <div className="space-y-2">{group.items.map(schedule => <ExamScheduleCard key={schedule.id} s={schedule} />)}</div>
           </section>
         ))}
@@ -458,13 +458,13 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         }`}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-1">Progress Koreksi</div>
+              <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Progress Koreksi</div>
               <div className={`text-2xl font-black tabular-nums ${pending > 0 ? 'text-red' : 'text-green'}`}>
                 {done}/{total}
               </div>
             </div>
             {overdue > 0 && (
-              <span className="text-[10px] font-black bg-red/15 text-red border border-red/25 px-2.5 py-1 rounded-full uppercase tracking-wide">
+              <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2.5 py-1 rounded-full uppercase tracking-wide">
                 {overdue} terlambat
               </span>
             )}
@@ -475,7 +475,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="text-[11px] text-text3 mt-2">
+          <div className="text-xs text-text3 mt-2">
             {pending > 0 ? `${pending} kelas belum selesai dikoreksi` : 'Semua koreksi sudah beres'}
           </div>
         </div>
@@ -505,7 +505,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="space-y-3 animate-slide-up pb-20">
         <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden">
           <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
-            <div><div className="text-[13px] font-bold">Koreksi selesai</div><div className="text-[11px] text-text3 mt-0.5">{completed.length} kelas sudah dikoreksi</div></div>
+            <div><div className="text-[13px] font-bold">Koreksi selesai</div><div className="text-xs text-text3 mt-0.5">{completed.length} kelas sudah dikoreksi</div></div>
             <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
           </summary>
           <div className="border-t border-border2/60 p-3 space-y-2">
@@ -515,7 +515,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
         <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden">
           <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
-            <div><div className="text-[13px] font-bold">Jadwal yang telah lewat</div><div className="text-[11px] text-text3 mt-0.5">{pastExamSchedules.length || legacyPast.length} jadwal terdahulu</div></div>
+            <div><div className="text-[13px] font-bold">Jadwal yang telah lewat</div><div className="text-xs text-text3 mt-0.5">{pastExamSchedules.length || legacyPast.length} jadwal terdahulu</div></div>
             <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
           </summary>
           <div className="border-t border-border2/60 p-3 space-y-2">
@@ -540,15 +540,15 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
               <div className="text-lg font-black leading-none">{examSchedules.length}</div>
-              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
+              <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
             </div>
             <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
               <div className="text-lg font-black leading-none">{uniqueExamDays}</div>
-              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
+              <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
             </div>
             <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
               <div className="text-lg font-black leading-none">{todayExamSchedules.length}</div>
-              <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari Ini</div>
+              <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Hari Ini</div>
             </div>
           </div>
         )}
@@ -565,7 +565,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               </div>
               <div>
                 <div className="text-[13px] font-bold leading-tight">Tambah Jadwal Ujian Mapelku</div>
-                <div className="text-[11px] text-text3 mt-0.5">Per kelas dan jam ujian mapelmu</div>
+                <div className="text-xs text-text3 mt-0.5">Per kelas dan jam ujian mapelmu</div>
               </div>
             </div>
             <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
@@ -580,15 +580,15 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
-                  <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-select-style text-xs h-10 w-full">
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
+                  <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-select-style text-xs h-10 w-full">
                     <option value="">Pilih kelas</option>
                     {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
-                  <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-select-style text-xs h-10 w-full">
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
+                  <select aria-label="Mata pelajaran ujian" value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-select-style text-xs h-10 w-full">
                     <option value="">Pilih mapel</option>
                     {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -596,12 +596,12 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
-                  <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+                  <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tipe Ujian <span className="text-red">*</span></label>
-                  <select value={eType} onChange={e => setEType(e.target.value as any)} className="form-select-style text-xs h-10 w-full">
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tipe Ujian <span className="text-red">*</span></label>
+                  <select aria-label="Tipe ujian" value={eType} onChange={e => setEType(e.target.value as any)} className="form-select-style text-xs h-10 w-full">
                     <option value="UTS">UTS (Tengah Semester)</option>
                     <option value="UAS">UAS (Akhir Semester)</option>
                     <option value="Umum">Umum / Lainnya</option>
@@ -610,21 +610,21 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
-                  <input type="time" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
+                  <input type="time" aria-label="Jam mulai ujian" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style min-w-0 w-full" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
-                  <input type="time" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                  <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
+                  <input type="time" aria-label="Jam selesai ujian" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style min-w-0 w-full" />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
-                <input value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style text-sm h-10 w-full" />
+                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
+                <input aria-label="Ruangan ujian" value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style min-w-0 w-full" />
               </div>
               <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
-                <input value={eNote} onChange={e => setENote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddExam()} placeholder="cth: PTS, PAS, kisi-kisi khusus..." className="form-input-style text-sm h-10 w-full" />
+                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
+                <input aria-label="Catatan ujian" value={eNote} onChange={e => setENote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddExam()} placeholder="cth: PTS, PAS, kisi-kisi khusus..." className="form-input-style min-w-0 w-full" />
               </div>
               <button onClick={handleAddExam} disabled={noPrereq} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed">
                 ＋ Simpan Jadwal Ujian
@@ -642,19 +642,19 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
           <div className="space-y-3">
             {todayExamSchedules.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Hari Ini ({todayExamSchedules.length})</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Hari Ini ({todayExamSchedules.length})</div>
                 <div className="space-y-2">{todayExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
               </div>
             )}
             {futureExamSchedules.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureExamSchedules.length})</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureExamSchedules.length})</div>
                 <div className="space-y-2">{futureExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
               </div>
             )}
             {examSchedules.length === 0 && allSubjects.filter(s => s.daysLeft >= 0).length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Dari Tanggal Mapel</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Dari Tanggal Mapel</div>
                 <div className="bg-amber/10 border border-amber/25 rounded-xl p-3 text-xs text-amber leading-snug mb-2">
                   Tambah jadwal detail per kelas supaya jam ujian lebih akurat.
                 </div>
@@ -707,17 +707,17 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
             <div className="text-lg font-black leading-none">{allProctor.length}</div>
-            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
+            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
           </div>
           <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
             <div className="text-lg font-black leading-none">{uniqueProctorDays}</div>
-            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
+            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
           </div>
           <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
             <div className="text-lg font-black leading-none tabular-nums">
               {totalHours > 0 ? `${totalHours}j` : `${totalMins}m`}
             </div>
-            <div className="text-[10px] text-text3 font-bold uppercase tracking-wide mt-1">Total</div>
+            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Total</div>
           </div>
         </div>
       )}
@@ -734,7 +734,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             </div>
             <div>
               <div className="text-[13px] font-bold leading-tight">Tambah Sesi Ngawas</div>
-              <div className="text-[11px] text-text3 mt-0.5">Mapel di luar yang kamu ajar</div>
+              <div className="text-xs text-text3 mt-0.5">Mapel di luar yang kamu ajar</div>
             </div>
           </div>
           <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${proctorFormOpen ? 'rotate-180' : ''}`} />
@@ -743,35 +743,35 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         {proctorFormOpen && (
           <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border2/60">
             <div>
-              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal</label>
-              <input type="date" value={nDate} onChange={e => setNDate(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal</label>
+              <input type="date" aria-label="Tanggal mengawas" value={nDate} onChange={e => setNDate(e.target.value)} className="form-input-style min-w-0 w-full" />
             </div>
 
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
-                <input type="time" value={nStart} onChange={e => setNStart(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
+                <input type="time" aria-label="Jam mulai mengawas" value={nStart} onChange={e => setNStart(e.target.value)} className="form-input-style min-w-0 w-full" />
               </div>
               <div className="flex-1">
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
-                <input type="time" value={nEnd} onChange={e => setNEnd(e.target.value)} className="form-input-style text-sm h-10 w-full" />
+                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
+                <input type="time" aria-label="Jam selesai mengawas" value={nEnd} onChange={e => setNEnd(e.target.value)} className="form-input-style min-w-0 w-full" />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mapel yang Diawasi <span className="text-red">*</span></label>
-              <input value={nSubject} onChange={e => setNSubject(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddProctor()}
-                placeholder="cth: Bahasa Indonesia, Matematika..." className="form-input-style text-sm h-10 w-full" />
+              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel yang Diawasi <span className="text-red">*</span></label>
+              <input aria-label="Mata pelajaran yang diawasi" value={nSubject} onChange={e => setNSubject(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddProctor()}
+                placeholder="cth: Bahasa Indonesia, Matematika..." className="form-input-style min-w-0 w-full" />
             </div>
 
             <div>
-              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
-              <input value={nLocation} onChange={e => setNLocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style text-sm h-10 w-full" />
+              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
+              <input aria-label="Ruangan mengawas" value={nLocation} onChange={e => setNLocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style min-w-0 w-full" />
             </div>
 
             <div>
-              <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
-              <input value={nNote} onChange={e => setNNote(e.target.value)} placeholder="cth: Gantikan Bu Ani, dll." className="form-input-style text-sm h-10 w-full" />
+              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
+              <input aria-label="Catatan mengawas" value={nNote} onChange={e => setNNote(e.target.value)} placeholder="cth: Gantikan Bu Ani, dll." className="form-input-style min-w-0 w-full" />
             </div>
 
             <button onClick={handleAddProctor} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105">
@@ -784,7 +784,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       {/* Upcoming proctor */}
       {futureProctor.length > 0 && (
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureProctor.length})</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureProctor.length})</div>
           <div className="space-y-2">{futureProctor.map(s => <ProctorCard key={s.id} s={s} />)}</div>
         </div>
       )}
@@ -826,7 +826,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <div className="text-[10px] font-black uppercase tracking-widest text-text3 mb-1">Mode Ujian Hari Ini</div>
+              <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Mode Ujian Hari Ini</div>
               <div className={`text-xl font-bold mb-1 ${examMode ? 'text-amber' : 'text-foreground'}`}>
                 {examMode ? '📋 Fokus Ujian Aktif' : '📚 KBM Normal'}
               </div>
@@ -860,7 +860,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       {/* Reminders */}
       <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-2">
         <div className="mb-2">
-          <div className="text-[11px] font-black uppercase tracking-widest text-primary">Pengingat</div>
+          <div className="text-xs font-black uppercase tracking-widest text-primary">Pengingat</div>
           <div className="text-[12px] text-text3 mt-1 leading-snug">
             Hanya untuk jadwal ujian dan ngawas hari ini serta besok. Butuh izin notifikasi aktif.
           </div>
@@ -882,7 +882,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
           <span className="text-base">👁</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Ngawas</span>
+          <span className="text-xs font-black uppercase tracking-widest text-primary">Ngawas</span>
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageProctor()}
@@ -892,7 +892,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
           <span className="text-base">⚙️</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary">Pengaturan</span>
+          <span className="text-xs font-black uppercase tracking-widest text-primary">Pengaturan</span>
           <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
         </div>
         {renderManageMode()}
@@ -902,7 +902,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 px-1">
           <span className="text-base">🗑️</span>
-          <span className="text-[11px] font-black uppercase tracking-widest text-red">Reset Data</span>
+          <span className="text-xs font-black uppercase tracking-widest text-red">Reset Data</span>
           <div className="flex-1 h-px bg-gradient-to-r from-red/20 to-transparent" />
         </div>
 
@@ -916,7 +916,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             </div>
             <div>
               <div className="text-[13px] font-bold text-red">Reset Semua Data Ujian</div>
-              <div className="text-[11px] text-text3 mt-0.5">Hapus jadwal ujian, ngawas, koreksi, dan mode ujian</div>
+              <div className="text-xs text-text3 mt-0.5">Hapus jadwal ujian, ngawas, koreksi, dan mode ujian</div>
             </div>
           </button>
         ) : (
@@ -932,7 +932,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                   • Semua status koreksi<br />
                   • Mode ujian & pengaturan reminder
                 </div>
-                <div className="text-[11px] text-red/80 font-semibold mt-2">⚠️ Aksi ini tidak bisa dibatalkan.</div>
+                <div className="text-xs text-red/80 font-semibold mt-2">⚠️ Aksi ini tidak bisa dibatalkan.</div>
               </div>
             </div>
             <div className="flex gap-2">
@@ -956,10 +956,10 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   );
 
   // ─── Main shell ───────────────────────────────────────────────────────────
-  const tabItems: { id: ExamTab; label: string; emoji: string; badge?: number }[] = [
-    { id: 'agenda', label: 'Agenda', emoji: '🗓️' },
-    { id: 'koreksi', label: 'Koreksi', emoji: '✏️', badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
-    { id: 'riwayat', label: 'Riwayat', emoji: '📁' },
+  const tabItems: { id: ExamTab; label: string; icon: ElementType; badge?: number }[] = [
+    { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+    { id: 'koreksi', label: 'Koreksi', icon: Pencil, badge: correctionStats.pending > 0 ? correctionStats.pending : undefined },
+    { id: 'riwayat', label: 'Riwayat', icon: History },
   ];
 
   return (
@@ -968,13 +968,13 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="bg-surface/70 border border-border2 rounded-2xl p-3 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">Menu Ujian</div>
-            <div className="text-[11px] text-text3 truncate">
+            <div className="text-xs font-black uppercase tracking-wide text-primary">Menu Ujian</div>
+            <div className="text-xs text-text3 truncate">
               {correctionStats.pending > 0 ? `${correctionStats.pending} koreksi perlu dikerjakan` : 'Agenda ujian dan koreksi dalam satu alur'}
             </div>
           </div>
           <span
-            className={`px-2.5 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide flex-shrink-0 ${
+            className={`px-2.5 py-1.5 rounded-full border text-xs font-black uppercase tracking-wide flex-shrink-0 ${
               examMode ? 'bg-amber/15 border-amber/30 text-amber' : 'bg-surface2 border-border2 text-text3'
             }`}
           >
@@ -987,17 +987,17 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`relative min-h-[42px] rounded-lg px-1 text-[11px] font-black transition-all duration-200 active:scale-[0.98] ${
+              className={`relative min-h-[42px] rounded-lg px-1 text-xs font-black transition-all duration-200 active:scale-[0.98] ${
                 tab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:text-foreground hover:bg-surface2'
               }`}
               aria-current={tab === t.id ? 'page' : undefined}
             >
               {t.badge !== undefined && (
-                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red text-white text-[9px] font-black grid place-items-center leading-none">
+                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red text-white text-xs font-black grid place-items-center leading-none">
                   {t.badge}
                 </span>
               )}
-              <span className="block text-sm leading-none mb-0.5">{t.emoji}</span>
+              <t.icon aria-hidden="true" className="h-4 w-4 mx-auto mb-1" />
               <span className="block leading-none truncate">{t.label}</span>
             </button>
           ))}

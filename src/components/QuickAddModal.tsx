@@ -59,7 +59,7 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
         </div>
 
         <div className="mb-3">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Kelas</label>
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Kelas</label>
           <select value={classId} onChange={e => setClassId(e.target.value)} className="form-select-style">
             <option value="">Pilih kelas...</option>
             {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -67,7 +67,7 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
         </div>
 
         <div className="mb-3">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Mata Pelajaran</label>
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Mata Pelajaran</label>
           <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style">
             <option value="">Pilih mapel...</option>
             {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -75,7 +75,7 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
         </div>
 
         <div className="mb-3">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Hari</label>
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Hari</label>
           <div className="grid grid-cols-7 gap-1.5">
             {DAYS_SHORT.map((d, i) => (
               <button key={i} onClick={() => toggleDay(i)}
@@ -90,11 +90,11 @@ export default function QuickAddModal({ open, onClose, onRefresh }: QuickAddModa
 
         <div className="flex gap-2 mb-3">
           <div className="flex-1">
-            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jam Mulai</label>
+            <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jam Mulai</label>
             <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style" />
           </div>
           <div className="flex-1">
-            <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Durasi</label>
+            <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Durasi</label>
             <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style" />
           </div>
         </div>

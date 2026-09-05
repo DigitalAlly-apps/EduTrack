@@ -69,10 +69,10 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
                   { step: '5', title: 'Input Materi per Kelas', desc: 'Daftar bab/materi dan tandai UTS/UAS-nya', tab: 'materials' as SetupTab },
                 ].map(({ step, title, desc, tab: t }) => (
                   <button key={step} onClick={() => setTab(t)} className="w-full flex items-start gap-2.5 text-left hover:bg-primary/5 rounded-xl p-1.5 -mx-1.5 transition-colors group">
-                    <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary flex-shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{step}</span>
+                    <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{step}</span>
                     <div>
                       <div className="text-[13px] font-semibold text-foreground leading-tight">{title}</div>
-                      <div className="text-[11px] text-text2 mt-0.5">{desc}</div>
+                      <div className="text-xs text-text2 mt-0.5">{desc}</div>
                     </div>
                     <span className="ml-auto text-text3 text-base opacity-0 group-hover:opacity-100 transition-opacity self-center">›</span>
                   </button>
@@ -84,31 +84,31 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
       )}
       {/* Profile */}
       <div className="app-card p-5 mb-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center flex-shrink-0 ring-4 ring-primary/5 text-primary">
             <UserRound className="h-6 w-6" />
           </div>
            <div className="flex-1 min-w-0">
-             <div className="text-base font-black tracking-tight truncate">
+             <div className="text-base font-bold tracking-tight break-words">
                {data.teacherName || 'Belum diisi'}
              </div>
-             <div className="text-[11px] text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
-             <div className="text-[9px] font-bold uppercase tracking-wider text-primary">
+             <div className="text-xs text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
+             <div className="text-xs font-bold uppercase tracking-wider text-primary">
                &#x2736; {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel
              </div>
              {data.academicYear ? (
-               <div className="text-[11px] text-text2 mt-1 flex items-center gap-1.5">
+               <div className="text-xs text-text2 mt-1 flex items-center gap-1.5">
                  <span className="opacity-60">📅</span>
                  <span className="truncate">Tahun Ajaran: {data.academicYear}</span>
                </div>
              ) : (
-               <div className="text-[11px] text-amber mt-1 flex items-center gap-1.5">
+               <div className="text-xs text-amber mt-1 flex items-center gap-1.5">
                  <span>⚠️</span>
                  <span>Belum mengatur tahun ajaran</span>
                </div>
              )}
            </div>
-           <div className="flex flex-col gap-2">
+           <div className="flex flex-col sm:flex-row gap-2 w-full border-t border-border pt-3">
              <EditTeacherButton onRefresh={refresh} />
              <EditAcademicYearButton onRefresh={refresh} />
            </div>
@@ -261,14 +261,15 @@ function EditTeacherButton({ onRefresh }: { onRefresh: () => void }) {
     return (
       <div className="flex gap-1">
         <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
-          className="w-28 bg-surface border border-border2 rounded-lg px-2 py-1 text-xs" autoFocus placeholder="Nama..." />
-        <button onClick={save} className="px-2 py-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold">✓</button>
+          aria-label="Nama pengajar" className="min-w-0 flex-1 bg-surface border border-border2 rounded-lg px-3 py-2 text-base" autoFocus placeholder="Nama..." />
+        <button onClick={save} className="min-h-11 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold">Simpan</button>
+        <button onClick={() => setEditing(false)} className="min-h-11 px-2 text-xs text-text2">Batal</button>
       </div>
     );
   }
   return (
-    <button onClick={startEdit} className="px-3 py-2 rounded-xl bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center gap-1.5">
-      <Pencil className="h-3.5 w-3.5" /> Edit
+    <button onClick={startEdit} className="min-h-11 px-3 py-2 rounded-xl bg-surface2 border border-border2 text-sm text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center justify-center gap-2">
+      <Pencil aria-hidden="true" className="h-3.5 w-3.5" /> Edit nama
     </button>
   );
 }
@@ -291,14 +292,15 @@ function EditAcademicYearButton({ onRefresh }: { onRefresh: () => void }) {
     return (
       <div className="flex gap-1">
         <input value={year} onChange={e => setYear(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
-          className="w-32 bg-surface border border-border2 rounded-lg px-2 py-1 text-xs" autoFocus placeholder="Contoh: 2024/2025" />
-        <button onClick={save} className="px-2 py-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold">✓</button>
+          aria-label="Tahun ajaran" className="min-w-0 flex-1 bg-surface border border-border2 rounded-lg px-3 py-2 text-base" autoFocus placeholder="Contoh: 2026/2027" />
+        <button onClick={save} className="min-h-11 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold">Simpan</button>
+        <button onClick={() => setEditing(false)} className="min-h-11 px-2 text-xs text-text2">Batal</button>
       </div>
     );
   }
   return (
-    <button onClick={startEdit} className="px-3 py-2 rounded-xl bg-surface2 border border-border2 text-xs text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center gap-1.5">
-      <CalendarDays className="h-3.5 w-3.5" /> Atur
+    <button onClick={startEdit} className="min-h-11 px-3 py-2 rounded-xl bg-surface2 border border-border2 text-sm text-text2 transition-all hover:text-foreground hover:border-border3 flex items-center justify-center gap-2">
+      <CalendarDays aria-hidden="true" className="h-3.5 w-3.5" /> Tahun ajaran
     </button>
   );
 }
@@ -330,7 +332,7 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
   if (editing) {
     return (
       <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px] animate-in fade-in slide-in-from-top-1">
-        <label className="block text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Edit Item</label>
+        <label className="block text-xs font-bold text-primary uppercase tracking-wider mb-2">Edit Item</label>
         <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 h-10" autoFocus />
         {extraEditField && extraEditField(extraVal, setExtraVal)}
         <div className="flex gap-2">
@@ -346,11 +348,11 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
       <div className="app-list-item flex items-center justify-between mb-2 relative group">
         <div className="flex-1 min-w-0 pr-3">
           <div className="text-sm font-medium leading-snug">{item.name}</div>
-          <div className={`text-[11px] mt-[4px] font-medium ${item.metaColor || 'text-text2'}`}>{item.meta}</div>
+          <div className={`text-xs mt-[4px] font-medium ${item.metaColor || 'text-text2'}`}>{item.meta}</div>
         </div>
         <div className="flex gap-[6px] items-center flex-shrink-0">
           <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9 hover:text-primary" aria-label="Edit item"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setDelSheet(true)} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus item"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => setDelSheet(true)} className="w-11 h-11 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus item"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(item.id)} title={`Hapus "${item.name}"?`} desc={item.deleteWarning || 'Tindakan ini tidak bisa dibatalkan.'} />
@@ -376,7 +378,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
       <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px]">
         <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 h-10" autoFocus />
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
+          <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
           <div className="flex items-center gap-1 flex-wrap">
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} onClick={() => setSessVal(n)}
@@ -385,7 +387,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                 }`}>{n}×</button>
             ))}
             <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
-              <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+              <span className="text-xs text-text3 font-bold">Lainnya:</span>
               <input
                 type="number"
                 min="1"
@@ -397,7 +399,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
           </div>
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Ujian:</label>
+          <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Ujian:</label>
           <div className="flex gap-1">
             {(['UTS', 'UAS', null] as const).map(p => (
               <button key={p ?? 'none'} onClick={() => setExamPeriod(p)}
@@ -425,11 +427,11 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
   }
 
   const sessBadge = (item.sessions ?? 1) > 1
-    ? <span className="inline-block ml-1 bg-primary-dim text-primary text-[9px] font-bold px-[5px] py-[1px] rounded">{item.sessions}×</span>
+    ? <span className="inline-block ml-1 bg-primary-dim text-primary text-xs font-bold px-[5px] py-[1px] rounded">{item.sessions}×</span>
     : null;
 
   const periodBadge = item.examPeriod
-    ? <span className={`inline-block ml-1.5 text-[9px] font-bold px-[5px] py-[1px] rounded border ${
+    ? <span className={`inline-block ml-1.5 text-xs font-bold px-[5px] py-[1px] rounded border ${
         item.examPeriod === 'UTS'
           ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
           : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
@@ -437,7 +439,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
     : null;
 
   const statusBadge = item.progressStatus ? (
-    <span className={`inline-block ml-1.5 text-[9px] font-bold px-[5px] py-[1px] rounded border ${
+    <span className={`inline-block ml-1.5 text-xs font-bold px-[5px] py-[1px] rounded border ${
       item.progressStatus.type === 'finished'
         ? 'bg-green/15 border-green/30 text-green'
         : item.progressStatus.type === 'current'
@@ -455,12 +457,12 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
             <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{periodBadge}{statusBadge}</div>
-            <div className="text-[11px] text-text2 mt-[2px] leading-snug">{item.meta}</div>
+            <div className="text-xs text-text2 mt-[2px] leading-snug">{item.meta}</div>
           </div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
           <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9" aria-label="Edit materi"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setDelSheet(true)} className="w-9 h-9 rounded-2xl bg-red/10 text-red border border-red/20 grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus materi"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => setDelSheet(true)} className="w-11 h-11 rounded-2xl bg-red/10 text-red border border-red/20 grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus materi"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(id)} title={`Hapus "${item.name}"?`} desc="Data progres kelas untuk materi ini akan terpengaruh jika sudah dilewati." />
@@ -609,7 +611,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
           <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
           <div className="flex gap-2 mb-3">
             <div className="flex-1">
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Jenjang</label>
+              <label className="block text-xs text-text2 mb-1 pl-1">Jenjang</label>
               <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style text-xs">
                 <option value="">Umum / Tidak Spesifik</option>
                 <option value="SD/MI">SD / MI</option>
@@ -618,7 +620,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Hubungkan ke Semester</label>
+              <label className="block text-xs text-text2 mb-1 pl-1">Hubungkan ke Semester</label>
               <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="form-select-style text-xs">
                 <option value="">Pilih semester...</option>
                 {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -627,12 +629,12 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
           {/* Advanced: tanggal ujian fallback (hanya jika tidak pakai semester) */}
           <div className="mb-3">
-            <button onClick={() => setShowAdvancedAdd(v => !v)} className="text-[10px] text-text3 hover:text-text2 flex items-center gap-1 transition-colors">
+            <button onClick={() => setShowAdvancedAdd(v => !v)} className="text-xs text-text3 hover:text-text2 flex items-center gap-1 transition-colors">
               <span>{showAdvancedAdd ? '▾' : '▸'}</span> Atur tanggal ujian manual (lanjutan)
             </button>
             {showAdvancedAdd && (
               <div className="mt-2 p-3 bg-surface2 border border-border2 rounded-xl">
-                <label className="block text-[10px] text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
+                <label className="block text-xs text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
                 <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs h-[38px]" />
               </div>
             )}
@@ -668,7 +670,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               </div>
               {!v.semesterId && (
                 <div>
-                  <label className="block text-[10px] text-text3 mb-1">Tanggal ujian manual (fallback)</label>
+                  <label className="block text-xs text-text3 mb-1">Tanggal ujian manual (fallback)</label>
                   <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs h-[38px]" />
                 </div>
               )}
@@ -681,8 +683,8 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
       {/* Bulk update tanggal ujian per jenjang — fitur lanjutan */}
       {data.subjects.length > 0 && (
         <div className="app-card-soft p-4 mt-5 border border-border/60">
-          <label className="block text-[11px] font-bold tracking-[0.7px] uppercase text-text2 mb-1">Bulk: Set Tanggal Ujian per Jenjang</label>
-          <p className="text-[11px] text-text3 mb-2">Override tanggal ujian untuk semua mapel di jenjang yang sama sekaligus.</p>
+          <label className="block text-xs font-bold tracking-[0.7px] uppercase text-text2 mb-1">Bulk: Set Tanggal Ujian per Jenjang</label>
+          <p className="text-xs text-text3 mb-2">Override tanggal ujian untuk semua mapel di jenjang yang sama sekaligus.</p>
           <div className="flex gap-2">
              <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style flex-1 text-xs">
                <option value="SD/MI">SD / MI</option>
@@ -795,7 +797,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       {/* Konteks penjelasan examPeriod */}
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
-        <p className="text-[11px] text-text2 leading-relaxed">
+        <p className="text-xs text-text2 leading-relaxed">
           <span className="font-bold text-foreground">ℹ️ Cara kerja Materi & Ujian:</span><br />
           Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Tandai setiap bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span> untuk mengelompokkan cakupan ujiannya. Ini berbeda dengan <em>tanggal</em> UTS/UAS yang diatur di tab Semester.
         </p>
@@ -819,7 +821,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
         {/* Info panel setelah mapel & kelas dipilih */}
         {subId && classId && (
-          <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-[11px] text-text2 space-y-0.5">
+          <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-xs text-text2 space-y-0.5">
             <div className="font-bold text-foreground text-[12px]">
               📚 {selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}
             </div>
@@ -842,13 +844,13 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         <div className="app-card-soft p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] font-bold text-foreground">Tambah Materi ({classesForSubject.find(c => c.id === classId)?.name})</span>
-            <button onClick={() => setBulkMode(!bulkMode)} className="text-[11px] font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
+            <button onClick={() => setBulkMode(!bulkMode)} className="text-xs font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
           </div>
           {bulkMode ? (
             <>
               <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | UTS\nBab 2 - Geometri | 3x | hal 13-28 | UTS\nBab 3 - Statistik | 2x | hal 29-40 | UAS\n\nTips: Tambahkan | UTS atau | UAS di akhir baris untuk langsung mengikat materi ke ujian."} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
               <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
+                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
                 <div className="flex items-center gap-1 flex-wrap">
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setBulkSessions(n)}
@@ -857,7 +859,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                       }`}>{n}×</button>
                   ))}
                   <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
-                    <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
                     <input
                       type="number"
                       min="1"
@@ -873,7 +875,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             <>
               <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} className="form-input-style mb-2" placeholder="cth: Bab 1 — Persamaan Linear" />
               <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <label className="text-[10px] font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
+                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
                 <div className="flex items-center gap-1 flex-wrap">
                   {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setSessions(n)}
@@ -882,7 +884,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                       }`}>{n}×</button>
                   ))}
                   <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
-                    <span className="text-[10px] text-text3 font-bold">Lainnya:</span>
+                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
                     <input
                       type="number"
                       min="1"
@@ -908,12 +910,12 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         <>
           <div className="mt-5 mb-2 flex justify-between items-center">
             <span className="app-section-title px-0">Daftar Materi ({mats.length})</span>
-            {mats.length > 1 && <span className="text-[10px] text-text2">Tahan &amp; geser untuk urutkan</span>}
+            {mats.length > 1 && <span className="text-xs text-text2">Tahan &amp; geser untuk urutkan</span>}
           </div>
 
           {mats.length > 0 && (
             <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Set Rentang Bab ke Ujian</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Set Rentang Bab ke Ujian</div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-text2">Bab</span>
                 <input
@@ -1076,7 +1078,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="mb-4">
         <div className="app-section-title mb-3 flex items-center justify-between">
           <span>Daftar Jadwal Mingguan</span>
-          <span className="text-[10px] font-medium lowercase opacity-60">({data.schedules.length} total)</span>
+          <span className="text-xs font-medium lowercase opacity-60">({data.schedules.length} total)</span>
         </div>
         
         {schedulesByDay.length === 0 && (
@@ -1136,7 +1138,7 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
     return (
       <div className="bg-surface2 border border-primary-border rounded-2xl p-4 mb-2">
         <div className="text-sm font-bold mb-3">{item.name}</div>
-        <div className="grid grid-cols-7 gap-1.5 mb-3">{DAYS_SHORT.map((d, i) => <button key={i} onClick={() => toggleDay(i)} className={`min-h-[34px] rounded-xl text-[11px] font-bold border ${days.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border2 text-text2'}`}>{d}</button>)}</div>
+        <div className="grid grid-cols-7 gap-1.5 mb-3">{DAYS_SHORT.map((d, i) => <button key={i} onClick={() => toggleDay(i)} className={`min-h-[34px] rounded-xl text-xs font-bold border ${days.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border2 text-text2'}`}>{d}</button>)}</div>
         <div className="flex gap-2 mb-3">
           <input type="time" value={st} onChange={e => setSt(e.target.value)} className="form-input-style flex-1 h-9 px-2 text-xs" />
           <input type="number" value={dr} onChange={e => setDr(parseInt(e.target.value))} className="form-input-style flex-1 h-9 px-2 text-xs" placeholder="Durasi mnt" />
@@ -1154,11 +1156,11 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
       <div className="app-list-item flex items-center justify-between mb-2">
         <div className="flex-1 min-w-0 pr-3">
           <div className="text-sm font-medium leading-snug">{item.name}</div>
-          <div className="text-[11px] text-text2 mt-[4px] font-medium">{item.meta}</div>
+          <div className="text-xs text-text2 mt-[4px] font-medium">{item.meta}</div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
           <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="app-icon-button w-9 h-9" aria-label="Edit jadwal"><Pencil className="h-4 w-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus jadwal"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-11 h-11 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus jadwal"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
       <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(item.id)} title="Hapus Jadwal?" desc={`Data historis sesi mengajar tidak dipengaruhi, tapi jadwal ${item.name} tidak akan muncul lagi.`} />
@@ -1230,12 +1232,12 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
           </select>
         </div>
         <button onClick={handleAdd} className="btn-primary-style min-h-[44px] flex items-center justify-center gap-2"><Palmtree className="h-4 w-4" /> Tambah Libur</button>
-        <p className="text-[11px] text-text3 mt-2 leading-relaxed">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
+        <p className="text-xs text-text3 mt-2 leading-relaxed">Input tanggal di mana kelas tidak berlangsung: libur mendadak, acara sekolah, dll. Asisten akan mengecualikan tanggal ini dari perhitungan sesi.</p>
       </div>
 
       {impacts.length > 0 && (
         <div className="bg-amber/10 border border-amber/25 rounded-2xl p-4 mb-4">
-          <div className="text-[11px] font-black text-amber mb-2 uppercase tracking-wide flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Dampak Hari Libur pada Jadwal</div>
+          <div className="text-xs font-black text-amber mb-2 uppercase tracking-wide flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Dampak Hari Libur pada Jadwal</div>
           {impacts.map((imp, i) => (
             <div key={i} className="text-[12px] text-text2">
               <span className="font-semibold text-foreground">{imp.className} — {imp.subjectName}</span>: {imp.impactCount} sesi terpotong
@@ -1260,12 +1262,12 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
             <div>
               <div className="text-sm font-medium">{formatDate(dStr)}</div>
               <div className="flex gap-1 mt-[3px] items-center">
-                <span className="text-[10px] bg-surface2 text-text2 rounded px-[5px] py-[1px] border">{levelStr}</span>
-                {isToday && <span className="text-[10px] bg-primary text-white rounded px-[5px] py-[1px] font-bold">Hari ini</span>}
-                {isPast && <span className="text-[10px] text-text3">(Sudah lewat)</span>}
+                <span className="text-xs bg-surface2 text-text2 rounded px-[5px] py-[1px] border">{levelStr}</span>
+                {isToday && <span className="text-xs bg-primary text-white rounded px-[5px] py-[1px] font-bold">Hari ini</span>}
+                {isPast && <span className="text-xs text-text3">(Sudah lewat)</span>}
               </div>
             </div>
-            <button onClick={() => handleRemove(h)} className="w-9 h-9 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0"><Trash2 className="h-4 w-4" /></button>
+            <button onClick={() => handleRemove(h)} className="w-11 h-11 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0"><Trash2 className="h-4 w-4" /></button>
           </div>
         );
       })}
@@ -1324,7 +1326,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
       </div>
       
       <div className="bg-[linear-gradient(135deg,hsl(199_89%_60%/0.08)_0%,hsl(160_68%_52%/0.05)_100%)] border border-teal-border rounded-3xl p-[18px] mb-3">
-        <div className="text-[11px] font-bold tracking-[0.7px] uppercase text-teal mb-[14px] flex items-center gap-2"><Bell className="h-4 w-4" /> Push Notifikasi</div>
+        <div className="text-xs font-bold tracking-[0.7px] uppercase text-teal mb-[14px] flex items-center gap-2"><Bell className="h-4 w-4" /> Push Notifikasi</div>
         <p className="text-[13px] text-text2 leading-[1.7] mb-3">
           Izinkan notifikasi agar EduTrack bisa mengingatkan Anda **5 menit sebelum sesi kelas dimulai**.
         </p>
@@ -1357,7 +1359,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
 }
 
 function FormField({ label, children, className = '' }: any) {
-  return <div className={`mb-3 ${className}`}><label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">{label}</label>{children}</div>;
+  return <div className={`mb-3 ${className}`}><label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">{label}</label>{children}</div>;
 }
 // ── Leave Tab ────────────────────────────────────────────────────────────────
 function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
@@ -1419,17 +1421,17 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
           <div className="w-10 h-10 rounded-2xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber flex-shrink-0"><HeartPulse className="h-5 w-5" /></div>
           <div>
             <div className="font-display text-[18px] font-bold tracking-tight leading-tight">Pengajuan Izin</div>
-            <div className="text-[11px] text-text2">Atur sesi kelas jika berhalangan hadir.</div>
+            <div className="text-xs text-text2">Atur sesi kelas jika berhalangan hadir.</div>
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Tanggal</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style" />
         </div>
 
         <div className="mb-4">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jenis</label>
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jenis</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setLeaveType('izin')}
@@ -1449,7 +1451,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
 
         <div className="mb-4">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
             Keterangan <span className="normal-case font-normal text-text3">(opsional)</span>
           </label>
           <input
@@ -1462,7 +1464,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
 
         <div className="mb-4">
-          <label className="block text-[11px] font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
+          <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">
             Penyesuaian Jadwal ({schedules.length} Kelas)
           </label>
           {schedules.length === 0 ? (
@@ -1480,14 +1482,14 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
                       <div className="min-w-0 pr-2">
                         <div className="text-[14px] font-bold">{s.className}</div>
                         <div className="text-[12px] text-text2">{s.subjectName} · {s.startTime}</div>
-                        {s.nextMat && <div className="text-[10px] text-text3 mt-0.5 truncate">Materi: {s.nextMat.name}</div>}
+                        {s.nextMat && <div className="text-xs text-text3 mt-0.5 truncate">Materi: {s.nextMat.name}</div>}
                       </div>
                       <div className="flex flex-col gap-1.5 flex-shrink-0 bg-surface p-1 rounded-2xl border border-border/50">
-                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors ${isDeliver ? 'bg-green/10 text-green ring-1 ring-green/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'deliver'}}))} className="hidden" />
                           <CheckCircle2 className="h-3.5 w-3.5" /> Titip Tugas
                         </label>
-                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
+                        <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors ${!isDeliver ? 'bg-red/10 text-red ring-1 ring-red/30' : 'text-text3 hover:bg-surface3'}`}>
                           <input type="radio" checked={!isDeliver} onChange={() => setResolutions(p => ({...p, [s.id]: {...p[s.id], action: 'skip'}}))} className="hidden" />
                           <SkipForward className="h-3.5 w-3.5" /> Skip Kelas
                         </label>
@@ -1529,16 +1531,16 @@ function StorageInfo() {
     <div className="app-card p-4 mb-3">
         <div className="text-[13px] font-bold tracking-wide mb-3 flex items-center justify-between">
           <span className="flex items-center gap-2"><HardDrive className="h-4 w-4 text-primary" /> Penyimpanan Lokal</span>
-          <span className={"text-[11px] font-bold " + color}>{safeInfo.pct}% terpakai</span>
+          <span className={"text-xs font-bold " + color}>{safeInfo.pct}% terpakai</span>
         </div>
         <div className="h-2 bg-surface3 rounded-full overflow-hidden mb-2">
           <div className={"h-full rounded-full transition-all " + barColor} style={{ width: safeInfo.pct + '%' }} />
       </div>
-      <div className="text-[11px] text-text3 flex justify-between mb-3">
+      <div className="text-xs text-text3 flex justify-between mb-3">
         <span>{kb} KB digunakan</span>
         <span>{Math.round(info.total / 1024)} KB total</span>
       </div>
-      <div className="text-[11px] text-text3 flex gap-2 flex-wrap mb-3">
+      <div className="text-xs text-text3 flex gap-2 flex-wrap mb-3">
         <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.sessions.length} sesi</span>
         <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.materials.length} materi</span>
         <span className="px-2 py-1 rounded-full bg-surface2 border border-border2">{data.schedules.length} jadwal</span>
@@ -1600,7 +1602,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       {/* Penjelasan konsep */}
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
-        <p className="text-[11px] text-text2 leading-relaxed">
+        <p className="text-xs text-text2 leading-relaxed">
           <span className="font-bold text-foreground">ℹ️ Semester & Ujian:</span><br />
           Buat semester (mis. <em>Smt 1 Ganjil 2025/2026</em>), tentukan kapan UTS dan UAS berlangsung, lalu <strong>hubungkan mapel</strong> ke semester ini. Sistem akan otomatis tahu batas materi UTS dan UAS untuk setiap mapel.
         </p>
@@ -1617,7 +1619,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
           />
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div>
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal UTS</label>
+              <label className="block text-xs text-text2 mb-1 pl-1">Tanggal UTS</label>
               <input
                 type="date"
                 value={utsDate}
@@ -1626,7 +1628,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-[10px] text-text2 mb-1 pl-1">Tanggal UAS</label>
+              <label className="block text-xs text-text2 mb-1 pl-1">Tanggal UAS</label>
               <input
                 type="date"
                 value={uasDate}
@@ -1635,7 +1637,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               />
             </div>
           </div>
-          {data.subjects.length > 0 && <div className="mb-3"><label className="block text-[10px] text-text2 mb-1 pl-1">Hubungkan mapel sekarang <span className="text-text3">(opsional)</span></label><div className="max-h-36 overflow-y-auto rounded-xl border border-border2 bg-surface p-2 space-y-1">{data.subjects.map(subject => <label key={subject.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface2"><input type="checkbox" checked={selectedSubjectIds.includes(subject.id)} onChange={() => setSelectedSubjectIds(ids => ids.includes(subject.id) ? ids.filter(id => id !== subject.id) : [...ids, subject.id])} />{subject.name}<span className="ml-auto text-[10px] text-text3">{subject.level || 'Umum'}</span></label>)}</div></div>}
+          {data.subjects.length > 0 && <div className="mb-3"><label className="block text-xs text-text2 mb-1 pl-1">Hubungkan mapel sekarang <span className="text-text3">(opsional)</span></label><div className="max-h-36 overflow-y-auto rounded-xl border border-border2 bg-surface p-2 space-y-1">{data.subjects.map(subject => <label key={subject.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface2"><input type="checkbox" checked={selectedSubjectIds.includes(subject.id)} onChange={() => setSelectedSubjectIds(ids => ids.includes(subject.id) ? ids.filter(id => id !== subject.id) : [...ids, subject.id])} />{subject.name}<span className="ml-auto text-xs text-text3">{subject.level || 'Umum'}</span></label>)}</div></div>}
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">
             ＋ Tambah Semester
           </button>
@@ -1668,11 +1670,11 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               extraEditField={(v: any, setV: any) => (
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <label className="block text-[9px] text-text2 mb-1">Tanggal UTS</label>
+                    <label className="block text-xs text-text2 mb-1">Tanggal UTS</label>
                     <input type="date" value={v.utsDate || ''} onChange={e => setV({ ...v, utsDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
                   </div>
                   <div>
-                    <label className="block text-[9px] text-text2 mb-1">Tanggal UAS</label>
+                    <label className="block text-xs text-text2 mb-1">Tanggal UAS</label>
                     <input type="date" value={v.uasDate || ''} onChange={e => setV({ ...v, uasDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
                   </div>
                 </div>
@@ -1688,7 +1690,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
                     <button
                       key={sub.id}
                       onClick={() => toggleLink(sub.id, s.id)}
-                      className="flex items-center gap-1 bg-primary/10 border border-primary/25 text-primary text-[11px] font-semibold px-2 py-1 rounded-lg hover:bg-red/10 hover:border-red/25 hover:text-red transition-colors group"
+                      className="flex items-center gap-1 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-2 py-1 rounded-lg hover:bg-red/10 hover:border-red/25 hover:text-red transition-colors group"
                       title="Klik untuk lepas dari semester ini"
                     >
                       <span>{sub.name}</span>
@@ -1697,14 +1699,14 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-text3 mb-2">Belum ada mapel yang terhubung ke semester ini.</p>
+                <p className="text-xs text-text3 mb-2">Belum ada mapel yang terhubung ke semester ini.</p>
               )}
 
               {/* Tombol hubungkan mapel */}
               {data.subjects.length > 0 && (
                 <button
                   onClick={() => setLinkingId(isLinking ? null : s.id)}
-                  className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                  className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
                     isLinking
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-surface2 text-text2 border-border2 hover:border-primary hover:text-primary'
@@ -1722,7 +1724,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
                     <button
                       key={sub.id}
                       onClick={() => toggleLink(sub.id, s.id)}
-                      className="flex items-center gap-1 bg-surface2 border border-border2 text-text2 text-[11px] font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+                      className="flex items-center gap-1 bg-surface2 border border-border2 text-text2 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
                     >
                       + {sub.name}
                     </button>
@@ -1730,7 +1732,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
                 </div>
               )}
               {isLinking && unlinkedSubjects.length === 0 && (
-                <p className="text-[11px] text-text3 mt-1">Semua mapel sudah terhubung ke semester ini.</p>
+                <p className="text-xs text-text3 mt-1">Semua mapel sudah terhubung ke semester ini.</p>
               )}
             </div>
           </div>

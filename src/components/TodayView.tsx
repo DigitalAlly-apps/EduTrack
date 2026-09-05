@@ -8,10 +8,10 @@ import {
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
   recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted,
 } from '@/lib/data';
-import { TodayScheduleItem, MissingTeachingSession } from '@/lib/types';
+import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import SmartReschedulerModal from './SmartReschedulerModal';
-import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X } from 'lucide-react';
+import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X, CalendarDays, BookOpen, Clock } from 'lucide-react';
 import {
   getExamDayMode, setExamDayMode,
   getTodayExamItems, getTodayProctorSessions,
@@ -206,7 +206,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             onRefresh();
             toast({ title: '📌 Ditambahkan ke Inbox Tugas!' });
           }}
-          className="text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
+          className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 whitespace-nowrap"
         >
           + Kejar
         </button>
@@ -286,11 +286,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-3">
               <div className="bg-surface/65 backdrop-blur-md border border-border2/60 rounded-2xl p-3.5 text-center">
                 <div className="text-2xl font-black text-amber leading-none">{todayExamItems.length}</div>
-                <div className="text-[10px] text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ujian</div>
+                <div className="text-xs text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ujian</div>
               </div>
               <div className="bg-surface/65 backdrop-blur-md border border-border2/60 rounded-2xl p-3.5 text-center">
                 <div className="text-2xl font-black text-primary leading-none">{todayProctorSessions.length}</div>
-                <div className="text-[10px] text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ngawas</div>
+                <div className="text-xs text-text3 font-bold uppercase tracking-wider mt-1.5">Sesi Ngawas</div>
               </div>
             </div>
           </div>
@@ -338,8 +338,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 return (
                   <div key={`exam-${i}`} className={`bg-amber/5 border rounded-3xl p-4 transition-all ${isActive ? 'border-amber/50 ring-1 ring-amber/10' : 'border-border/60'}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
-                      {isActive && <span className="text-[9px] font-black text-amber animate-pulse">● Berlangsung</span>}
+                      <span className="text-xs font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
+                      {isActive && <span className="text-xs font-black text-amber animate-pulse">● Berlangsung</span>}
                     </div>
                     <div className="text-[15px] font-bold text-foreground leading-snug">{exam.subjectName}</div>
                     <div className="text-[12px] text-text2 mt-1 flex flex-wrap gap-2">
@@ -365,8 +365,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 return (
                   <div key={`proctor-${i}`} className={`bg-primary/5 border rounded-3xl p-4 transition-all ${isActive ? 'border-primary/50 ring-1 ring-primary/10' : 'border-border/60'}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
-                      {isActive && <span className="text-[9px] font-black text-primary animate-pulse">● Berlangsung</span>}
+                      <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
+                      {isActive && <span className="text-xs font-black text-primary animate-pulse">● Berlangsung</span>}
                     </div>
                     <div className="text-[15px] font-bold text-foreground leading-snug">{proctor.subjectName}</div>
                     <div className="text-[12px] text-text2 mt-1 flex flex-wrap gap-2">
@@ -416,10 +416,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {tomorrowExamItems.map((exam, i) => (
                   <div key={`tomorrow-exam-${i}`} className="bg-amber/5 border border-amber/20 rounded-2xl p-3">
                     <div className="flex items-start gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
                       <div className="min-w-0 flex-1">
                         <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
-                        <div className="text-[11px] text-text2 mt-0.5">
+                        <div className="text-xs text-text2 mt-0.5">
                           {fmt(exam.startTime)}–{fmt(exam.endTime)} · Kelas {exam.className}
                         </div>
                       </div>
@@ -429,10 +429,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {tomorrowProctorSessions.map((p, i) => (
                   <div key={`tomorrow-proctor-${i}`} className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
                     <div className="flex items-start gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
                       <div className="min-w-0 flex-1">
                         <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
-                        <div className="text-[11px] text-text2 mt-0.5">
+                        <div className="text-xs text-text2 mt-0.5">
                           {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
                         </div>
                       </div>
@@ -442,10 +442,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {tomorrowKbmSchedules.map((sched, i) => (
                   <div key={`tomorrow-kbm-${i}`} className="bg-teal/5 border border-teal/20 rounded-2xl p-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
                       <div className="min-w-0 flex-1">
                         <div className="text-[13px] font-bold leading-snug">{sched.className} — {sched.subjectName}</div>
-                        <div className="text-[11px] text-text2 mt-0.5">
+                        <div className="text-xs text-text2 mt-0.5">
                           ⏰ {fmt(sched.startTime)}–{fmt(sched.endTime)}
                           {sched.nextMat && <span className="text-text3 block mt-0.5">📖 Sesi ke-{Math.min(sched.materialsDone + 1, sched.totalMats)}: {sched.nextMat.name}</span>}
                         </div>
@@ -480,11 +480,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12 px-6 animate-slide-up">
-        <span className="text-5xl block mb-4">📅</span>
+      <div className="app-card text-center py-12 px-6 animate-slide-up max-w-3xl mx-auto">
+        <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-primary-dim text-primary"><CalendarDays aria-hidden="true" className="h-8 w-8" /></div>
         <div className="font-display text-2xl font-medium tracking-tight mb-2">Tidak ada jadwal hari ini</div>
         <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">
-          Hari ini {DAYS_ID[todayNum()]}. Kayaknya hari santai buat kamu.
+          Belum ada sesi mengajar untuk hari {DAYS_ID[todayNum()]}. Jadwal yang ditambahkan akan muncul di sini.
         </div>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('set-tab', { detail: 'setup' }))}
@@ -510,7 +510,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
 
         <div className="bg-surface/60 border border-border rounded-2xl p-5 mb-4 shadow-sm">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-text3 mb-4 flex items-center gap-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-text3 mb-4 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green" />
             Ringkasan Hari Ini
           </div>
@@ -524,20 +524,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <span className="text-sm font-bold text-text3">{skippedItems.length} Kelas</span>
             </div>
             <div className="pt-3 border-t border-border/50">
-              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Materi yang diajarkan:</div>
+              <div className="text-xs font-bold uppercase text-text3 mb-2">Materi yang diajarkan:</div>
               <div className="flex flex-wrap gap-1.5">
                 {doneItems.map((it, i) => (
-                  <div key={i} className="px-2.5 py-1 bg-green-dim text-green text-[11px] font-semibold rounded-md border border-green/20">
+                  <div key={i} className="px-2.5 py-1 bg-green-dim text-green text-xs font-semibold rounded-md border border-green/20">
                     {it.className}
                   </div>
                 ))}
-                {doneItems.length === 0 && <span className="text-[11px] text-text3 italic">Tidak ada materi baru</span>}
+                {doneItems.length === 0 && <span className="text-xs text-text3 italic">Tidak ada materi baru</span>}
               </div>
             </div>
 
             {/* Ringkasan catatan per sesi */}
             <div className="pt-3 border-t border-border/50">
-              <div className="text-[10px] font-bold uppercase text-text3 mb-2">Catatan Pertemuan Berikutnya:</div>
+              <div className="text-xs font-bold uppercase text-text3 mb-2">Catatan Pertemuan Berikutnya:</div>
               <div className="space-y-2">
                 {items.filter(it => !it.skipped).map((it, i) => {
                   const { mainNote, reminder } = splitSessionNote(it.note);
@@ -553,14 +553,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   ].filter(Boolean).join(' · ');
                   return (
                     <div key={i} className="rounded-xl border border-border/50 bg-surface/35 p-2.5">
-                      <div className="flex items-start gap-2 text-[11px]">
+                      <div className="flex items-start gap-2 text-xs">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-text2 truncate">{it.className}</span>
                             <span className="text-text3">·</span>
                             <span className="text-text3 truncate">{it.subjectName}</span>
                             {hasReminder && (
-                              <span className="flex-shrink-0 text-[9px] bg-amber/15 text-amber border border-amber/25 rounded-full px-1.5 py-0.5 font-bold">📌</span>
+                              <span className="flex-shrink-0 text-xs bg-amber/15 text-amber border border-amber/25 rounded-full px-1.5 py-0.5 font-bold">📌</span>
                             )}
                           </div>
                           <div className="text-foreground/70 leading-snug mt-1">
@@ -570,7 +570,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         {it.sessionId && (
                           <button
                             onClick={() => isEditing ? closeNoteEditor() : openNoteEditor(it)}
-            className="min-h-[36px] flex-shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="min-h-[36px] flex-shrink-0 rounded-lg border border-primary/25 bg-primary/10 px-2 py-1 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                           >
                             {isEditing ? 'Tutup' : 'Edit'}
                           </button>
@@ -580,7 +580,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       {isEditing && it.sessionId && (
                         <div className="mt-3 border-t border-border/50 pt-3 space-y-3 animate-slide-up">
                           <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-primary">Bab / subbab pertemuan berikutnya</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-primary">Bab / subbab pertemuan berikutnya</label>
                             <textarea
                               autoFocus
                               value={noteDraft}
@@ -591,7 +591,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="flex items-center gap-2 text-[11px] font-bold text-primary" htmlFor={`last-page-${it.id}`}>
+                            <label className="flex items-center gap-2 text-xs font-bold text-primary" htmlFor={`last-page-${it.id}`}>
                               <span className="text-base" aria-hidden="true">📄</span>
                               Halaman pertemuan berikutnya
                             </label>
@@ -606,16 +606,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                                 className="w-full sm:w-24 rounded-lg border border-primary/30 bg-surface px-2.5 py-1 text-[13px] font-bold focus:border-primary focus:outline-none"
                               />
                               {lastPageDraft && (
-                                <span className="min-w-0 text-[10px] font-semibold text-green">→ tampil mulai {getNextStartPage(lastPageDraft).nextPage}</span>
+                                <span className="min-w-0 text-xs font-semibold text-green">→ tampil mulai {getNextStartPage(lastPageDraft).nextPage}</span>
                               )}
                             </div>
                           </div>
 
                           <div>
-                            <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber">
+                            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber">
                               <span className="text-sm">📌</span> Catatan pendukung pertemuan berikutnya
                             </label>
-                            <p className="mt-0.5 text-[10px] leading-snug text-text3">Mis. siswa belum mengumpulkan tugas atau perlu membahas PR.</p>
+                            <p className="mt-0.5 text-xs leading-snug text-text3">Mis. siswa belum mengumpulkan tugas atau perlu membahas PR.</p>
                             <textarea
                               value={belumKumpulDraft}
                               onChange={e => setBelumKumpulDraft(e.target.value)}
@@ -625,8 +625,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           </div>
 
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => closeNoteEditor()} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[11px] font-semibold text-text2">Batal</button>
-                            <button onClick={() => handleSaveNote(it.sessionId!)} className="rounded-lg bg-green px-3 py-1.5 text-[11px] font-bold text-surface shadow-sm">Simpan</button>
+                            <button onClick={() => closeNoteEditor()} className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text2">Batal</button>
+                            <button onClick={() => handleSaveNote(it.sessionId!)} className="rounded-lg bg-green px-3 py-1.5 text-xs font-bold text-surface shadow-sm">Simpan</button>
                           </div>
                         </div>
                       )}
@@ -682,11 +682,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <span className="mt-0.5 text-base">📋</span>
           <div className="min-w-0 flex-1">
             <div className="text-[12px] font-bold text-amber">Mode fokus ujian aktif</div>
-            <div className="text-[11px] leading-snug text-text2">Jadwal KBM tetap dapat dicatat dari halaman ini.</div>
+            <div className="text-xs leading-snug text-text2">Jadwal KBM tetap dapat dicatat dari halaman ini.</div>
           </div>
           <button
             onClick={() => setShowKbmDuringExam(false)}
-            className="min-h-[44px] flex-shrink-0 rounded-lg border border-amber/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
+            className="min-h-[44px] flex-shrink-0 rounded-lg border border-amber/30 bg-surface px-2.5 py-1.5 text-xs font-bold text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
           >
             Fokus ujian
           </button>
@@ -696,11 +696,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-green/25 bg-green/10 px-3.5 py-3">
           <div className="min-w-0">
             <div className="text-[12px] font-bold text-green">Semua sesi sudah selesai</div>
-            <div className="text-[11px] text-text2">Tambahkan atau ubah catatan pertemuan berikutnya di tiap sesi.</div>
+            <div className="text-xs text-text2">Tambahkan atau ubah catatan pertemuan berikutnya di tiap sesi.</div>
           </div>
           <button
             onClick={() => setShowCompletedSchedule(false)}
-            className="min-h-[44px] flex-shrink-0 rounded-lg border border-green/30 bg-surface px-2.5 py-1.5 text-[10px] font-bold text-green transition-colors hover:bg-green/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green focus-visible:ring-offset-2"
+            className="min-h-[44px] flex-shrink-0 rounded-lg border border-green/30 bg-surface px-2.5 py-1.5 text-xs font-bold text-green transition-colors hover:bg-green/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green focus-visible:ring-offset-2"
           >
             Ringkasan
           </button>
@@ -708,6 +708,21 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       )}
       {/* Satu alur baca: ringkasan → fokus sekarang → jadwal lengkap. */}
       <div className="mx-auto w-full max-w-3xl">
+        <section aria-label="Ringkasan mengajar hari ini" className="app-card p-4 sm:p-5 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 text-sm font-semibold"><BookOpen aria-hidden="true" className="h-4 w-4 text-primary" /> Mengajar hari ini</div>
+            <span className="text-xs text-text2">{doneCount} dari {items.length} sesi tuntas</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><p className="font-display text-3xl font-bold tabular-nums">{items.length}</p><p className="text-xs text-text2 mt-1">Total sesi</p></div>
+            <div className="border-l border-border pl-4"><p className="font-display text-3xl font-bold tabular-nums text-primary">{doneCount}</p><p className="text-xs text-text2 mt-1">Tuntas</p></div>
+            <div className="border-l border-border pl-4"><p className="font-display text-3xl font-bold tabular-nums">{items.length - doneCount}</p><p className="text-xs text-text2 mt-1">Belum dicatat</p></div>
+          </div>
+          <div role="progressbar" aria-label="Sesi tuntas hari ini" aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={doneCount} className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface3">
+            <div className="h-full rounded-full bg-primary" style={{ width: `${doneCount / items.length * 100}%` }} />
+          </div>
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-text2"><Clock aria-hidden="true" className="h-3.5 w-3.5" /> Jadwal terakhir selesai pukul {fmt(lastTeachingEndTime)}</p>
+        </section>
         <div>
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button
@@ -718,23 +733,23 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           {/* Counts */}
           <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
             {items.length > 0 && (
-              <span className="text-[11px] font-bold text-text2">
-                📚 {doneCount}/{items.length} KBM · selesai {fmt(lastTeachingEndTime)}
+              <span className="text-xs font-bold text-text2">
+                Ringkasan & pengingat
               </span>
             )}
             {todayExamItems.length > 0 && (
-              <span className="text-[11px] font-bold text-amber">
+              <span className="text-xs font-bold text-amber">
                 📝 {todayExamItems.length} Ujian
               </span>
             )}
             {todayProctorSessions.length > 0 && (
-              <span className="text-[11px] font-bold text-primary">
+              <span className="text-xs font-bold text-primary">
                 👁 {todayProctorSessions.length} Ngawas
               </span>
             )}
           </div>
           {hasUrgentBriefing && (
-            <span className="text-[9px] font-black bg-amber/20 text-amber border border-amber/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">!</span>
+            <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">!</span>
           )}
           <ChevronDown className={`h-3.5 w-3.5 text-text3 flex-shrink-0 transition-transform duration-200 ${statusBarOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -742,7 +757,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         {statusBarOpen && (
           <div className="px-3.5 pb-3 space-y-1.5 border-t border-border2/40">
             {briefingItems.filter(b => b.type !== 'semua-beres').map((item, i) => (
-              <div key={i} className={`flex items-start gap-2 px-2.5 py-2 rounded-xl border text-[11px] ${
+              <div key={i} className={`flex items-start gap-2 px-2.5 py-2 rounded-xl border text-xs ${
                 item.urgent ? 'bg-amber/10 border-amber/20 text-foreground' : 'bg-surface2/50 border-border/40 text-text2'
               }`}>
                 <span className="flex-shrink-0">{item.emoji}</span>
@@ -753,7 +768,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               </div>
             ))}
             {briefingItems.every(b => b.type === 'semua-beres') && (
-              <div className="text-[11px] text-text3 px-2.5 py-2">✅ Tidak ada ujian mendekat atau koreksi pending.</div>
+              <div className="text-xs text-text3 px-2.5 py-2">✅ Tidak ada ujian mendekat atau koreksi pending.</div>
             )}
           </div>
         )}
@@ -768,15 +783,15 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="flex items-center gap-2">
               <span className="text-lg">🔔</span>
               <div>
-                <div className="text-[11px] font-bold text-primary uppercase tracking-wide">Pelajaran Selesai</div>
+                <div className="text-xs font-bold text-primary uppercase tracking-wide">Pelajaran Selesai</div>
                 <div className="text-xs text-text2">{endedItem.className} · {endedItem.subjectName}</div>
               </div>
             </div>
             <div className="flex gap-2 relative">
-              <button onClick={() => { handleHeroDone(endedBanner); }} className="min-h-[44px] text-[11px] font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-colors flex items-center justify-center min-w-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+              <button onClick={() => { handleHeroDone(endedBanner); }} className="min-h-[44px] text-xs font-bold bg-primary text-primary-foreground px-4 py-1.5 rounded-xl transition-colors flex items-center justify-center min-w-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                 ✓ Selesai
               </button>
-              <button onClick={() => setEndedBanner(null)} className="min-h-[44px] text-[11px] text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">✕ Tutup</button>
+              <button onClick={() => setEndedBanner(null)} className="min-h-[44px] text-xs text-text3 px-3 py-1.5 hover:bg-surface2 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">✕ Tutup</button>
             </div>
           </div>
         );
@@ -806,7 +821,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               
               {/* Time Up Notification Banner */}
               {isOvertime && (
-                <div className="bg-red text-white py-2 px-4 text-center text-[11px] font-bold uppercase tracking-[2px] animate-pulse">
+                <div className="bg-red text-white py-2 px-4 text-center text-xs font-bold uppercase tracking-[2px] animate-pulse">
                   ⚡ Waktu Pelajaran Selesai
                 </div>
               )}
@@ -814,7 +829,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="p-5 relative">
                 {/* Status at Top */}
                 <div className="flex items-center justify-between gap-3 mb-5">
-                  <div className={`inline-flex items-center gap-2 border text-[10px] font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
+                  <div className={`inline-flex items-center gap-2 border text-xs font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
                     <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
                   </div>
@@ -847,7 +862,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         {isOvertime ? '⏰' : '⏳'}
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-text3 mb-0.5">
+                        <div className="text-xs font-bold uppercase tracking-wider text-text3 mb-0.5">
                           {isOvertime ? 'Kelebihan Waktu' : 'Sisa Waktu'}
                         </div>
                         <div className={`text-2xl font-black tabular-nums leading-none ${isOvertime ? 'text-red' : 'text-primary'}`}>
@@ -856,7 +871,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       </div>
                    </div>
                     <div className="bg-surface2/70 border border-border/40 rounded-[24px] p-3 px-4 min-w-[100px] text-center">
-                      <div className="text-[9px] font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
+                      <div className="text-xs font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
                       <div className="text-sm font-bold opacity-90">{fmt(active.endTime)}</div>
                    </div>
                 </div>
@@ -864,14 +879,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4 overflow-hidden">
                   <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">📖</div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
+                    <div className="text-xs font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
                     <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
                     {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
                     {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
                     {activeMaterial && (
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="min-h-[36px] text-[10px] font-bold text-primary border border-primary/20 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Ubah estimasi</button>
-                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="min-h-[36px] text-[10px] font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">⚡ Selesaikan bab ini</button>
+                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="min-h-[36px] text-xs font-bold text-primary border border-primary/20 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Ubah estimasi</button>
+                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="min-h-[36px] text-xs font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">⚡ Selesaikan bab ini</button>
                       </div>
                     )}
                     {/* Info halaman dari sesi sebelumnya */}
@@ -881,7 +896,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       const { nextPage } = getNextStartPage(lastPage);
                       return (
                         <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
-                          <span className="text-[11px]">📄</span>
+                          <span className="text-xs">📄</span>
                           <span className="text-[12px] font-bold text-primary">Mulai hal. {nextPage}</span>
                         </div>
                       );
@@ -944,7 +959,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               
               <div className="relative">
                 <div className="flex items-center justify-between mb-6">
-                  <div className="inline-flex items-center gap-[6px] bg-teal-dim border border-teal/40 text-[10px] text-teal font-extrabold tracking-[0.9px] uppercase px-[14px] py-[8px] rounded-full shadow-[0_0_15px_hsl(var(--teal-glow))]">
+                  <div className="inline-flex items-center gap-[6px] bg-teal-dim border border-teal/40 text-xs text-teal font-extrabold tracking-[0.9px] uppercase px-[14px] py-[8px] rounded-full shadow-[0_0_15px_hsl(var(--teal-glow))]">
                     🕐 Berikutnya
                   </div>
                 </div>
@@ -963,7 +978,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
                 {upcomingMaterial && (
                   <div className="bg-surface/50 border border-teal/20 rounded-2xl px-4 py-3 mb-4">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-teal/80 mb-1">Materi Berikutnya</div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-teal/80 mb-1">Materi Berikutnya</div>
                     <div className="text-[14px] font-bold text-foreground leading-snug">{upcomingMaterial.name}</div>
                     {upcomingPageLabel && <div className="text-[12px] font-semibold text-text2 mt-1">{upcomingPageLabel}</div>}
                     {upcomingMaterial.note && <div className="text-[12px] text-text3 mt-1 leading-snug">Catatan: {upcomingMaterial.note}</div>}
@@ -973,7 +988,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-3xl p-5 flex items-center gap-5 shadow-inner">
                   <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
                   <div className="flex-1">
-                    <div className="text-[11px] font-bold uppercase tracking-widest text-teal/70 mb-1">Mulai Pukul {fmt(upcoming.startTime)}</div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-teal/70 mb-1">Mulai Pukul {fmt(upcoming.startTime)}</div>
                     <div className="flex items-baseline gap-2">
                        <div className="text-3xl font-black text-teal tabular-nums leading-none tracking-tighter">{fmtCountdown(diff)}</div>
                     </div>
@@ -1002,18 +1017,18 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-teal rounded-r" />
           <div className="w-[38px] h-[38px] rounded-[10px] bg-teal-dim border border-teal grid place-items-center text-base flex-shrink-0">📚</div>
           <div className="flex-1 min-w-0">
-            <div className="text-[9px] font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
+            <div className="text-xs font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
             <div className="text-sm font-semibold truncate">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
-            {next.nextMat && <div className="text-[11px] text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}{getMaterialPageLabel(next.nextMat) ? ` · ${getMaterialPageLabel(next.nextMat)}` : ''}</div>}
+            {next.nextMat && <div className="text-xs text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}{getMaterialPageLabel(next.nextMat) ? ` · ${getMaterialPageLabel(next.nextMat)}` : ''}</div>}
           </div>
           <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
             <span className="text-[13px] font-semibold text-teal tabular-nums block leading-tight">{fmt(next.startTime)}</span>
-            <div className="text-[9px] text-text3">{fmtCountdown(timeToMin(next.startTime) - currentMin())}</div>
+            <div className="text-xs text-text3">{fmtCountdown(timeToMin(next.startTime) - currentMin())}</div>
           </div>
         </div>
       )}
 
-      <div className="order-20 mt-2 mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-text3">Info lainnya</div>
+      <div className="order-20 mt-2 mb-2 px-1 text-xs font-bold uppercase tracking-wider text-text3">Info lainnya</div>
 
       {/* Informasi tambahan tetap tersedia setelah jadwal. */}
       {(() => {
@@ -1030,7 +1045,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           >
             <div className="text-[15px] flex-shrink-0 mt-[1px]">{ins.type === 'warn' ? '💡' : '📌'}</div>
             <div>
-              <div className="text-[9px] font-bold tracking-[0.7px] uppercase text-text3 mb-[2px]">{ins.directive}</div>
+              <div className="text-xs font-bold tracking-[0.7px] uppercase text-text3 mb-[2px]">{ins.directive}</div>
               <div className="text-[13px] text-text2 leading-relaxed" dangerouslySetInnerHTML={{ __html: ins.text }} />
             </div>
           </div>
@@ -1045,7 +1060,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   className="w-full min-h-[44px] flex items-center justify-between gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-inset"
                   aria-expanded={attentionOpen}
                 >
-                  <span className="text-[11px] font-bold text-amber">💡 Perlu diperhatikan ({attention.length})</span>
+                  <span className="text-xs font-bold text-amber">💡 Perlu diperhatikan ({attention.length})</span>
                   <ChevronDown className={`h-4 w-4 text-amber transition-transform ${attentionOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {attentionOpen && <div className="space-y-2 border-t border-amber/15 p-2.5 animate-slide-up">{renderInsights(attention)}</div>}
@@ -1058,7 +1073,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   className="w-full min-h-[44px] flex items-center justify-between gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                   aria-expanded={suggestionsOpen}
                 >
-                  <span className="text-[11px] font-bold text-primary">📌 Disarankan hari ini ({suggestions.length})</span>
+                  <span className="text-xs font-bold text-primary">📌 Disarankan hari ini ({suggestions.length})</span>
                   <ChevronDown className={`h-4 w-4 text-primary transition-transform ${suggestionsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {suggestionsOpen && <div className="space-y-2 border-t border-primary/15 p-2.5 animate-slide-up">{renderInsights(suggestions)}</div>}
@@ -1073,7 +1088,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="order-20 mb-4 animate-slide-up-delay-2">
           <button
             onClick={() => setTasksOpen(open => !open)}
-            className="w-full min-h-[44px] rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 flex items-center justify-between"
+            className="w-full min-h-[44px] rounded-xl border border-amber/20 bg-amber/5 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-[0.7px] text-amber transition-colors hover:bg-amber/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 flex items-center justify-between"
             aria-expanded={tasksOpen}
           >
             <span>Tugas tertunda ({pendingTasks.length})</span>
@@ -1091,7 +1106,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </button>
                     <div>
                       <div className="text-[13px] font-semibold leading-tight mb-1">{t.title}</div>
-                      <div className="text-[11px] text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
+                      <div className="text-xs text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
                     </div>
                   </div>
                 );
@@ -1105,7 +1120,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
       <div className="order-20 bg-surface border border-border2/80 rounded-2xl p-2.5 mb-4 shadow-sm">
         <button
           onClick={() => setAdminActionsOpen(open => !open)}
-          className="w-full min-h-[44px] flex items-center justify-between px-1 py-1 text-[11px] font-semibold text-text2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+          className="w-full min-h-[44px] flex items-center justify-between px-1 py-1 text-xs font-semibold text-text2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
           aria-expanded={adminActionsOpen}
         >
           <span>Aksi hari ini</span>
@@ -1115,7 +1130,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div className="mt-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none animate-slide-up">
             <button
               onClick={() => setEarlyDismissSheet(true)}
-              className="flex-1 min-w-[105px] text-[11px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 min-w-[105px] text-xs font-bold text-blue-500 bg-blue-500/10 border border-blue-500/25 px-3 py-2 rounded-xl transition-all hover:bg-blue-500/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
               title="Diliburkan setelah jam tertentu"
             >
               <Home className="h-3.5 w-3.5 flex-shrink-0" />
@@ -1129,7 +1144,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               setSubjectDismissClassId('');
               setSubjectDismissSheet(true);
             }}
-            className="flex-1 min-w-[110px] text-[11px] font-bold text-teal bg-teal/10 border border-teal/25 px-3 py-2 rounded-xl transition-all hover:bg-teal/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+            className="flex-1 min-w-[110px] text-xs font-bold text-teal bg-teal/10 border border-teal/25 px-3 py-2 rounded-xl transition-all hover:bg-teal/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
             title="Diliburkan mapel tertentu saja"
           >
             <SkipForward className="h-3.5 w-3.5 flex-shrink-0" />
@@ -1142,7 +1157,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               setReschedulerDate(today);
               setReschedulerOpen(true);
             }}
-            className="flex-1 min-w-[100px] text-[11px] font-bold text-amber-600 bg-amber-600/10 border border-amber-600/25 px-3 py-2 rounded-xl transition-all hover:bg-amber-600/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+            className="flex-1 min-w-[100px] text-xs font-bold text-amber-600 bg-amber-600/10 border border-amber-600/25 px-3 py-2 rounded-xl transition-all hover:bg-amber-600/20 active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
             title="Input izin mengajar atau cuti"
           >
             <HeartPulse className="h-3.5 w-3.5 flex-shrink-0" />
@@ -1157,11 +1172,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="app-section-title px-0 text-foreground font-black text-base">Jadwal Hari Ini</div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {active && (
-            <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_hsl(var(--primary)/0.2)]">
+            <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/30 px-3 py-1 rounded-full animate-pulse shadow-[0_0_10px_hsl(var(--primary)/0.2)]">
               ● {Math.max(0, timeToMin(active.endTime) - currentMin())} mnt tersisa
             </span>
           )}
-          <div className="text-[11px] text-text3 font-bold px-2.5 py-1 bg-surface border border-border rounded-full whitespace-nowrap">
+          <div className="text-xs text-text3 font-bold px-2.5 py-1 bg-surface border border-border rounded-full whitespace-nowrap">
             {doneCount}/{items.length} Selesai
           </div>
         </div>
@@ -1171,17 +1186,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         <div className="mb-4 rounded-2xl border border-amber/30 bg-amber/10 p-3">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="text-[12px] font-black text-amber">⚠️ Ada {missingSessions.length} pertemuan belum dicatat</div>
-            <span className="text-[10px] text-text3">60 hari terakhir</span>
+            <span className="text-xs text-text3">60 hari terakhir</span>
           </div>
           <div className="space-y-2">
             {missingSessions.map(missing => (
               <div key={`${missing.schedule.id}-${missing.date}`} className="flex items-center gap-2 rounded-xl bg-surface/70 border border-amber/15 px-2.5 py-2">
                 <div className="min-w-0 flex-1">
                   <div className="text-[12px] font-bold text-foreground truncate">{missing.className} · {missing.subjectName}</div>
-                  <div className="text-[10px] text-text3">{new Date(`${missing.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+                  <div className="text-xs text-text3">{new Date(`${missing.date}T12:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</div>
                 </div>
-                <button onClick={() => openRecordSheet(missing)} className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-primary-foreground">Catat</button>
-                <button onClick={() => { skipSessionForDate(missing.schedule.id, missing.date); onRefresh(); }} className="rounded-lg border border-border2 px-2.5 py-1.5 text-[10px] font-semibold text-text2">Lewati</button>
+                <button onClick={() => openRecordSheet(missing)} className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-bold text-primary-foreground">Catat</button>
+                <button onClick={() => { skipSessionForDate(missing.schedule.id, missing.date); onRefresh(); }} className="rounded-lg border border-border2 px-2.5 py-1.5 text-xs font-semibold text-text2">Lewati</button>
               </div>
             ))}
           </div>
@@ -1229,15 +1244,15 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               {state === 'done' ? (
                 <div className="flex flex-col items-center">
-                  <div className="text-[11px] font-bold text-text2 tabular-nums text-center">{fmt(item.startTime)}</div>
-                  <div className={`text-[9px] font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
+                  <div className="text-xs font-bold text-text2 tabular-nums text-center">{fmt(item.startTime)}</div>
+                  <div className={`text-xs font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
                 </div>
                ) : (
                  <div className="flex flex-col items-center">
-                   <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(item.startTime)}</div>
-                   <div className={`text-[9px] font-medium tabular-nums mt-0.5 ${item.active ? 'text-primary font-bold' : 'text-text3'}`}>{fmt(item.endTime)}</div>
+                   <div className="text-xs font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(item.startTime)}</div>
+                   <div className={`text-xs font-medium tabular-nums mt-0.5 ${item.active ? 'text-primary font-bold' : 'text-text3'}`}>{fmt(item.endTime)}</div>
                    {!item.active && !item.done && (
-                     <div className="text-[9px] font-medium text-teal tabular-nums">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
+                     <div className="text-xs font-medium text-teal tabular-nums">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
                    )}
                  </div>
                )}
@@ -1269,8 +1284,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                      </div>
                     {state === 'done' && (
                       item.skipped
-                        ? <span className="text-[9px] font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded-full uppercase">Dilewati</span>
-                        : <span className="text-[9px] font-bold text-green bg-green/10 px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
+                        ? <span className="text-xs font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded-full uppercase">Dilewati</span>
+                        : <span className="text-xs font-bold text-green bg-green/10 px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
                     )}
                   </div>
                   
@@ -1287,7 +1302,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     )}
                   </div>
                   {!item.done && (
-                    <div className="text-[11px] text-text3 mt-1 leading-snug space-y-0.5">
+                    <div className="text-xs text-text3 mt-1 leading-snug space-y-0.5">
                       {(itemPageLabel || itemMaterial?.note) && (
                         <div className="line-clamp-2">
                           {[
@@ -1297,7 +1312,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         </div>
                       )}
                       {teachingPosition && !teachingPosition.isComplete && (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] pt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs pt-0.5">
                           <span className={remainingSessionsInBab === 0 ? 'text-green font-bold' : 'text-amber font-medium'}>
                             {remainingSessionsInBab === 0 ? '⭐ Pertemuan terakhir bab ini' : `⏳ Sisa ${remainingSessionsInBab} pertemuan bab ini`}
                           </span>
@@ -1313,8 +1328,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         const { nextPage } = getNextStartPage(lastPage);
                         return (
                           <div className="inline-flex items-center gap-1 mt-0.5 bg-primary/8 border border-primary/20 rounded-full px-2 py-0.5 w-fit">
-                            <span className="text-[10px]">📄</span>
-                            <span className="text-[11px] font-bold text-primary">Mulai hal. {nextPage}</span>
+                            <span className="text-xs">📄</span>
+                            <span className="text-xs font-bold text-primary">Mulai hal. {nextPage}</span>
                           </div>
                         );
                       })()}
@@ -1332,7 +1347,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                       return (
                         <button
                           onClick={() => openNoteEditor(item)}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-text3 border border-dashed border-border2 rounded-full px-2.5 py-0.5 hover:border-green/40 hover:text-green transition-colors"
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs text-text3 border border-dashed border-border2 rounded-full px-2.5 py-0.5 hover:border-green/40 hover:text-green transition-colors"
                         >
                           <span>+</span> Tambah catatan
                         </button>
@@ -1341,7 +1356,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     return (
                       <div className="mt-1.5 space-y-1">
                         {(lastPage || hasNote) && (
-                          <div className="flex items-start gap-1.5 text-[11px] text-text2 leading-snug flex-wrap">
+                          <div className="flex items-start gap-1.5 text-xs text-text2 leading-snug flex-wrap">
                             {lastPage && (
                               <span className="font-bold text-primary flex-shrink-0">📄 s/d hal. {lastPage}</span>
                             )}
@@ -1353,8 +1368,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         )}
                         {hasReminder && (
                           <div className="inline-flex items-center gap-1 bg-amber/10 border border-amber/25 rounded-full px-2 py-0.5">
-                            <span className="text-[10px]">📌</span>
-                            <span className="text-[10px] font-semibold text-amber">Ada catatan pendukung pertemuan berikutnya</span>
+                            <span className="text-xs">📌</span>
+                            <span className="text-xs font-semibold text-amber">Ada catatan pendukung pertemuan berikutnya</span>
                           </div>
                         )}
                       </div>
@@ -1395,7 +1410,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="mt-1.5 bg-amber/10 border border-amber/25 rounded-xl px-3 py-2 flex items-start gap-2 animate-slide-up">
                 <span className="text-base flex-shrink-0 mt-0.5">📌</span>
                 <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-amber mb-0.5">📋 Catatan dari Pertemuan Lalu</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber mb-0.5">📋 Catatan dari Pertemuan Lalu</div>
                   <div className="text-[12px] text-foreground/80 font-medium leading-snug whitespace-pre-wrap">{prevReminder}</div>
                 </div>
               </div>
@@ -1405,7 +1420,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               {item.done && expandedNoteId === item.id && item.sessionId && (() => {
                 return (
                 <div className="mt-1 bg-surface2 border border-border2 rounded-xl p-3 animate-slide-up origin-top">
-                  <div className="text-[10px] font-semibold text-primary uppercase tracking-[0.5px] mb-2">Bab / subbab pertemuan berikutnya</div>
+                  <div className="text-xs font-semibold text-primary uppercase tracking-[0.5px] mb-2">Bab / subbab pertemuan berikutnya</div>
                   <textarea
                     autoFocus
                     value={noteDraft}
@@ -1416,7 +1431,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   
                   {/* Input halaman untuk pertemuan berikutnya */}
                   <div className="mt-2.5 space-y-1.5">
-                    <label className="flex items-center gap-2 text-[11px] font-bold text-primary" htmlFor={`next-page-${item.id}`}>
+                    <label className="flex items-center gap-2 text-xs font-bold text-primary" htmlFor={`next-page-${item.id}`}>
                       <span className="text-base" aria-hidden="true">📄</span>
                       Halaman pertemuan berikutnya
                     </label>
@@ -1431,7 +1446,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         className="w-full sm:w-24 bg-surface border border-primary/30 rounded-lg px-2.5 py-1 text-[13px] font-bold text-foreground focus:border-primary focus:outline-none placeholder:text-text3"
                       />
                       {lastPageDraft && (
-                        <span className="min-w-0 text-[11px] text-green font-semibold">
+                        <span className="min-w-0 text-xs text-green font-semibold">
                           → minggu depan mulai hal. {getNextStartPage(lastPageDraft).nextPage}
                         </span>
                       )}
@@ -1442,9 +1457,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   <div className="mt-2.5">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-sm">📌</span>
-                      <span className="text-[10px] font-bold text-amber uppercase tracking-wider">Catatan Pendukung Pertemuan Berikutnya</span>
+                      <span className="text-xs font-bold text-amber uppercase tracking-wider">Catatan Pendukung Pertemuan Berikutnya</span>
                     </div>
-                    <p className="text-[10px] text-text3 mb-1.5 leading-snug">Otomatis muncul saat kelas ini berlangsung lagi — mis. "Fulan belum kumpul soal", "Bahas PR hal. 15".</p>
+                    <p className="text-xs text-text3 mb-1.5 leading-snug">Otomatis muncul saat kelas ini berlangsung lagi — mis. "Fulan belum kumpul soal", "Bahas PR hal. 15".</p>
                     <textarea
                       value={belumKumpulDraft}
                       onChange={e => setBelumKumpulDraft(e.target.value)}
@@ -1455,17 +1470,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
 
                   <div className="flex justify-end gap-2 mt-2.5">
-                    <span className="mr-auto self-center text-[10px] text-text3">Draft tersimpan otomatis</span>
-                    <button onClick={() => closeNoteEditor()} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-text2">
+                    <span className="mr-auto self-center text-xs text-text3">Draft tersimpan otomatis</span>
+                    <button onClick={() => closeNoteEditor()} className="px-3 py-1.5 rounded bg-surface border border-border text-xs font-semibold text-text2">
                       Batal
                     </button>
                     <button onClick={() => {
                        setNewTaskTitle('');
                        setNewTaskSheet({ classId: item.classId, subjectId: item.subjectId });
-                    }} className="px-3 py-1.5 rounded bg-surface border border-border text-[11px] font-semibold text-amber flex items-center gap-1">
+                    }} className="px-3 py-1.5 rounded bg-surface border border-border text-xs font-semibold text-amber flex items-center gap-1">
                       + Tugas Baru
                     </button>
-                    <button onClick={() => handleSaveNote(item.sessionId!)} className="px-4 py-1.5 rounded bg-green text-surface shadow-sm text-[11px] font-bold">
+                    <button onClick={() => handleSaveNote(item.sessionId!)} className="px-4 py-1.5 rounded bg-green text-surface shadow-sm text-xs font-bold">
                       Simpan
                     </button>
                   </div>
@@ -1487,8 +1502,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div key={`exam-${i}`} className="order-20 flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
-                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(exam.startTime)}</div>
-                <div className="text-[9px] font-medium text-amber tabular-nums mt-0.5">{fmt(exam.endTime)}</div>
+                <div className="text-xs font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(exam.startTime)}</div>
+                <div className="text-xs font-medium text-amber tabular-nums mt-0.5">{fmt(exam.endTime)}</div>
               </div>
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-amber shadow-[0_0_12px_hsl(40_80%_60%/0.5)]' : 'bg-amber/40'}`}>
                 {isActive && <div className="absolute inset-0 rounded-full border border-amber animate-ping opacity-50" />}
@@ -1502,11 +1517,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
-                      {isActive && <span className="text-[9px] font-black text-amber animate-pulse">● Berlangsung</span>}
+                      <span className="text-xs font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full">UJIAN</span>
+                      {isActive && <span className="text-xs font-black text-amber animate-pulse">● Berlangsung</span>}
                     </div>
                     <div className="text-[14px] font-bold text-foreground leading-snug">{exam.subjectName}</div>
-                    <div className="text-[11px] text-text2 mt-0.5">
+                    <div className="text-xs text-text2 mt-0.5">
                       Kelas {exam.className}
                       {exam.location && <span className="text-text3"> · 📍{exam.location}</span>}
                     </div>
@@ -1528,8 +1543,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           <div key={`proctor-${i}`} className="order-20 flex items-stretch gap-[10px] mb-1 animate-slide-up">
             <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
               <div className="flex flex-col items-center">
-                <div className="text-[11px] font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(proctor.startTime)}</div>
-                <div className="text-[9px] font-medium text-primary tabular-nums mt-0.5">{fmt(proctor.endTime)}</div>
+                <div className="text-xs font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(proctor.startTime)}</div>
+                <div className="text-xs font-medium text-primary tabular-nums mt-0.5">{fmt(proctor.endTime)}</div>
               </div>
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] relative ${isActive ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' : 'bg-primary/40'}`}>
                 {isActive && <div className="absolute inset-0 rounded-full border border-primary animate-ping opacity-50" />}
@@ -1542,11 +1557,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className={`bg-primary/5 border rounded-3xl p-3 flex flex-col justify-center transition-all min-h-[72px] relative shadow-sm ${isActive ? 'border-primary/50 ring-1 ring-primary/10' : 'border-primary/20'}`}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
-                    {isActive && <span className="text-[9px] font-black text-primary animate-pulse">● Berlangsung</span>}
+                    <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">NGAWAS</span>
+                    {isActive && <span className="text-xs font-black text-primary animate-pulse">● Berlangsung</span>}
                   </div>
                   <div className="text-[14px] font-bold text-foreground leading-snug">{proctor.subjectName}</div>
-                  <div className="text-[11px] text-text2 mt-0.5">
+                  <div className="text-xs text-text2 mt-0.5">
                     {fmt(proctor.startTime)}–{fmt(proctor.endTime)}
                     {proctor.location && <span className="text-text3"> · 📍{proctor.location}</span>}
                     {proctor.note && <span className="text-text3"> · {proctor.note}</span>}
@@ -1583,10 +1598,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               {tomorrowExamItems.map((exam, i) => (
                 <div key={`tomorrow-exam-${i}`} className="bg-amber/5 border border-amber/20 rounded-2xl p-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-amber bg-amber/15 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">UJIAN</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{exam.subjectName}</div>
-                      <div className="text-[11px] text-text2 mt-0.5">
+                      <div className="text-xs text-text2 mt-0.5">
                         {fmt(exam.startTime)}–{fmt(exam.endTime)} · Kelas {exam.className}
                       </div>
                     </div>
@@ -1596,10 +1611,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               {tomorrowProctorSessions.map((p, i) => (
                 <div key={`tomorrow-proctor-${i}`} className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">NGAWAS</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{p.subjectName}</div>
-                      <div className="text-[11px] text-text2 mt-0.5">
+                      <div className="text-xs text-text2 mt-0.5">
                         {fmt(p.startTime)}–{fmt(p.endTime)}{p.location ? ` · 📍${p.location}` : ''}
                       </div>
                     </div>
@@ -1609,10 +1624,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               {tomorrowKbmSchedules.map((sched, i) => (
                 <div key={`tomorrow-kbm-${i}`} className="bg-teal/5 border border-teal/20 rounded-2xl p-3">
                   <div className="flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-teal bg-teal/10 px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0">KBM</span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold leading-snug">{sched.className} — {sched.subjectName}</div>
-                      <div className="text-[11px] text-text2 mt-0.5">
+                      <div className="text-xs text-text2 mt-0.5">
                         ⏰ {fmt(sched.startTime)}–{fmt(sched.endTime)}
                         {sched.nextMat && <span className="text-text3 block mt-0.5">📖 Sesi ke-{Math.min(sched.materialsDone + 1, sched.totalMats)}: {sched.nextMat.name}</span>}
                       </div>
@@ -1643,7 +1658,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="app-sheet-handle" />
             <div className="app-sheet-title mb-1 flex items-center gap-2"><Home className="h-5 w-5 text-primary" /> Pulang Awal</div>
             <p className="text-[12px] text-text2 mb-4">Jadwal setelah jam ini akan dicoret dan tidak dihitung sebagai sesi terlewat.</p>
-            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Mulai libur dari jam:</label>
+            <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Mulai libur dari jam:</label>
             <input
               type="time"
               value={earlyDismissTime}
@@ -1679,13 +1694,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               <div className="app-sheet-title mb-1 flex items-center gap-2"><SkipForward className="h-5 w-5 text-primary" /> Liburkan Mapel</div>
               <p className="text-[12px] text-text2 mb-4">Coret jadwal mapel tertentu hari ini tanpa menambah progres materi.</p>
 
-              <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Mapel:</label>
+              <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Mapel:</label>
               <select value={subjectDismissSubjectId} onChange={e => { setSubjectDismissSubjectId(e.target.value); setSubjectDismissClassId(''); }} className="form-select-style mb-3">
                 <option value="">Pilih mapel</option>
                 {availableSubjects.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
               </select>
 
-              <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Kelas:</label>
+              <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Kelas:</label>
               <select value={subjectDismissClassId} onChange={e => setSubjectDismissClassId(e.target.value)} className="form-select-style mb-3">
                 <option value="">Semua kelas untuk mapel ini</option>
                 {availableClasses.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
@@ -1737,7 +1752,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="app-sheet-handle" />
             <div className="app-sheet-title mb-1 flex items-center gap-2"><FilePenLine className="h-5 w-5 text-primary" /> Tugas Baru</div>
             <p className="text-[12px] text-text2 mb-4">Deadline otomatis 7 hari ke depan. Akan muncul di Inbox Tugas.</p>
-            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Nama Tugas:</label>
+            <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Nama Tugas:</label>
             <input
               type="text"
               value={newTaskTitle}
@@ -1786,7 +1801,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             <div className="min-h-0 overflow-y-auto px-5 py-4 space-y-3">
               <div>
-                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi yang diajarkan</label>
+                <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Materi yang diajarkan</label>
                 <select value={recordMaterialId} onChange={e => setRecordMaterialId(e.target.value)} className="form-select-style">
                   <option value="">Belum memilih materi</option>
                   {getMaterials(recordSheet.subjectId, recordSheet.classId).map(material => (
@@ -1796,16 +1811,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               </div>
               <label className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-text2">
                 <input type="checkbox" checked={recordMaterialCompleted} onChange={e => setRecordMaterialCompleted(e.target.checked)} className="accent-primary mt-0.5" />
-                <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-[11px] text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
+                <span><strong className="text-foreground">Materi selesai hari ini</strong><span className="block text-xs text-text3 mt-0.5">Sistem akan langsung lanjut ke materi berikutnya, walau estimasi awal belum habis.</span></span>
               </label>
 
               <section className="rounded-2xl border border-border2 bg-surface/50 p-3 space-y-3" aria-labelledby="next-meeting-title">
                 <div>
-                  <h3 id="next-meeting-title" className="text-[11px] font-black uppercase tracking-wide text-primary">Pertemuan berikutnya</h3>
-                  <p className="mt-0.5 text-[11px] leading-snug text-text3">Opsional — akan ditampilkan saat kelas ini berlangsung lagi.</p>
+                  <h3 id="next-meeting-title" className="text-xs font-black uppercase tracking-wide text-primary">Pertemuan berikutnya</h3>
+                  <p className="mt-0.5 text-xs leading-snug text-text3">Opsional — akan ditampilkan saat kelas ini berlangsung lagi.</p>
                 </div>
               <div>
-                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Materi selanjutnya</label>
+                <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Materi selanjutnya</label>
                 <textarea
                   value={recordNextTopic}
                   onChange={e => setRecordNextTopic(e.target.value)}
@@ -1814,7 +1829,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2" htmlFor="record-next-page">Pertemuan selanjutnya hal.</label>
+                <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2" htmlFor="record-next-page">Pertemuan selanjutnya hal.</label>
                 <input
                   id="record-next-page"
                   type="number"
@@ -1824,10 +1839,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   className="form-input-style"
                   placeholder="Mis. 10"
                 />
-                {recordLastPage && <p className="mt-1.5 text-[11px] font-semibold text-green">→ tampil mulai hal. {getNextStartPage(recordLastPage).nextPage}</p>}
+                {recordLastPage && <p className="mt-1.5 text-xs font-semibold text-green">→ tampil mulai hal. {getNextStartPage(recordLastPage).nextPage}</p>}
               </div>
               <div>
-                <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Informasi selain materi</label>
+                <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Informasi selain materi</label>
                 <textarea
                   value={recordSupportingNote}
                   onChange={e => setRecordSupportingNote(e.target.value)}
@@ -1851,7 +1866,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             <div className="app-sheet-handle" />
             <div className="app-sheet-title mb-1">Ubah Estimasi Pertemuan</div>
             <p className="text-[12px] text-text2 mb-4">{estimateSheet.name}</p>
-            <label className="text-[11px] font-bold text-text3 uppercase tracking-wide block mb-2">Butuh berapa pertemuan?</label>
+            <label className="text-xs font-bold text-text3 uppercase tracking-wide block mb-2">Butuh berapa pertemuan?</label>
             <input type="number" min="1" value={estimateDraft} onChange={e => setEstimateDraft(e.target.value)} className="form-input-style mb-4" autoFocus />
             <button onClick={() => {
               const parsed = Number(estimateDraft);
