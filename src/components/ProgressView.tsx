@@ -11,6 +11,7 @@ import {
   updateNextMeetingNote,
   getSessionHistory,
   getSubjectStatus,
+  getSubjectTarget,
   getTeachingPosition,
   getTotalSessionsNeeded,
   markMaterialCompleted,
@@ -830,7 +831,9 @@ export function ProgressSummaryCard({
   const data = useMemo(() => getData(), [revision]);
   const materials = getMaterials(subjectId, classId);
   const position = getTeachingPosition(classId, subjectId, data);
-  const examDate = data.subjects.find(subject => subject.id === subjectId)?.examDate;
+  const subject = data.subjects.find(item => item.id === subjectId);
+  const target = subject ? getSubjectTarget(subject, materials, data) : null;
+  const examDate = target?.deadline ?? null;
   const sessionsNeeded = status.sessionsNeeded ?? status.remaining;
   const sessionsAvailable = status.sessLeft ?? 0;
   const tone = status.status === 'behind' ? 'red' : status.status === 'tight' ? 'amber' : 'green';
@@ -846,7 +849,7 @@ export function ProgressSummaryCard({
         <div className="col-span-2 rounded-xl border border-border bg-surface2 p-3 sm:col-span-1"><p className="text-xs text-text3">Jadwal tersedia</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsAvailable}</p><p className="text-xs text-text3">pertemuan sebelum target</p></div>
       </div>
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
-        <p className="text-xs font-bold uppercase tracking-wider text-primary">Target ujian</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-primary">Target {target?.label || 'ujian'}</p>
         <p className="mt-1 text-sm font-semibold">{examDate ? new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${examDate}T00:00:00`)) : 'Belum ada tanggal ujian'}</p>
         <p className="mt-1 text-sm text-text2">{status.daysLeft === undefined ? 'Atur tanggal ujian untuk menghitung kebutuhan pertemuan.' : `${status.daysLeft} hari lagi · ${sessionsAvailable} jadwal tersedia dari ${sessionsNeeded} yang dibutuhkan.`}</p>
       </div>

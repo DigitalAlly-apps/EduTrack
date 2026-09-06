@@ -6,7 +6,7 @@ import {
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
-  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted, getTaskDisplayTitle, formatTaskDeadline, shouldShowTaskInInbox,
+  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted, getTaskDisplayTitle, formatTaskDeadline, isAutoPaceTask, shouldShowTaskInInbox,
 } from '@/lib/data';
 import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -1116,7 +1116,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                     </button>
                     <div>
                       <div className="text-[13px] font-semibold leading-tight mb-1">{getTaskDisplayTitle(t.title)}</div>
-                      <div className="text-xs text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Jadwalkan: {formatTaskDeadline(t.deadline)}</span></div>
+                      <div className="text-xs text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">{isAutoPaceTask(t.title) ? `Tinjau sebelum: ${formatTaskDeadline(t.deadline)}` : `Batas tindak lanjut: ${formatTaskDeadline(t.deadline)}`}</span></div>
                     </div>
                   </div>
                 );

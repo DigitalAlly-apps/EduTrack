@@ -250,7 +250,7 @@ export function checkOverlap(classId: string, days: number[], startTime: string,
 
 // Returns the number of schedule sessions available in the next `daysLeft` days,
 // minus any sessions that fall on a holiday date.
-function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: number, holidays: (string | { date: string; level?: string })[], subjectLevel?: string): { sessLeft: number; holidaysInPeriod: number } {
+function estimateEffectiveSessions(schedules: Schedule[], daysLeft: number, holidays: (string | { date: string; level?: string })[], subjectLevel?: string, data?: AppData): { sessLeft: number; holidaysInPeriod: number } {
   let sessLeft = 0, holidaysInPeriod = 0;
   const base = new Date();
   const cappedDays = isNaN(daysLeft) ? 0 : Math.min(Math.max(0, daysLeft), 365);
@@ -271,6 +271,9 @@ function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: nu
 
     schedules.forEach(s => {
       if (s.days.includes(dayOfWeek)) {
+        const override = data?.scheduleOverrides?.find(item => item.scheduleId === s.id && item.date === dateStr && !item.isExtra);
+        const alreadyRecorded = data?.sessions.some(session => session.scheduleId === s.id && session.date === dateStr && session.materialId !== 'SKIPPED');
+        if (override?.skipped || alreadyRecorded) return;
         if (isHoliday) {
           holidaysInPeriod++;
         } else {
@@ -278,6 +281,10 @@ function estimateEffectiveSessions(schedules: { days: number[] }[], daysLeft: nu
         }
       }
     });
+    for (const override of data?.scheduleOverrides ?? []) {
+      if (!override.isExtra || override.date !== dateStr || override.skipped || isHoliday) continue;
+      if (schedules.some(schedule => schedule.id === override.scheduleId)) sessLeft++;
+    }
   }
   return { sessLeft, holidaysInPeriod };
 }
@@ -574,7 +581,7 @@ export function getDailyPriorities(data: AppData = getData()): DailyPriority[] {
   }
 
   const pendingTasks = (data.tasks || [])
-    .filter(task => task.status === 'pending')
+    .filter(shouldShowTaskInInbox)
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
   const urgentTask = pendingTasks.find(task => task.deadline <= todayStr) || pendingTasks[0];
   if (urgentTask) {
@@ -636,14 +643,14 @@ export function getInsights(): Insight[] {
       const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (sched.length === 0) return;
 
-      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
-      const totalSess = getTotalSessionsNeeded(mats);
-      const remainingSess = totalSess - prog.materialsDone;
+      const status = getSubjectStatus(sub, cls, data);
+      const target = getSubjectTarget(sub, mats, data);
+      const remainingSess = status.remaining;
       if (remainingSess <= 0) return;
       
-      if (sub.examDate) {
-        const daysLeft = daysUntilDateKey(sub.examDate);
-        const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
+      if (target.deadline) {
+        const daysLeft = daysUntilDateKey(target.deadline);
+        const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level, data);
         
         if (sessLeft > 0 && remainingSess > sessLeft + 1) {
           const extra = remainingSess - sessLeft;
@@ -656,7 +663,7 @@ export function getInsights(): Insight[] {
             seen.add(key);
           }
         } else if (sessLeft > 0 && remainingSess <= sessLeft) {
-          const { material } = getMaterialForSession(mats, prog.materialsDone);
+          const { material } = getMaterialForSession(target.materials, status.done);
           if (!seen.has(key)) {
             out.push({
               type: 'tip',
@@ -690,49 +697,41 @@ export function getNextScheduleForClass(classId: string, subjectId: string) {
   return null;
 }
 
+export function getSubjectTarget(sub: Subject, allMaterials: Material[], data: AppData): { deadline: string | null; label: 'UTS' | 'UAS' | ''; materials: Material[] } {
+  const semester = getSubjectSemester(sub, data);
+  if (!semester) return { deadline: sub.examDate ?? null, label: '', materials: allMaterials };
+  const phase = getCurrentExamPhase(semester);
+  if (phase === 'UTS') {
+    const materials = allMaterials.filter(material => material.examPeriod === 'UTS');
+    return { deadline: semester.utsDate, label: 'UTS', materials: materials.length ? materials : allMaterials };
+  }
+  if (phase === 'UAS') {
+    const materials = allMaterials.filter(material => material.examPeriod === 'UAS' || !material.examPeriod);
+    return { deadline: semester.uasDate, label: 'UAS', materials: materials.length ? materials : allMaterials };
+  }
+  return { deadline: semester.uasDate ?? sub.examDate ?? null, label: 'UAS', materials: allMaterials };
+}
+
 export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): SubjectStatus {
   const allMats = getMaterials(sub.id, cls.id);
   if (!allMats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
   const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
 
-  // ── Tentukan deadline & set materi berdasarkan fase UTS/UAS ──────────────────
-  let effectiveDeadline: string | null = null;
-  let phaseLabel = '';
-  let mats = allMats;
-
-  const sem = getSubjectSemester(sub, data);
-  if (sem) {
-    const phase = getCurrentExamPhase(sem);
-    if (phase === 'UTS') {
-      effectiveDeadline = sem.utsDate;
-      phaseLabel = ' [UTS]';
-      const utsMats = allMats.filter(m => m.examPeriod === 'UTS');
-      if (utsMats.length > 0) mats = utsMats;
-    } else if (phase === 'UAS') {
-      effectiveDeadline = sem.uasDate;
-      phaseLabel = ' [UAS]';
-      const uasMats = allMats.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
-      if (uasMats.length > 0) mats = uasMats;
-    } else {
-      // Sudah lewat UAS — gunakan semua materi, deadline UAS (sebagai referensi)
-      effectiveDeadline = sem.uasDate;
-    }
-  } else {
-    // Fallback: gunakan examDate lama
-    effectiveDeadline = sub.examDate ?? null;
-  }
+  const target = getSubjectTarget(sub, allMats, data);
+  const effectiveDeadline = target.deadline;
+  const phaseLabel = target.label ? ` [${target.label}]` : '';
+  const mats = target.materials;
 
   const totalSessions = getTotalSessionsNeeded(mats);
   const position = getTeachingPosition(cls.id, sub.id, data);
   const explicitIds = new Set(position.completedMaterialIds ?? []);
   const hasExplicitCompletion = explicitIds.size > 0;
   const completedPlanned = mats.filter(m => explicitIds.has(m.id)).reduce((sum, m) => sum + (m.sessions ?? 1), 0);
-  const activeActual = position.material
-    ? data.sessions.filter(s => s.classId === cls.id && s.subjectId === sub.id && s.materialId === position.material?.id && s.materialId !== 'SKIPPED').length
-    : 0;
-  const doneSessions = hasExplicitCompletion ? completedPlanned + activeActual : prog.materialsDone;
+  const targetMaterialIds = new Set(mats.map(material => material.id));
+  const actualInTarget = data.sessions.filter(s => s.classId === cls.id && s.subjectId === sub.id && targetMaterialIds.has(s.materialId) && s.materialId !== 'SKIPPED').length;
+  const doneSessions = hasExplicitCompletion ? completedPlanned + actualInTarget : (mats.length === allMats.length ? prog.materialsDone : actualInTarget);
   const remainingSessions = hasExplicitCompletion
-    ? Math.max(0, totalSessions - completedPlanned - activeActual)
+    ? Math.max(0, totalSessions - completedPlanned - actualInTarget)
     : Math.max(0, totalSessions - doneSessions);
   const pct = totalSessions > 0 ? Math.round((doneSessions / totalSessions) * 100) : 100;
 
@@ -742,7 +741,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   if (effectiveDeadline) {
     const daysLeft = daysUntilDateKey(effectiveDeadline);
     const sched = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
-    const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level);
+    const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(sched, daysLeft, holidays, sub.level, data);
     if (remainingSessions <= 0) {
       status = 'on-track'; label = `Selesai ✓${phaseLabel}`; rec = 'Semua materi sudah selesai!';
     } else if (sessLeft === 0) {
@@ -1423,10 +1422,13 @@ export function formatTaskDeadline(dateStr: string) {
   return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dateFromKey(dateStr));
 }
 
+export function isAutoPaceTask(title: string) {
+  return /^📚\s*(?:Sesi tambahan:.+\(pengganti\)|Extra session:.+\(catch-up\))$/i.test(title.trim());
+}
+
 export function shouldShowTaskInInbox(task: { title: string; classId: string; subjectId: string; status: string }) {
   if (task.status !== 'pending') return false;
-  const generatedCatchUp = /^(?:📚\s*)?(?:Sesi tambahan|Extra session|Kejar sesi|Lanjutkan sesi tertunda)/i.test(task.title);
-  if (!generatedCatchUp) return true;
+  if (!isAutoPaceTask(task.title)) return true;
   const data = getData();
   const cls = data.classes.find(item => item.id === task.classId);
   const subject = data.subjects.find(item => item.id === task.subjectId);
@@ -1906,32 +1908,15 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
   const results: PredictiveFinish[] = [];
 
   data.subjects.forEach(sub => {
-    const sem = getSubjectSemester(sub, data);
-
     data.classes.forEach(cls => {
       const scheds = data.schedules.filter(s => s.classId === cls.id && s.subjectId === sub.id);
       if (scheds.length === 0) return;
 
-      let mats = getMaterials(sub.id, cls.id);
-      if (!mats.length) return;
-
-      let effectiveDeadline: string | null = null;
-      if (sem) {
-        const phase = getCurrentExamPhase(sem);
-        if (phase === 'UTS') {
-          effectiveDeadline = sem.utsDate;
-          const utsMats = mats.filter(m => m.examPeriod === 'UTS');
-          if (utsMats.length > 0) mats = utsMats;
-        } else if (phase === 'UAS') {
-          effectiveDeadline = sem.uasDate;
-          const uasMats = mats.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
-          if (uasMats.length > 0) mats = uasMats;
-        } else {
-          effectiveDeadline = sem.uasDate;
-        }
-      } else {
-        effectiveDeadline = sub.examDate ?? null;
-      }
+      const allMaterials = getMaterials(sub.id, cls.id);
+      if (!allMaterials.length) return;
+      const target = getSubjectTarget(sub, allMaterials, data);
+      const mats = target.materials;
+      const effectiveDeadline = target.deadline;
 
       if (!effectiveDeadline) return;
 
@@ -2014,13 +1999,12 @@ export function getExamPrepItems(): ExamPrepItem[] {
       const daysToExam = Math.ceil((dateFromKey(effectiveDeadline).getTime() - today.getTime()) / 864e5);
       if (daysToExam > prepWindowDays || daysToExam < 0) return; // Only upcoming exams within 14 days
 
-      const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
-      const totalSess = getTotalSessionsNeeded(mats);
-      const remainingSess = Math.max(0, totalSess - prog.materialsDone);
-      const progressPct = totalSess > 0 ? Math.round((prog.materialsDone / totalSess) * 100) : 100;
+      const subjectStatus = getSubjectStatus(sub, cls, data);
+      const remainingSess = subjectStatus.remaining;
+      const progressPct = subjectStatus.pct;
 
       const holidays = data.holidays ?? [];
-      const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level);
+      const { sessLeft } = estimateEffectiveSessions(scheds, daysToExam, holidays, sub.level, data);
 
       let status: 'critical' | 'warning' | 'ok' = 'ok';
       let recommendedActions: string[] = [];
@@ -2056,12 +2040,12 @@ export function getExamPrepItems(): ExamPrepItem[] {
       items.push({
         classId: cls.id, className: cls.name,
         subjectId: sub.id, subjectName: sub.name,
-        examDate: sub.examDate,
+        examDate: effectiveDeadline,
         daysLeft: daysToExam,
         status,
         progressPct,
         sessionsNeeded: remainingSess,
-        sessionsDone: prog.materialsDone,
+        sessionsDone: subjectStatus.done,
         recommendedActions,
       });
     });
@@ -2091,54 +2075,54 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
   const mats = getMaterials(subjectId, classId);
   if (!mats.length) return null;
 
-  const prog = data.progress.find(p => p.classId === classId && p.subjectId === subjectId) || { materialsDone: 0 };
-  const totalSess = getTotalSessionsNeeded(mats);
-  const doneSess = prog.materialsDone;
-  const remainingSess = totalSess - doneSess;
+  const target = getSubjectTarget(sub, mats, data);
+  const targetMaterials = target.materials;
+  const status = getSubjectStatus(sub, cls, data);
+  const doneSess = status.done;
+  const remainingSess = status.remaining;
   if (remainingSess <= 0) return { type: 'no_issue' as const, description: 'Semua materi sudah selesai!' };
 
   const scheds = data.schedules.filter(s => s.classId === classId && s.subjectId === subjectId);
   if (!scheds.length) return { type: 'no_issue' as const, description: 'Belum ada jadwal untuk kelas ini.' };
 
   const holidays = data.holidays ?? [];
-  const daysLeft = sub.examDate ? daysUntilDateKey(sub.examDate) : 999;
-  const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(scheds, daysLeft, holidays, sub.level);
+  const daysLeft = target.deadline ? daysUntilDateKey(target.deadline) : 999;
+  const { sessLeft, holidaysInPeriod } = estimateEffectiveSessions(scheds, daysLeft, holidays, sub.level, data);
 
   const { material: nextMat } = getMaterialForSession(mats, doneSess);
 
   if (sessLeft === 0) {
     return {
-      type: 'add_sessions' as const,
+      type: 'trim_materials' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
       description: `Tidak ada sesi tersisa${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} hari libur)` : ''}. Tinjau ulang target materi dan urutan pembahasan.`,
       actionable: true,
       estimatedExtraSessions: remainingSess,
+      materialsToTrim: suggestMaterialsToTrim(targetMaterials, doneSess, remainingSess),
     };
   }
 
   if (remainingSess > sessLeft + 2) {
     const deficit = remainingSess - sessLeft;
-    const suggestedDates = suggestAvailableDates(scheds, daysLeft, holidays, deficit, sub.level);
-    const matsToTrim = suggestMaterialsToTrim(mats, doneSess, deficit);
+    const matsToTrim = suggestMaterialsToTrim(targetMaterials, doneSess, deficit);
     return {
-      type: 'add_sessions' as const,
+      type: 'trim_materials' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
       description: `Ketinggalan ${deficit} sesi. Butuh ${remainingSess} sesi, tapi hanya ${sessLeft} tersisa. Tinjau materi inti atau gabungkan pembahasan.`,
       actionable: true,
       estimatedExtraSessions: deficit,
-      suggestedDates,
       materialsToTrim: matsToTrim,
     };
   }
 
   if (remainingSess > sessLeft) {
     return {
-      type: 'add_sessions' as const,
+      type: 'trim_materials' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
       description: `Mepet target: butuh ${remainingSess} sesi, tersedia ${sessLeft}. Pertimbangkan menyesuaikan target materi.`,
       actionable: true,
       estimatedExtraSessions: remainingSess - sessLeft,
-      suggestedDates: suggestAvailableDates(scheds, daysLeft, holidays, remainingSess - sessLeft, sub.level),
+      materialsToTrim: suggestMaterialsToTrim(targetMaterials, doneSess, remainingSess - sessLeft),
     };
   }
 
@@ -2317,25 +2301,11 @@ export function applyTrimSuggestion(classId: string, subjectId: string, material
 }
 
 /**
- * Apply a pace suggestion — creates catch-up tasks, merges sessions, or trims materials
+ * Apply a pace suggestion — prioritizes existing lesson time and material scope.
  */
 export function applyPaceSuggestion(suggestion: PaceSuggestion) {
-  if (suggestion.type === 'add_sessions' && suggestion.suggestedDates?.length) {
-    updateData(d => {
-      const sched = d.schedules.find(s => s.classId === suggestion.classId && s.subjectId === suggestion.subjectId);
-      if (!sched) return;
-
-      suggestion.suggestedDates!.forEach(dateStr => {
-        d.tasks.push({
-          id: genId(),
-          classId: suggestion.classId,
-          subjectId: suggestion.subjectId,
-          title: `📚 Sesi tambahan: ${suggestion.subject} (pengganti)`,
-          deadline: dateStr,
-          status: 'pending'
-        });
-      });
-    });
+  if (suggestion.type === 'add_sessions') {
+    applyTrimSuggestion(suggestion.classId, suggestion.subjectId, suggestion.materialsToTrim);
   } else if (suggestion.type === 'merge_sessions') {
     applyMergeSuggestion(suggestion.classId, suggestion.subjectId, suggestion.materialsToTrim);
   } else if (suggestion.type === 'trim_materials') {

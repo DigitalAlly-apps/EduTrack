@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowRight, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle, formatTaskDeadline, shouldShowTaskInInbox } from '@/lib/data';
+import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle, formatTaskDeadline, isAutoPaceTask, shouldShowTaskInInbox, timeToMin, currentMin } from '@/lib/data';
 import { getMissingTeachingSessions } from '@/lib/dataPublic';
 import { getExamDayMode, getExamSchedules, getProctorSessions } from '@/lib/examData';
 import { navigateTo } from '@/lib/navigation';
@@ -74,7 +74,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 id="daily-agenda" className="text-lg font-semibold">Agenda mengajar</h2><span className="text-sm text-text2">{completed.length}/{items.length} tercatat</span></div>
           <div className="divide-y divide-border rounded-2xl border border-border bg-surface">
             {pending.map(item => <div key={item.id} className="flex items-center gap-3 p-4">
-              <div className="min-w-0 flex-1"><p className="text-sm tabular-nums text-text2">{item.startTime}–{item.endTime}</p><p className="font-semibold">{item.className} · {item.subjectName}</p><p className="text-sm text-text2">{item.active ? 'Sedang berlangsung' : date <= clock ? 'Belum dicatat' : 'Terjadwal'}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-sm tabular-nums text-text2">{item.startTime}–{item.endTime}</p><p className="font-semibold">{item.className} · {item.subjectName}</p><p className="text-sm text-text2">{item.active ? 'Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Belum dicatat' : 'Terjadwal'}</p></div>
               <button className="quiet-button shrink-0" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
             </div>)}
             {!pending.length && <p className="p-4 text-sm text-text2">Tidak ada sesi yang menunggu pencatatan pada tanggal ini.</p>}
@@ -96,7 +96,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
               try { toggleTask(task.id); onRefresh(); }
               catch { toast({ title: 'Tugas belum tersimpan. Coba lagi.', variant: 'destructive' }); }
             }}><Check size={18} /></button>
-            <div className="min-w-0"><p className="break-words font-semibold">{getTaskDisplayTitle(task.title)}</p><p className="text-sm text-text2">{data.classes.find(c => c.id === task.classId)?.name} · {data.subjects.find(s => s.id === task.subjectId)?.name} · Jadwalkan: {formatTaskDeadline(task.deadline)}</p></div>
+            <div className="min-w-0"><p className="break-words font-semibold">{getTaskDisplayTitle(task.title)}</p><p className="text-sm text-text2">{data.classes.find(c => c.id === task.classId)?.name} · {data.subjects.find(s => s.id === task.subjectId)?.name} · {isAutoPaceTask(task.title) ? `Tinjau sebelum: ${formatTaskDeadline(task.deadline)}` : `Batas tindak lanjut: ${formatTaskDeadline(task.deadline)}`}</p></div>
           </div>)}
           {!pendingTasks.length && <p className="text-sm text-text2">Tidak ada tugas yang menunggu.</p>}
         </section>

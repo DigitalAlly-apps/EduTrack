@@ -1,4 +1,4 @@
-import { getData, getSubjectStatus, getTodaySchedules } from './data';
+import { currentMin, getData, getSubjectStatus, getTodaySchedules, timeToMin } from './data';
 import { getAllExamSubjects, getCorrections } from './examData';
 import type { AppData, SubjectStatus } from './types';
 import type { NavigationTarget } from './navigation';
@@ -51,7 +51,7 @@ export function getAssistantItems(): AssistantItem[] {
   const data = getData();
   const items: AssistantItem[] = [];
   const today = getTodaySchedules();
-  const unrecorded = today.filter(item => !item.done);
+  const unrecorded = today.filter(item => !item.done && timeToMin(item.endTime) <= currentMin());
   if (unrecorded.length) {
     items.push({
       id: 'today:agenda',

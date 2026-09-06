@@ -21,7 +21,7 @@ export default function ProgressWorkspace({ refreshKey = 0 }: { refreshKey?: num
     return () => window.removeEventListener('edutrack-data-changed', refresh);
   }, []);
   const data = getData();
-  const pairs = data.classes.flatMap(cls => data.subjects.filter(subject => data.schedules.some(s => s.classId === cls.id && s.subjectId === subject.id)).map(subject => ({ cls, subject, status: getSubjectStatus(subject, cls, data), position: getTeachingPosition(cls.id, subject.id, data) })))
+  const pairs = data.classes.flatMap(cls => data.subjects.filter(subject => data.schedules.some(s => s.classId === cls.id && s.subjectId === subject.id) || data.materials.some(material => material.classId === cls.id && material.subjectId === subject.id) || data.progress.some(progress => progress.classId === cls.id && progress.subjectId === subject.id)).map(subject => ({ cls, subject, status: getSubjectStatus(subject, cls, data), position: getTeachingPosition(cls.id, subject.id, data) })))
     .sort((a, b) => a.cls.name.localeCompare(b.cls.name, 'id', { numeric: true }) || a.subject.name.localeCompare(b.subject.name, 'id'));
   const visible = pairs.filter(p => (!classFilter || p.cls.id === classFilter) && (!subjectFilter || p.subject.id === subjectFilter) && (!attention || p.status.status !== 'on-track'));
   const selected = pairs.find(p => p.cls.id === params.get('classId') && p.subject.id === params.get('subjectId'));
@@ -29,11 +29,13 @@ export default function ProgressWorkspace({ refreshKey = 0 }: { refreshKey?: num
   const setSection = (value: string) => setParams(previous => { const next = new URLSearchParams(previous); next.set('section', value); return next; });
   const filter = (key: string, value: string) => { try { sessionStorage.setItem(key, value); } catch { /* In-memory filter remains usable. */ } };
   return <div className="progress-workspace space-y-5">
-    <div className="progress-section-nav flex flex-wrap gap-2"><button className="quiet-button" aria-pressed={section !== 'calendar' && section !== 'history'} onClick={() => setSection('summary')}>Progres kelas</button><button className="quiet-button" aria-pressed={section === 'calendar'} onClick={() => setSection('calendar')}>Kalender</button><button className="quiet-button" aria-pressed={section === 'history' && !selected} onClick={() => {
+    <div className="progress-section-nav flex flex-wrap gap-2"><button className="quiet-button" aria-pressed={section !== 'calendar' && section !== 'history'} onClick={() => setSection('summary')}>Progres kelas</button><button className="quiet-button" aria-pressed={section === 'calendar'} onClick={() => {
+      setParams(previous => { const next = new URLSearchParams(previous); next.set('section', 'calendar'); for (const key of ['classId', 'subjectId', 'date']) next.delete(key); return next; });
+    }}>Kalender</button><button className="quiet-button" aria-pressed={section === 'history' && !selected} onClick={() => {
       setRepairDate(null);
       setParams(previous => { const next = new URLSearchParams(previous); next.set('section', 'history'); for (const key of ['classId', 'subjectId', 'date']) next.delete(key); return next; });
     }}>Riwayat</button></div>
-    {section === 'calendar' ? <><CalendarTab revision={revision} classId={classFilter} onRepair={date => { setRepairDate(date); setSection('history'); }} /><WeeklyReviewCard key={revision} /></> : <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+    {section === 'calendar' ? <><CalendarTab revision={revision} classId={classFilter} onRepair={date => { setRepairDate(date); setParams(previous => { const next = new URLSearchParams(previous); next.set('section', 'history'); next.set('date', date); next.delete('classId'); next.delete('subjectId'); return next; }); }} /><WeeklyReviewCard key={revision} /></> : <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
       <section className={`progress-list-panel ${selected ? 'hidden lg:block' : ''}`} aria-label="Daftar kelas dan mata pelajaran">
         <div className="space-y-3 mb-4">
           <label className="block text-sm">Kelas<select className="workspace-input mt-1" value={classFilter} onChange={e => { setClassFilter(e.target.value); filter('progress-class-filter', e.target.value); }}><option value="">Semua kelas</option>{data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
