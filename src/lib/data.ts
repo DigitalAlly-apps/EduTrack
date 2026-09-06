@@ -376,12 +376,12 @@ function isExamDayModeActive(): boolean {
   } catch { return false; }
 }
 
-export function getTodaySchedules(): TodayScheduleItem[] {
-  if (isExamDayModeActive()) return [];
+export function getTodaySchedules(sessionDate = dateKey(), includeExamMode = false): TodayScheduleItem[] {
+  if (!includeExamMode && isExamDayModeActive()) return [];
 
   const data = getData();
-  const today = todayNum();
-  const todayStr = dateKey();
+  const today = dateFromKey(sessionDate).getDay();
+  const todayStr = sessionDate;
 
   const buildItem = (s: Schedule, override?: NonNullable<AppData['scheduleOverrides']>[number]): TodayScheduleItem | null => {
     const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
@@ -399,7 +399,7 @@ export function getTodaySchedules(): TodayScheduleItem[] {
 
     const endMin = timeToMin(effectiveStartTime) + effectiveDuration;
     const curMin = currentMin();
-    const active = curMin >= timeToMin(effectiveStartTime) && curMin < endMin && !done;
+    const active = todayStr === dateKey() && curMin >= timeToMin(effectiveStartTime) && curMin < endMin && !done;
 
     return {
       ...s,
@@ -440,7 +440,7 @@ export function getTodaySchedules(): TodayScheduleItem[] {
     })
     .filter(Boolean) as TodayScheduleItem[];
 
-  return [...regularItems, ...extraItems]
+  return [...new Map([...regularItems, ...extraItems].map(item => [item.id, item])).values()]
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
@@ -769,7 +769,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 }
 
 
-export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string) {
+export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string, nextMeetingNote?: string, skipped = false) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return false;
@@ -779,16 +779,21 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
   const position = getTeachingPosition(sched.classId, sched.subjectId, data);
-  const material = mats.find(m => m.id === materialId) ?? position.material;
+  // `null` is an explicit "tanpa materi" choice from the recording form;
+  // keep the legacy undefined behavior for markDone callers.
+  const material = materialId === null ? undefined : (mats.find(m => m.id === materialId) ?? position.material);
   
-  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: sessionDate, materialId: material?.id || null, materialCompleted, completedAt: now().toISOString(), note };
+  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: sessionDate, materialId: skipped ? 'SKIPPED' : material?.id || null, materialCompleted: !skipped && materialCompleted, completedAt: now().toISOString(), note };
   if (lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
   data.sessions.push(session);
   
   const nextProg = prog ?? { id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 0, lastSession: null };
-  nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
-  nextProg.lastSession = sessionDate;
-  if (materialCompleted && material) {
+  if (!skipped) {
+    nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
+    nextProg.lastSession = sessionDate;
+  }
+  if (nextMeetingNote !== undefined) nextProg.nextMeetingNote = nextMeetingNote.trim();
+  if (!skipped && materialCompleted && material) {
     nextProg.completedMaterialIds = [...new Set([...(nextProg.completedMaterialIds ?? []), material.id])];
   }
   if (!prog) {
@@ -800,6 +805,29 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
 
 export function markDone(scheduleId: string, note?: string, lastPageReached?: string) {
   recordTeachingSession(scheduleId, dateKey(), undefined, false, note, lastPageReached);
+}
+
+/** An explicit empty note suppresses legacy fallback, allowing a teacher to clear it. */
+export function getNextMeetingNote(classId: string, subjectId: string, data = getData()) {
+  const progress = data.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+  if (progress?.nextMeetingNote !== undefined) return { text: progress.nextMeetingNote, legacy: false };
+  const last = data.sessions.filter(s => s.classId === classId && s.subjectId === subjectId && s.materialId !== 'SKIPPED')
+    .sort((a, b) => b.date.localeCompare(a.date) || b.completedAt.localeCompare(a.completedAt))[0];
+  const text = last?.note || getTeachingPosition(classId, subjectId, data).material?.note || '';
+  const parts = splitSessionNote(text);
+  return { text: [parts.mainNote, parts.reminder].filter(Boolean).join('\n'), legacy: !!text };
+}
+
+export function updateNextMeetingNote(classId: string, subjectId: string, note: string) {
+  updateData(data => {
+    if (!data.classes.some(c => c.id === classId) || !data.subjects.some(s => s.id === subjectId)) throw new Error('Kelas atau mapel tidak ditemukan.');
+    let progress = data.progress.find(p => p.classId === classId && p.subjectId === subjectId);
+    if (!progress) {
+      progress = { id: genId(), classId, subjectId, materialsDone: 0, lastSession: null };
+      data.progress.push(progress);
+    }
+    progress.nextMeetingNote = note.trim();
+  });
 }
 
 export function updateSessionMaterial(sessionId: string, materialId: string | null, materialCompleted: boolean) {

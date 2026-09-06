@@ -44,6 +44,7 @@ export interface Progress {
   subjectId: string;
   materialsDone: number;
   lastSession: string | null;
+  nextMeetingNote?: string;
   /** Materi yang ditutup lebih cepat dari estimasi awal. */
   completedMaterialIds?: string[];
 }

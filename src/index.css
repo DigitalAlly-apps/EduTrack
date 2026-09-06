@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -156,7 +156,7 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Manrope', sans-serif;
     letter-spacing: -0.025em;
   }
 
@@ -166,8 +166,8 @@
     background: hsl(var(--surface));
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .bg-surface { background: hsl(var(--surface)); }
@@ -313,8 +313,26 @@
   color: hsl(var(--foreground));
 }
 .work-panel {
-  @apply rounded-xl border border-border bg-surface p-4 shadow-sm;
+  @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
 }
+.workspace-input {
+  @apply min-h-11 w-full min-w-0 rounded-xl border border-border2 bg-surface px-3 py-2 text-base text-foreground;
+}
+.quiet-button {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface2 disabled:opacity-50;
+}
+.quiet-button[aria-pressed="true"] { background: hsl(var(--primary-dim)); color: hsl(var(--primary)); border-color: hsl(var(--primary)); }
+.primary-button {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition-colors disabled:opacity-50;
+}
+.progress-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]),
+.setup-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]),
+.exam-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]) { font-size: .875rem; line-height: 1.5; }
+.progress-workspace .font-black, .setup-workspace .font-black, .exam-workspace .font-black { font-weight: 600; }
+.progress-workspace .uppercase, .setup-workspace .uppercase, .exam-workspace .uppercase { text-transform: none; letter-spacing: normal; }
+.progress-workspace :is(input, select, textarea), .setup-workspace :is(input, select, textarea), .exam-workspace :is(input, select, textarea) { font-size: 1rem; }
+.progress-workspace button, .setup-workspace button, .exam-workspace button { min-height: 44px; }
+.progress-workspace .truncate { white-space: normal; overflow-wrap: anywhere; }
 .app-overlay {
   @apply fixed inset-0 bg-black/70 flex items-end;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, type ElementType } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   getAllExamSubjects,
   upsertCorrection, getExamDayMode, setExamDayMode,
@@ -20,7 +21,10 @@ interface ExamViewProps { refreshKey: number; onRefresh: () => void; initialTab:
 
 export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const { toast } = useToast();
-  const [tab, setTab] = useState<ExamTab>(initialTab);
+  const [params, setParams] = useSearchParams();
+  const section = params.get('section');
+  const tab: ExamTab = section === 'koreksi' || section === 'riwayat' || section === 'settings' || section === 'agenda' ? section : initialTab;
+  const setTab = (nextTab: ExamTab) => setParams(previous => { const next = new URLSearchParams(previous); next.set('section', nextTab); return next; });
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [examFormOpen, setExamFormOpen] = useState(false);
@@ -31,9 +35,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
 
   // Form: jadwal ujian mapel sendiri
   const [eDate, setEDate] = useState(dateKey());
@@ -963,7 +964,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   ];
 
   return (
-    <div className="space-y-3 animate-slide-up pb-8">
+    <div className="exam-workspace space-y-3 animate-slide-up pb-8">
       {/* Status header */}
       <div className="bg-surface/70 border border-border2 rounded-2xl p-3 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-2.5">
