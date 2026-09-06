@@ -157,7 +157,7 @@ function FocusSession({ item, date, onRecord }: { item: TodayScheduleItem; date:
   const note = getNextMeetingNote(item.classId, item.subjectId);
   const lastPage = getLastPageReached(item.classId, item.subjectId);
   const plan = splitSessionNote(note.text);
-  return <section className="work-panel space-y-3 border-primary/30" aria-labelledby="focus-class">
+  return <section className="work-panel daily-focus-hero space-y-3 border-primary/30" aria-labelledby="focus-class">
     <div className="flex flex-wrap justify-between gap-2 text-sm text-text2"><span>{item.active ? 'Sekarang' : 'Berikutnya / belum dicatat'}</span><span className="tabular-nums">{item.startTime}–{item.endTime}</span></div>
     <h2 id="focus-class" className="text-xl font-semibold">{item.className} · {item.subjectName}</h2>
     <div><p className="flex items-start gap-2"><BookOpen size={18} className="mt-1 shrink-0 text-primary" aria-hidden="true" />{position.material?.name || 'Materi belum diatur / sudah selesai'}</p><p className="mt-1 text-sm text-text2">{position.material && `Pertemuan ${position.sessionIndex} dari ${position.totalSessionsInMaterial}`}{lastPage && ` · Pertemuan selanjutnya hal. ${getNextStartPage(lastPage).nextPage}`}</p></div>

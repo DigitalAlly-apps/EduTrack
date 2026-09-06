@@ -162,12 +162,19 @@ body {
 
   .app-frame { background: hsl(var(--background)); }
 
+  .app-content {
+    background:
+      radial-gradient(circle at 92% 0%, hsl(var(--primary) / 0.07), transparent 34rem),
+      radial-gradient(circle at 8% 42%, hsl(var(--teal) / 0.045), transparent 28rem),
+      hsl(var(--background));
+  }
+
   .glass-panel {
-    background: hsl(var(--surface));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: linear-gradient(145deg, hsl(var(--surface) / 0.98), hsl(var(--surface2) / 0.94));
+    border: 1px solid hsl(var(--border) / 0.9);
+    box-shadow: 0 18px 48px hsl(157 28% 17% / 0.09), 0 2px 8px hsl(157 28% 17% / 0.05);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .bg-surface { background: hsl(var(--surface)); }
@@ -288,11 +295,13 @@ body {
   transform: scale(0.98);
 }
 .app-card {
-  @apply bg-surface border border-border rounded-2xl shadow-sm;
+  @apply bg-surface border border-border rounded-2xl;
+  box-shadow: 0 12px 30px hsl(157 28% 17% / 0.07), 0 2px 7px hsl(157 28% 17% / 0.04);
 }
 .app-card-soft {
-  @apply border border-border rounded-2xl shadow-sm;
-  background: hsl(var(--surface2));
+  @apply border border-border rounded-2xl;
+  background: linear-gradient(145deg, hsl(var(--surface2)), hsl(var(--surface3) / 0.72));
+  box-shadow: 0 8px 22px hsl(157 28% 17% / 0.045);
 }
 .app-list-item {
   @apply bg-surface border border-border rounded-xl p-4 transition-all shadow-sm;
@@ -313,7 +322,9 @@ body {
   color: hsl(var(--foreground));
 }
 .work-panel {
-  @apply rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-[0_8px_24px_rgba(32,60,51,0.04)];
+  @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
+  box-shadow: 0 14px 34px hsl(157 28% 17% / 0.065), 0 2px 7px hsl(157 28% 17% / 0.035);
+  background-image: linear-gradient(145deg, hsl(var(--surface) / 0.98), hsl(var(--surface2) / 0.38));
 }
 .workspace-input {
   @apply min-h-11 w-full min-w-0 rounded-xl border border-border2 bg-surface px-3 py-2 text-base text-foreground;
@@ -325,6 +336,38 @@ body {
 .primary-button {
   @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition-colors disabled:opacity-50;
 }
+
+/* The active lesson is the visual anchor of the workspace, matching the
+   richer hero treatment used across the companion teaching apps. */
+.daily-workspace .daily-focus-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: hsl(42 30% 96%);
+  border-color: hsl(var(--teal) / 0.45);
+  background: linear-gradient(135deg, hsl(158 48% 22%), hsl(172 45% 28%) 58%, hsl(158 48% 18%));
+  box-shadow: 0 22px 52px hsl(158 48% 16% / 0.22), inset 0 1px 0 hsl(42 30% 96% / 0.12);
+}
+.daily-workspace .daily-focus-hero::before,
+.daily-workspace .daily-focus-hero::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  width: 15rem;
+  height: 22rem;
+  right: -2rem;
+  top: -8rem;
+  border: 1px solid hsl(42 30% 96% / 0.12);
+  border-radius: 48% 48% 0 0;
+  transform: rotate(28deg);
+}
+.daily-workspace .daily-focus-hero::after { width: 18rem; height: 25rem; right: 2rem; top: -9rem; }
+.daily-workspace .daily-focus-hero .text-text2,
+.daily-workspace .daily-focus-hero .text-text3 { color: hsl(42 30% 96% / 0.72); }
+.daily-workspace .daily-focus-hero .bg-surface2 { background: hsl(42 30% 96% / 0.11); }
+.daily-workspace .daily-focus-hero .primary-button { background: hsl(42 75% 78%); color: hsl(158 48% 18%); box-shadow: 0 12px 28px hsl(42 75% 78% / 0.18); }
+.daily-workspace .daily-focus-hero .primary-button:hover { background: hsl(42 75% 86%); }
 .progress-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]),
 .setup-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]),
 .exam-workspace :is(.text-xs, .text-\[12px\], .text-\[13px\]) { font-size: .875rem; line-height: 1.5; }
