@@ -1419,6 +1419,20 @@ export function getHolidayImpactSummary(): { subjectName: string; className: str
 // ── Task helpers ────────────────────────────────────────────────────────────
 export function getTasks() { return getData().tasks ?? []; }
 
+export function formatTaskDeadline(dateStr: string) {
+  return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(dateFromKey(dateStr));
+}
+
+export function shouldShowTaskInInbox(task: { title: string; classId: string; subjectId: string; status: string }) {
+  if (task.status !== 'pending') return false;
+  const generatedCatchUp = /^(?:📚\s*)?(?:Sesi tambahan|Extra session|Kejar sesi|Lanjutkan sesi tertunda)/i.test(task.title);
+  if (!generatedCatchUp) return true;
+  const data = getData();
+  const cls = data.classes.find(item => item.id === task.classId);
+  const subject = data.subjects.find(item => item.id === task.subjectId);
+  return !cls || !subject || getSubjectStatus(subject, cls, data).status !== 'on-track';
+}
+
 /** Normalizes legacy task titles for display without rewriting stored user data. */
 export function getTaskDisplayTitle(title: string) {
   return title.replace(/^📚\s*Extra session:\s*(.+?)\s*\(catch-up\)$/i, '📚 Sesi tambahan: $1 (pengganti)');

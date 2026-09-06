@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowRight, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle } from '@/lib/data';
+import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle, formatTaskDeadline, shouldShowTaskInInbox } from '@/lib/data';
 import { getMissingTeachingSessions } from '@/lib/dataPublic';
 import { getExamDayMode, getExamSchedules, getProctorSessions } from '@/lib/examData';
 import { navigateTo } from '@/lib/navigation';
@@ -34,7 +34,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
   const focus = pending.find(item => item.active) || pending[0];
   const data = getData();
   const missing = date === clock ? getMissingTeachingSessions().slice(0, 3) : [];
-  const pendingTasks = data.tasks.filter(task => task.status === 'pending');
+  const pendingTasks = data.tasks.filter(shouldShowTaskInInbox);
   const exams = getExamSchedules().filter(exam => exam.date === date);
   const proctors = getProctorSessions().filter(exam => exam.date === date);
   const changeDate = (value: string) => setParams(previous => {
@@ -96,7 +96,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
               try { toggleTask(task.id); onRefresh(); }
               catch { toast({ title: 'Tugas belum tersimpan. Coba lagi.', variant: 'destructive' }); }
             }}><Check size={18} /></button>
-            <div className="min-w-0"><p className="break-words font-semibold">{getTaskDisplayTitle(task.title)}</p><p className="text-sm text-text2">{data.classes.find(c => c.id === task.classId)?.name} · {data.subjects.find(s => s.id === task.subjectId)?.name} · Batas: {task.deadline}</p></div>
+            <div className="min-w-0"><p className="break-words font-semibold">{getTaskDisplayTitle(task.title)}</p><p className="text-sm text-text2">{data.classes.find(c => c.id === task.classId)?.name} · {data.subjects.find(s => s.id === task.subjectId)?.name} · Jadwalkan: {formatTaskDeadline(task.deadline)}</p></div>
           </div>)}
           {!pendingTasks.length && <p className="text-sm text-text2">Tidak ada tugas yang menunggu.</p>}
         </section>
