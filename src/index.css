@@ -69,55 +69,55 @@
   }
 
   .light {
-    --background: 210 25% 97%;
-    --bg2: 210 25% 97%;
-    --foreground: 236 35% 13%;
+    --background: 42 28% 96%;
+    --bg2: 42 28% 96%;
+    --foreground: 157 28% 17%;
     --card: 0 0% 100%;
     --card-foreground: 236 35% 13%;
     --popover: 0 0% 100%;
     --popover-foreground: 236 35% 13%;
     
-    --primary: 190 64% 36%;
+    --primary: 158 48% 30%;
     --primary-foreground: 0 0% 100%;
     --primary-dim: 190 64% 36% / 0.08;
     --primary-glow: 190 64% 36% / 0.10;
     --primary-border: 190 64% 36% / 0.20;
     
-    --secondary: 210 22% 94%;
-    --secondary-foreground: 236 35% 13%;
-    --muted: 210 22% 94%;
-    --muted-foreground: 236 12% 44%;
-    --accent: 198 80% 47%;
+    --secondary: 40 20% 92%;
+    --secondary-foreground: 157 28% 17%;
+    --muted: 40 20% 92%;
+    --muted-foreground: 157 12% 44%;
+    --accent: 164 45% 37%;
     --accent-foreground: 35 80% 98%;
     --destructive: 0 80% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 214 22% 87%;
-    --border2: 214 18% 78%;
-    --border3: 214 16% 65%;
-    --input: 214 18% 78%;
-    --ring: 190 64% 36%;
+    --border: 42 16% 87%;
+    --border2: 42 13% 77%;
+    --border3: 42 12% 64%;
+    --input: 42 13% 77%;
+    --ring: 158 48% 30%;
     
     --surface: 0 0% 100%;
-    --surface2: 210 25% 96%;
-    --surface3: 210 22% 92%;
+    --surface2: 40 24% 93%;
+    --surface3: 40 20% 89%;
     
-    --text2: 236 14% 38%;
-    --text3: 215 15% 43%;
+    --text2: 157 14% 38%;
+    --text3: 157 12% 46%;
     
-    --teal: 176 60% 29%;
+    --teal: 164 45% 31%;
     --teal-dim: 176 48% 38% / 0.1;
     --teal-glow: 176 48% 38% / 0.12;
     --teal-border: 176 48% 38% / 0.18;
     
-    --green: 150 65% 29%;
+    --green: 150 55% 30%;
     --green-dim: 150 60% 40% / 0.08;
     --amber: 32 85% 32%;
     --red: 0 70% 44%;
     
-    --nav-bg: 0 0% 100% / 0.97;
-    --header-bg: 0 0% 100% / 0.97;
-    --shadow: 0 4px 20px rgba(30, 50, 70, 0.05);
+    --nav-bg: 42 30% 98% / 0.97;
+    --header-bg: 42 30% 98% / 0.97;
+    --shadow: 0 8px 24px rgba(32, 60, 51, 0.06);
   }
 }
 
@@ -125,7 +125,7 @@
   * {
     @apply border-border;
   }
-  body {
+body {
     @apply bg-background text-foreground;
     min-height: 100vh;
     min-height: 100dvh;
@@ -135,7 +135,7 @@
     -webkit-overflow-scrolling: touch;
     touch-action: manipulation;
     background: hsl(var(--background));
-    line-height: 1.6;
+    line-height: 1.55;
   }
   html {
     overflow-x: hidden;
@@ -288,14 +288,14 @@
   transform: scale(0.98);
 }
 .app-card {
-  @apply bg-surface border border-border rounded-3xl shadow-sm;
+  @apply bg-surface border border-border rounded-2xl shadow-sm;
 }
 .app-card-soft {
   @apply border border-border rounded-2xl shadow-sm;
   background: hsl(var(--surface2));
 }
 .app-list-item {
-  @apply bg-surface border border-border rounded-2xl p-4 transition-all shadow-sm;
+  @apply bg-surface border border-border rounded-xl p-4 transition-all shadow-sm;
 }
 .app-list-item:hover {
   background: hsl(var(--surface2));
@@ -313,7 +313,7 @@
   color: hsl(var(--foreground));
 }
 .work-panel {
-  @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
+  @apply rounded-2xl border border-border bg-surface p-4 sm:p-5 shadow-[0_8px_24px_rgba(32,60,51,0.04)];
 }
 .workspace-input {
   @apply min-h-11 w-full min-w-0 rounded-xl border border-border2 bg-surface px-3 py-2 text-base text-foreground;

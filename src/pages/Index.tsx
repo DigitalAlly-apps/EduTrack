@@ -69,7 +69,9 @@ function AppInner() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  // EduTrack is a planning workspace: the light canvas keeps dense schedules
+  // calm and readable on first launch. Dark mode remains an explicit choice.
+  const [theme, setTheme] = useState(() => localStorage.getItem('pengajar_theme') || 'light');
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'connected' | 'syncing' | 'offline'>('idle');
   const { toast } = useToast();
