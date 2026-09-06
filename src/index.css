@@ -340,6 +340,27 @@ body {
   background: linear-gradient(145deg, hsl(var(--surface) / .96), hsl(var(--surface2) / .72));
   box-shadow: 0 12px 28px hsl(157 28% 17% / .06), inset 0 1px 0 hsl(var(--surface) / .8);
 }
+.progress-workspace {
+  --primary: 222 78% 52%;
+  --primary-foreground: 0 0% 100%;
+  --primary-dim: 222 78% 52% / .11;
+  --primary-glow: 222 78% 52% / .16;
+  --primary-border: 222 78% 52% / .3;
+  --ring: 222 78% 52%;
+  --accent: 38 92% 52%;
+  --accent-foreground: 222 45% 12%;
+  position: relative;
+  isolation: isolate;
+}
+.progress-workspace::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -2rem -1rem auto;
+  height: 15rem;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 18% 0%, hsl(222 78% 52% / .10), transparent 62%), radial-gradient(ellipse at 88% 6%, hsl(38 92% 52% / .09), transparent 58%);
+}
 .progress-section-nav .quiet-button { border-color: transparent; }
 .progress-section-nav .quiet-button[aria-pressed="true"] {
   background: hsl(var(--surface));
