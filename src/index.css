@@ -337,7 +337,7 @@ body {
   padding: .35rem;
   border: 1px solid hsl(var(--border));
   border-radius: 1.25rem;
-  background: linear-gradient(145deg, hsl(var(--surface) / .96), hsl(var(--surface2) / .72));
+  background: hsl(var(--surface));
   box-shadow: 0 12px 28px hsl(157 28% 17% / .06), inset 0 1px 0 hsl(var(--surface) / .8);
 }
 .progress-workspace {
@@ -365,7 +365,7 @@ body {
 .progress-list-panel > .divide-y {
   overflow: hidden;
   border-color: hsl(var(--border));
-  background: linear-gradient(145deg, hsl(var(--surface) / .96), hsl(var(--surface2) / .55));
+  background: hsl(var(--surface));
   box-shadow: 0 16px 36px hsl(157 28% 17% / .07), inset 0 1px 0 hsl(var(--surface) / .75);
 }
 .progress-list-item {
@@ -375,8 +375,14 @@ body {
 }
 .progress-list-item:hover { background: hsl(var(--surface2) / .72); }
 .progress-list-item.is-selected {
-  background: linear-gradient(135deg, hsl(var(--primary-dim) / .9), hsl(var(--surface) / .9));
+  background: hsl(var(--primary-dim));
   box-shadow: inset 3px 0 0 hsl(var(--primary)), inset 0 1px 0 hsl(var(--surface) / .8);
+}
+.progress-detail-panel .work-panel,
+.progress-detail-panel .app-card,
+.progress-detail-panel .app-card-soft {
+  background-image: none;
+  background-color: hsl(var(--surface));
 }
 .progress-detail-panel > .work-panel,
 .progress-detail-panel > .app-card,
