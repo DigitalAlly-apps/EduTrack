@@ -436,9 +436,9 @@ export function SubjectCard({
           </div>
 
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-primary">Kebutuhan menuju ujian</p>
-            <p className="mt-1 text-sm font-semibold">{status.daysLeft === undefined ? 'Tanggal ujian belum diatur.' : `${needed} pertemuan dibutuhkan · ${available} jadwal tersedia`}</p>
-            {status.daysLeft !== undefined && <p className="mt-1 text-xs text-text2">{status.daysLeft} hari lagi sampai target ujian.</p>}
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">Rencana sampai ujian</p>
+            <p className="mt-1 text-sm font-semibold">{status.daysLeft === undefined ? 'Tanggal ujian belum diatur.' : `Masih perlu ${needed} kali mengajar. Ada ${available} jadwal rutin tersisa.`}</p>
+            {status.daysLeft !== undefined && <p className="mt-1 text-xs text-text2">Ujian berlangsung ${status.daysLeft} hari lagi.</p>}
           </div>
 
           {/* BAB SAAT INI (High Contrast Visual Anchor) */}
@@ -844,14 +844,14 @@ export function ProgressSummaryCard({
         <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${tone === 'red' ? 'border-red/20 bg-red/10 text-red' : tone === 'amber' ? 'border-amber/20 bg-amber/10 text-amber' : 'border-green/20 bg-green/10 text-green'}`}>{status.daysLeft === undefined ? 'Target belum diatur' : tone === 'red' ? 'Perlu perhatian' : tone === 'amber' ? 'Jadwal mepet' : 'Sesuai jalur'}</span>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Pertemuan selesai</p><p className="mt-1 text-2xl font-black tabular-nums">{position.totalSessionsDone}<span className="text-base font-semibold text-text3">/{position.totalSessionsAll}</span></p></div>
-        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Sisa menuju ujian</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsNeeded}</p><p className="text-xs text-text3">pertemuan dibutuhkan</p></div>
-        <div className="col-span-2 rounded-xl border border-border bg-surface2 p-3 sm:col-span-1"><p className="text-xs text-text3">Jadwal tersedia</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsAvailable}</p><p className="text-xs text-text3">pertemuan sebelum target</p></div>
+        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Sudah diajar</p><p className="mt-1 text-2xl font-black tabular-nums">{position.totalSessionsDone}<span className="text-base font-semibold text-text3">/{position.totalSessionsAll}</span></p></div>
+        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Masih perlu diajar</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsNeeded}</p><p className="text-xs text-text3">kali mengajar lagi</p></div>
+        <div className="col-span-2 rounded-xl border border-border bg-surface2 p-3 sm:col-span-1"><p className="text-xs text-text3">Sisa jadwal rutin</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsAvailable}</p><p className="text-xs text-text3">sampai ujian</p></div>
       </div>
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
         <p className="text-xs font-bold uppercase tracking-wider text-primary">Target {target?.label || 'ujian'}</p>
         <p className="mt-1 text-sm font-semibold">{examDate ? new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${examDate}T00:00:00`)) : 'Belum ada tanggal ujian'}</p>
-        <p className="mt-1 text-sm text-text2">{status.daysLeft === undefined ? 'Atur tanggal ujian untuk menghitung kebutuhan pertemuan.' : `${status.daysLeft} hari lagi · ${sessionsAvailable} jadwal tersedia dari ${sessionsNeeded} yang dibutuhkan.`}</p>
+        <p className="mt-1 text-sm text-text2">{status.daysLeft === undefined ? 'Atur tanggal ujian agar aplikasi dapat menghitung sisa jadwal.' : `Ujian ${status.daysLeft} hari lagi. Masih perlu ${sessionsNeeded} kali mengajar dari ${sessionsAvailable} jadwal rutin yang tersisa.`}</p>
       </div>
       <p className="text-sm text-text2">{materials.length} materi terdaftar · Materi aktif: {position.material?.name || (position.isComplete ? 'semua materi selesai' : 'belum diatur')}</p>
     </div>
