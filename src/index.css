@@ -14,11 +14,11 @@
     --popover: 235 24% 10%;
     --popover-foreground: 44 45% 94%;
     
-    --primary: 188 58% 48%;
+    --primary: 222 78% 58%;
     --primary-foreground: 230 28% 8%;
-    --primary-dim: 188 58% 48% / 0.12;
-    --primary-glow: 188 58% 48% / 0.14;
-    --primary-border: 188 58% 48% / 0.26;
+    --primary-dim: 222 78% 58% / 0.12;
+    --primary-glow: 222 78% 58% / 0.14;
+    --primary-border: 222 78% 58% / 0.26;
     
     --secondary: 234 22% 13%;
     --secondary-foreground: 44 45% 94%;
@@ -33,7 +33,7 @@
     --border2: 236 18% 24%;
     --border3: 236 18% 31%;
     --input: 235 18% 18%;
-    --ring: 188 58% 48%;
+    --ring: 222 78% 58%;
     --radius: 1rem;
     
     --surface: 222 23% 13%;
@@ -77,11 +77,11 @@
     --popover: 0 0% 100%;
     --popover-foreground: 236 35% 13%;
     
-    --primary: 158 48% 30%;
+    --primary: 222 72% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-dim: 190 64% 36% / 0.08;
-    --primary-glow: 190 64% 36% / 0.10;
-    --primary-border: 190 64% 36% / 0.20;
+    --primary-dim: 222 72% 42% / 0.10;
+    --primary-glow: 222 72% 42% / 0.12;
+    --primary-border: 222 72% 42% / 0.22;
     
     --secondary: 40 20% 92%;
     --secondary-foreground: 157 28% 17%;
@@ -96,7 +96,7 @@
     --border2: 42 13% 77%;
     --border3: 42 12% 64%;
     --input: 42 13% 77%;
-    --ring: 158 48% 30%;
+    --ring: 222 72% 42%;
     
     --surface: 0 0% 100%;
     --surface2: 40 24% 93%;
@@ -403,9 +403,9 @@ body {
   isolation: isolate;
   overflow: hidden;
   color: hsl(42 30% 96%);
-  border-color: hsl(var(--teal) / 0.45);
-  background: linear-gradient(135deg, hsl(158 48% 22%), hsl(172 45% 28%) 58%, hsl(158 48% 18%));
-  box-shadow: 0 22px 52px hsl(158 48% 16% / 0.22), inset 0 1px 0 hsl(42 30% 96% / 0.12);
+  border-color: hsl(var(--primary) / 0.45);
+  background: linear-gradient(135deg, hsl(226 54% 23%), hsl(218 62% 31%) 58%, hsl(230 52% 17%));
+  box-shadow: 0 22px 52px hsl(226 54% 16% / 0.22), inset 0 1px 0 hsl(42 30% 96% / 0.12);
 }
 .daily-workspace .daily-focus-hero::before,
 .daily-workspace .daily-focus-hero::after {
