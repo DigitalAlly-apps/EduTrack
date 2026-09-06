@@ -459,7 +459,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         }`}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Progress Koreksi</div>
+              <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Progres Koreksi</div>
               <div className={`text-2xl font-black tabular-nums ${pending > 0 ? 'text-red' : 'text-green'}`}>
                 {done}/{total}
               </div>

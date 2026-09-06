@@ -2311,7 +2311,7 @@ export function applyPaceSuggestion(suggestion: PaceSuggestion) {
           id: genId(),
           classId: suggestion.classId,
           subjectId: suggestion.subjectId,
-          title: `📚 Extra session: ${suggestion.subject} (catch-up)`,
+          title: `📚 Sesi tambahan: ${suggestion.subject} (pengganti)`,
           deadline: dateStr,
           status: 'pending'
         });
