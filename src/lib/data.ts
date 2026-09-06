@@ -651,7 +651,7 @@ export function getInsights(): Insight[] {
             out.push({
               type: 'warn',
               directive: 'Perlu diperhatikan',
-              text: `<strong>${cls.name}</strong> butuh ${remainingSess} sesi di ${sub.name}, tapi hanya ${sessLeft} tersedia${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} libur). ⚡ <b>Saran:</b> Jadwalkan ${extra} kelas pengganti / ekstra jam` : `. Kurangi ${extra} sesi atau tambah jadwal`}.`,
+              text: `<strong>${cls.name}</strong> butuh ${remainingSess} sesi di ${sub.name}, tapi hanya ${sessLeft} tersedia${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} hari libur). ⚡ <b>Saran:</b> Tinjau target materi atau gabungkan pembahasan` : `. Kurangi ${extra} sesi materi atau sesuaikan target`}.`,
             });
             seen.add(key);
           }
@@ -2110,7 +2110,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
     return {
       type: 'add_sessions' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
-      description: `Tidak ada sesi tersisa${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} hari libur)` : ''}. Perlu tambah jadwal.`,
+      description: `Tidak ada sesi tersisa${holidaysInPeriod > 0 ? ` (${holidaysInPeriod} hari libur)` : ''}. Tinjau ulang target materi dan urutan pembahasan.`,
       actionable: true,
       estimatedExtraSessions: remainingSess,
     };
@@ -2123,7 +2123,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
     return {
       type: 'add_sessions' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
-      description: `Ketinggalan ${deficit} sesi. Butuh ${remainingSess} sesi, tapi hanya ${sessLeft} tersisa.`,
+      description: `Ketinggalan ${deficit} sesi. Butuh ${remainingSess} sesi, tapi hanya ${sessLeft} tersisa. Tinjau materi inti atau gabungkan pembahasan.`,
       actionable: true,
       estimatedExtraSessions: deficit,
       suggestedDates,
@@ -2135,7 +2135,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
     return {
       type: 'add_sessions' as const,
       classId, class: cls.name, subjectId, subject: sub.name,
-      description: `Mepet target: butuh ${remainingSess} sesi, tersedia ${sessLeft}.`,
+      description: `Mepet target: butuh ${remainingSess} sesi, tersedia ${sessLeft}. Pertimbangkan menyesuaikan target materi.`,
       actionable: true,
       estimatedExtraSessions: remainingSess - sessLeft,
       suggestedDates: suggestAvailableDates(scheds, daysLeft, holidays, remainingSess - sessLeft, sub.level),
