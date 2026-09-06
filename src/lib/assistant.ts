@@ -10,7 +10,7 @@ export interface AssistantItem {
   title: string;
   reason: string;
   action: string;
-  view: 'today' | 'progress' | 'exam' | 'setup';
+  view: 'today' | 'progress' | 'exam' | 'exam-corrections' | 'setup';
 }
 
 const priorityWeight: Record<AssistantPriority, number> = { urgent: 0, attention: 1, ready: 2 };
@@ -67,7 +67,7 @@ export function getAssistantItems(): AssistantItem[] {
       title: `Koreksi ${exam.subjectName}`,
       reason: `${pending.length} kelas belum selesai dikoreksi.`,
       action: 'Buka koreksi',
-      view: 'exam',
+      view: 'exam-corrections',
     });
   }
 

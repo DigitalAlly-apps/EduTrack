@@ -171,10 +171,12 @@ function AppInner() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (!isAppView(detail)) return;
+      const correctionTarget = detail === 'exam-corrections';
+      const destination = correctionTarget ? 'exam' : detail;
+      if (!isAppView(destination)) return;
       normalizeProgressConsistency();
-      setExamTab('agenda');
-      setView(detail);
+      setExamTab(correctionTarget ? 'koreksi' : 'agenda');
+      setView(destination);
       setRefreshKey(k => k + 1);
     };
     window.addEventListener('edutrack-nav', handler);

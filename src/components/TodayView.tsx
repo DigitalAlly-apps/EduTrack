@@ -263,9 +263,12 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     toast({ title: ok ? '🔔 Notifikasi ujian aktif' : 'Notifikasi belum diizinkan' });
   };
 
+  const assistant = <AssistantPanel onNavigate={(view) => window.dispatchEvent(new CustomEvent('edutrack-nav', { detail: view }))} />;
+
   if (getExamDayMode() && !showKbmDuringExam) {
     return (
       <div className="space-y-6 py-4 animate-slide-up pb-28">
+        {assistant}
         {/* Header Card */}
         <div className="glass-panel rounded-[34px] overflow-hidden relative border-amber/20 p-6 shadow-xl shadow-amber/5">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--amber)/0.12),transparent_60%)] pointer-events-none" />
@@ -465,6 +468,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   if (isTodayHolidayGlobal()) {
     return (
       <div className="text-center py-12 px-6 animate-slide-up flex flex-col items-center">
+        <div className="w-full max-w-xl mb-6 text-left">{assistant}</div>
         <div className="w-20 h-20 bg-primary-dim rounded-full grid place-items-center mb-6 shadow-sm">
           <span className="text-4xl">☕</span>
         </div>
@@ -482,6 +486,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   if (items.length === 0) {
     return (
       <div className="app-card text-center py-12 px-6 animate-slide-up max-w-3xl mx-auto">
+        <div className="mb-6 text-left">{assistant}</div>
         <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-primary-dim text-primary"><CalendarDays aria-hidden="true" className="h-8 w-8" /></div>
         <div className="font-display text-2xl font-medium tracking-tight mb-2">Tidak ada jadwal hari ini</div>
         <div className="text-sm text-text2 leading-relaxed max-w-[280px] mx-auto">
@@ -502,6 +507,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     const skippedItems = items.filter(x => x.skipped);
     return (
       <div className="py-8 px-6 animate-slide-up">
+        <div className="mb-6"><AssistantPanel onNavigate={(view) => window.dispatchEvent(new CustomEvent('edutrack-nav', { detail: view }))} /></div>
         <div className="text-center mb-10">
           <span className="text-6xl block mb-4">🎉</span>
           <div className="font-display text-3xl font-bold tracking-tight mb-2 text-foreground">Semua Beres!</div>
@@ -725,7 +731,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-text2"><Clock aria-hidden="true" className="h-3.5 w-3.5" /> Jadwal terakhir selesai pukul {fmt(lastTeachingEndTime)}</p>
         </section>
-        <div className="mb-4"><AssistantPanel onNavigate={(view) => window.dispatchEvent(new CustomEvent('edutrack-nav', { detail: view }))} /></div>
+        <div className="mb-4">{assistant}</div>
         </div>
         <div>
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
