@@ -333,6 +333,44 @@ body {
   @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface2 disabled:opacity-50;
 }
 .quiet-button[aria-pressed="true"] { background: hsl(var(--primary-dim)); color: hsl(var(--primary)); border-color: hsl(var(--primary)); }
+.progress-section-nav {
+  padding: .35rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, hsl(var(--surface) / .96), hsl(var(--surface2) / .72));
+  box-shadow: 0 12px 28px hsl(157 28% 17% / .06), inset 0 1px 0 hsl(var(--surface) / .8);
+}
+.progress-section-nav .quiet-button { border-color: transparent; }
+.progress-section-nav .quiet-button[aria-pressed="true"] {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--primary) / .32);
+  box-shadow: 0 6px 16px hsl(157 28% 17% / .08);
+}
+.progress-list-panel,
+.progress-detail-panel {
+  border-radius: 1.25rem;
+}
+.progress-list-panel > .divide-y {
+  overflow: hidden;
+  border-color: hsl(var(--border));
+  background: linear-gradient(145deg, hsl(var(--surface) / .96), hsl(var(--surface2) / .55));
+  box-shadow: 0 16px 36px hsl(157 28% 17% / .07), inset 0 1px 0 hsl(var(--surface) / .75);
+}
+.progress-list-item {
+  position: relative;
+  background: transparent;
+  transition: background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.progress-list-item:hover { background: hsl(var(--surface2) / .72); }
+.progress-list-item.is-selected {
+  background: linear-gradient(135deg, hsl(var(--primary-dim) / .9), hsl(var(--surface) / .9));
+  box-shadow: inset 3px 0 0 hsl(var(--primary)), inset 0 1px 0 hsl(var(--surface) / .8);
+}
+.progress-detail-panel > .work-panel,
+.progress-detail-panel > .app-card,
+.progress-detail-panel > .app-card-soft {
+  box-shadow: 0 18px 42px hsl(157 28% 17% / .08), inset 0 1px 0 hsl(var(--surface) / .8);
+}
 .primary-button {
   @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground transition-colors disabled:opacity-50;
 }
