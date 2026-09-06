@@ -288,14 +288,14 @@
   transform: scale(0.98);
 }
 .app-card {
-  @apply bg-surface border border-border rounded-xl shadow-sm;
+  @apply bg-surface border border-border rounded-3xl shadow-sm;
 }
 .app-card-soft {
-  @apply border border-border rounded-xl shadow-sm;
+  @apply border border-border rounded-2xl shadow-sm;
   background: hsl(var(--surface2));
 }
 .app-list-item {
-  @apply bg-surface border border-border rounded-xl p-4 transition-all shadow-sm;
+  @apply bg-surface border border-border rounded-2xl p-4 transition-all shadow-sm;
 }
 .app-list-item:hover {
   background: hsl(var(--surface2));
