@@ -947,6 +947,7 @@ function EditRecordedSessionSheet({
   const [materialId, setMaterialId] = useState('');
   const [materialCompleted, setMaterialCompleted] = useState(false);
   const [note, setNote] = useState('');
+  const [supportingNote, setSupportingNote] = useState('');
   const [lastPageReached, setLastPageReached] = useState('');
   const materials = useMemo(() => session ? getMaterials(session.subjectId, session.classId) : [], [session]);
 
@@ -954,7 +955,9 @@ function EditRecordedSessionSheet({
     if (!session) return;
     setMaterialId(session.materialId ?? '');
     setMaterialCompleted(Boolean(session.materialCompleted));
-    setNote(session.note ?? '');
+    const plan = splitSessionNote(session.note);
+    setNote(plan.mainNote);
+    setSupportingNote(plan.reminder);
     setLastPageReached(session.lastPageReached ?? '');
   }, [session]);
 
@@ -965,7 +968,7 @@ function EditRecordedSessionSheet({
   const subject = data.subjects.find(item => item.id === session.subjectId)?.name ?? '?';
   const save = () => {
     updateSessionMaterial(session.id, materialId || null, materialCompleted);
-    updateSessionNote(session.id, note.trim(), lastPageReached);
+    updateSessionNote(session.id, composeSessionNote(note, supportingNote), lastPageReached);
     onSaved();
   };
 
@@ -987,8 +990,10 @@ function EditRecordedSessionSheet({
         </label>
         <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
         <input id="edit-history-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
-        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Catatan <span className="normal-case">(opsional)</span></label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Materi selanjutnya / catatan tersimpan <span className="normal-case">(opsional)</span></label>
         <textarea id="edit-history-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+        <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-supporting-note">Informasi selain materi <span className="normal-case">(opsional)</span></label>
+        <textarea id="edit-history-supporting-note" value={supportingNote} onChange={event => setSupportingNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" />
         <button onClick={save} className="btn-primary-style bg-primary font-bold text-primary-foreground">Simpan Perubahan</button>
         <button onClick={onClose} className="mt-1 w-full py-3 text-[13px] text-text2">Batal</button>
       </div>
@@ -1021,6 +1026,7 @@ function RetroactiveSessionSheet({
   const [materialId, setMaterialId] = useState('');
   const [materialCompleted, setMaterialCompleted] = useState(false);
   const [note, setNote] = useState('');
+  const [supportingNote, setSupportingNote] = useState('');
   const [lastPageReached, setLastPageReached] = useState('');
   const [message, setMessage] = useState('');
   const audit = useMemo(() => date < dateKey() ? getCalendarDayAudit(date) : null, [date, revision]);
@@ -1038,6 +1044,7 @@ function RetroactiveSessionSheet({
     setMaterialId('');
     setMaterialCompleted(false);
     setNote('');
+    setSupportingNote('');
     setLastPageReached('');
     setMessage('');
   }, [initialDate, open]);
@@ -1066,7 +1073,8 @@ function RetroactiveSessionSheet({
       setMessage('Tidak ada KBM yang perlu dicatat pada tanggal ini.');
       return;
     }
-    const saved = recordTeachingSession(selectedEntry.schedule.id, date, materialId || null, materialCompleted, note.trim() || undefined, lastPageReached);
+    const plan = composeSessionNote(note, supportingNote);
+    const saved = recordTeachingSession(selectedEntry.schedule.id, date, materialId || null, materialCompleted, plan, lastPageReached, plan);
     if (!saved) {
       setMessage('KBM ini sudah tercatat.');
       return;
@@ -1108,8 +1116,10 @@ function RetroactiveSessionSheet({
               <input type="checkbox" checked={materialCompleted} onChange={event => setMaterialCompleted(event.target.checked)} className="mt-0.5 accent-primary" />
               <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-xs text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
             </label>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Catatan <span className="normal-case">(opsional)</span></label>
-            <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-note">Materi selanjutnya <span className="normal-case">(opsional)</span></label>
+            <textarea id="retroactive-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" />
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-supporting-note">Informasi selain materi <span className="normal-case">(opsional)</span></label>
+            <textarea id="retroactive-supporting-note" value={supportingNote} onChange={event => setSupportingNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" />
             <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
             <input id="retroactive-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
           </>

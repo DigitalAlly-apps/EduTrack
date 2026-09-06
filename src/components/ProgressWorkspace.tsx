@@ -29,7 +29,10 @@ export default function ProgressWorkspace({ refreshKey = 0 }: { refreshKey?: num
   const setSection = (value: string) => setParams(previous => { const next = new URLSearchParams(previous); next.set('section', value); return next; });
   const filter = (key: string, value: string) => { try { sessionStorage.setItem(key, value); } catch { /* In-memory filter remains usable. */ } };
   return <div className="progress-workspace space-y-5">
-    <div className="flex flex-wrap gap-2"><button className="quiet-button" aria-pressed={section !== 'calendar'} onClick={() => setSection('summary')}>Progres kelas</button><button className="quiet-button" aria-pressed={section === 'calendar'} onClick={() => setSection('calendar')}>Kalender</button></div>
+    <div className="flex flex-wrap gap-2"><button className="quiet-button" aria-pressed={section !== 'calendar' && section !== 'history'} onClick={() => setSection('summary')}>Progres kelas</button><button className="quiet-button" aria-pressed={section === 'calendar'} onClick={() => setSection('calendar')}>Kalender</button><button className="quiet-button" aria-pressed={section === 'history' && !selected} onClick={() => {
+      setRepairDate(null);
+      setParams(previous => { const next = new URLSearchParams(previous); next.set('section', 'history'); for (const key of ['classId', 'subjectId', 'date']) next.delete(key); return next; });
+    }}>Riwayat</button></div>
     {section === 'calendar' ? <><CalendarTab revision={revision} classId={classFilter} onRepair={date => { setRepairDate(date); setSection('history'); }} /><WeeklyReviewCard key={revision} /></> : <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
       <section className={selected ? 'hidden lg:block' : ''} aria-label="Daftar kelas dan mata pelajaran">
         <div className="space-y-3 mb-4">

@@ -775,6 +775,7 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
   if (!sched) return false;
   if (sessionDate > dateKey()) return false;
   if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return false;
+  const hasNewerMeeting = data.sessions.some(s => s.classId === sched.classId && s.subjectId === sched.subjectId && s.materialId !== 'SKIPPED' && s.date > sessionDate);
   
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
@@ -792,7 +793,7 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
     nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
     nextProg.lastSession = sessionDate;
   }
-  if (nextMeetingNote !== undefined) nextProg.nextMeetingNote = nextMeetingNote.trim();
+  if (!hasNewerMeeting && nextMeetingNote !== undefined) nextProg.nextMeetingNote = nextMeetingNote.trim();
   if (!skipped && materialCompleted && material) {
     nextProg.completedMaterialIds = [...new Set([...(nextProg.completedMaterialIds ?? []), material.id])];
   }
@@ -815,7 +816,7 @@ export function getNextMeetingNote(classId: string, subjectId: string, data = ge
     .sort((a, b) => b.date.localeCompare(a.date) || b.completedAt.localeCompare(a.completedAt))[0];
   const text = last?.note || getTeachingPosition(classId, subjectId, data).material?.note || '';
   const parts = splitSessionNote(text);
-  return { text: [parts.mainNote, parts.reminder].filter(Boolean).join('\n'), legacy: !!text };
+  return { text: composeSessionNote(parts.mainNote, parts.reminder), legacy: !!text };
 }
 
 export function updateNextMeetingNote(classId: string, subjectId: string, note: string) {
@@ -1435,10 +1436,17 @@ export function updateSessionNote(sessionId: string, note: string, lastPageReach
   updateData(d => {
     const s = d.sessions.find(x => x.id === sessionId);
     if (!s) return;
+    const previousNote = splitSessionNote(s.note);
     s.note = note.trim();
     if (lastPageReached !== undefined) {
       s.lastPageReached = lastPageReached.trim() || undefined;
     }
+    const latest = d.sessions.filter(item => item.classId === s.classId && item.subjectId === s.subjectId && item.materialId !== 'SKIPPED')
+      .sort((a, b) => b.date.localeCompare(a.date) || b.completedAt.localeCompare(a.completedAt))[0];
+    const progress = d.progress.find(p => p.classId === s.classId && p.subjectId === s.subjectId);
+    // A page-only edit must not replace a separately edited next-meeting plan.
+    const noteChanged = composeSessionNote(previousNote.mainNote, previousNote.reminder) !== s.note;
+    if (latest?.id === s.id && progress && (noteChanged || progress.nextMeetingNote === undefined)) progress.nextMeetingNote = s.note;
   });
 }
 
