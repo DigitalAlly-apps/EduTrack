@@ -779,7 +779,9 @@ export function recordTeachingSession(scheduleId: string, sessionDate: string, m
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
   const position = getTeachingPosition(sched.classId, sched.subjectId, data);
-  const material = mats.find(m => m.id === materialId) ?? position.material;
+  // `null` is an explicit "tanpa materi" choice from the recording form;
+  // keep the legacy undefined behavior for markDone callers.
+  const material = materialId === null ? undefined : (mats.find(m => m.id === materialId) ?? position.material);
   
   const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: sessionDate, materialId: skipped ? 'SKIPPED' : material?.id || null, materialCompleted: !skipped && materialCompleted, completedAt: now().toISOString(), note };
   if (lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
