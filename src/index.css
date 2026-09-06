@@ -352,15 +352,6 @@ body {
   position: relative;
   isolation: isolate;
 }
-.progress-workspace::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -2rem -1rem auto;
-  height: 15rem;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 18% 0%, hsl(222 78% 52% / .10), transparent 62%), radial-gradient(ellipse at 88% 6%, hsl(38 92% 52% / .09), transparent 58%);
-}
 .progress-section-nav .quiet-button { border-color: transparent; }
 .progress-section-nav .quiet-button[aria-pressed="true"] {
   background: hsl(var(--surface));
