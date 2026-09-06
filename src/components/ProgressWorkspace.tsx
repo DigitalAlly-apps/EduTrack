@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getData, getSubjectStatus, getTeachingPosition } from '@/lib/data';
-import { CalendarTab, HistoryTab, SubjectCard } from './ProgressView';
+import { CalendarTab, HistoryTab, ProgressSummaryCard, SubjectCard } from './ProgressView';
 import WeeklyReviewCard from './WeeklyReviewCard';
 import { navigateTo } from '@/lib/navigation';
 
@@ -49,7 +49,7 @@ export default function ProgressWorkspace({ refreshKey = 0 }: { refreshKey?: num
       </section>
       <section className="progress-detail-panel min-w-0 space-y-4" aria-label="Detail progres">
         {selected && <><button className="quiet-button lg:hidden" onClick={() => { setParams(previous => { const next = new URLSearchParams(previous); next.delete('classId'); next.delete('subjectId'); return next; }); }}>Kembali ke daftar</button><h2 className="text-xl font-semibold">{selected.cls.name} · {selected.subject.name}</h2><div className="flex flex-wrap gap-2">{[['summary', 'Ringkasan'], ['materials', 'Materi'], ['history', 'Riwayat']].map(([id, label]) => <button key={id} className="quiet-button" aria-pressed={section === id} onClick={() => setSection(id)}>{label}</button>)}</div></>}
-        {section === 'history' ? <HistoryTab revision={revision} repairDate={repairDate} initialDate={params.get('date') || undefined} classId={selected?.cls.id} subjectId={selected?.subject.id} /> : selected ? <SubjectCard key={`${selected.cls.id}:${selected.subject.id}:${section}`} classId={selected.cls.id} subjectId={selected.subject.id} subjectName={selected.subject.name} status={selected.status} revision={revision} viewMode="detailed" initialExpanded={section === 'materials'} /> : <><div className="work-panel"><h2 className="text-lg font-semibold">Pilih kelas dan mapel</h2><p className="mt-2 text-text2">Lihat posisi materi, edit catatan berikutnya, atau koreksi riwayat dari satu tempat.</p></div><WeeklyReviewCard key={revision} /></>}
+        {section === 'history' ? <HistoryTab revision={revision} repairDate={repairDate} initialDate={params.get('date') || undefined} classId={selected?.cls.id} subjectId={selected?.subject.id} /> : selected ? section === 'summary' ? <ProgressSummaryCard classId={selected.cls.id} subjectId={selected.subject.id} subjectName={selected.subject.name} status={selected.status} revision={revision} /> : <SubjectCard key={`${selected.cls.id}:${selected.subject.id}:${section}`} classId={selected.cls.id} subjectId={selected.subject.id} subjectName={selected.subject.name} status={selected.status} revision={revision} viewMode="detailed" initialExpanded /> : <><div className="work-panel"><h2 className="text-lg font-semibold">Pilih kelas dan mapel</h2><p className="mt-2 text-text2">Lihat posisi materi, edit catatan berikutnya, atau koreksi riwayat dari satu tempat.</p></div><WeeklyReviewCard key={revision} /></>}
       </section>
     </div>}
   </div>;

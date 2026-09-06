@@ -338,7 +338,6 @@ export function SubjectCard({
   const position = getTeachingPosition(classId, subjectId, data);
   const sessionsDone = position.totalSessionsDone;
   const activeMaterial = position.material;
-  const progressPct = sessionsTotal ? Math.min(100, Math.round(Math.min(sessionsDone, sessionsTotal) / sessionsTotal * 100)) : 0;
   const available = status.sessLeft ?? 0;
   const needed = status.sessionsNeeded ?? status.remaining;
   const deficit = status.daysLeft === undefined ? 0 : Math.max(0, needed - available);
@@ -419,7 +418,7 @@ export function SubjectCard({
             <div className="min-w-0">
               <h3 className="truncate text-base font-black tracking-tight text-foreground">{subjectName}</h3>
               <p className="mt-0.5 text-xs font-bold text-text3">
-                {sessionsDone}/{sessionsTotal} pertemuan selesai · {progressPct}%
+                {sessionsDone}/{sessionsTotal} pertemuan selesai · {status.daysLeft === undefined ? 'target belum diatur' : `${available} tersedia sampai ujian`}
               </p>
             </div>
             <span
@@ -435,16 +434,10 @@ export function SubjectCard({
             </span>
           </div>
 
-          {/* Progress Bar (Higher visibility) */}
-          <div className="space-y-1">
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface2">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  tone === 'red' ? 'bg-red' : tone === 'amber' ? 'bg-amber' : 'bg-green'
-                }`}
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">Kebutuhan menuju ujian</p>
+            <p className="mt-1 text-sm font-semibold">{status.daysLeft === undefined ? 'Tanggal ujian belum diatur.' : `${needed} pertemuan dibutuhkan · ${available} jadwal tersedia`}</p>
+            {status.daysLeft !== undefined && <p className="mt-1 text-xs text-text2">{status.daysLeft} hari lagi sampai target ujian.</p>}
           </div>
 
           {/* BAB SAAT INI (High Contrast Visual Anchor) */}
@@ -823,6 +816,43 @@ export function SubjectCard({
         )}
     </>
   );
+}
+
+export function ProgressSummaryCard({
+  classId, subjectId, subjectName, status, revision,
+}: {
+  classId: string;
+  subjectId: string;
+  subjectName: string;
+  status: ReturnType<typeof getSubjectStatus>;
+  revision: number;
+}) {
+  const data = useMemo(() => getData(), [revision]);
+  const materials = getMaterials(subjectId, classId);
+  const position = getTeachingPosition(classId, subjectId, data);
+  const examDate = data.subjects.find(subject => subject.id === subjectId)?.examDate;
+  const sessionsNeeded = status.sessionsNeeded ?? status.remaining;
+  const sessionsAvailable = status.sessLeft ?? 0;
+  const tone = status.status === 'behind' ? 'red' : status.status === 'tight' ? 'amber' : 'green';
+  return <article className={`overflow-hidden rounded-2xl bg-surface shadow-sm border-l-[5px] border-t border-r border-b ${tone === 'red' ? 'border-l-red border-red/30' : tone === 'amber' ? 'border-l-amber border-amber/30' : 'border-l-green border-border/60'}`}>
+    <div className="space-y-4 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div><p className="text-xs font-bold uppercase tracking-wider text-text3">Ringkasan progres</p><h3 className="mt-1 text-xl font-black tracking-tight">{subjectName}</h3></div>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${tone === 'red' ? 'border-red/20 bg-red/10 text-red' : tone === 'amber' ? 'border-amber/20 bg-amber/10 text-amber' : 'border-green/20 bg-green/10 text-green'}`}>{status.daysLeft === undefined ? 'Target belum diatur' : tone === 'red' ? 'Perlu perhatian' : tone === 'amber' ? 'Jadwal mepet' : 'Sesuai jalur'}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Pertemuan selesai</p><p className="mt-1 text-2xl font-black tabular-nums">{position.totalSessionsDone}<span className="text-base font-semibold text-text3">/{position.totalSessionsAll}</span></p></div>
+        <div className="rounded-xl border border-border bg-surface2 p-3"><p className="text-xs text-text3">Sisa menuju ujian</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsNeeded}</p><p className="text-xs text-text3">pertemuan dibutuhkan</p></div>
+        <div className="col-span-2 rounded-xl border border-border bg-surface2 p-3 sm:col-span-1"><p className="text-xs text-text3">Jadwal tersedia</p><p className="mt-1 text-2xl font-black tabular-nums">{sessionsAvailable}</p><p className="text-xs text-text3">pertemuan sebelum target</p></div>
+      </div>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+        <p className="text-xs font-bold uppercase tracking-wider text-primary">Target ujian</p>
+        <p className="mt-1 text-sm font-semibold">{examDate ? new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${examDate}T00:00:00`)) : 'Belum ada tanggal ujian'}</p>
+        <p className="mt-1 text-sm text-text2">{status.daysLeft === undefined ? 'Atur tanggal ujian untuk menghitung kebutuhan pertemuan.' : `${status.daysLeft} hari lagi · ${sessionsAvailable} jadwal tersedia dari ${sessionsNeeded} yang dibutuhkan.`}</p>
+      </div>
+      <p className="text-sm text-text2">{materials.length} materi terdaftar · Materi aktif: {position.material?.name || (position.isComplete ? 'semua materi selesai' : 'belum diatur')}</p>
+    </div>
+  </article>;
 }
 
 export function HistoryTab({ revision, repairDate, classId, subjectId, initialDate }: { revision: number; repairDate: string | null; classId?: string; subjectId?: string; initialDate?: string }) {
