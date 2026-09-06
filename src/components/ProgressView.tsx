@@ -7,6 +7,8 @@ import {
   dateKey,
   getData,
   getMaterials,
+  getNextMeetingNote,
+  updateNextMeetingNote,
   getSessionHistory,
   getSubjectStatus,
   getTeachingPosition,
@@ -295,13 +297,14 @@ function ProgressTab({
   );
 }
 
-function SubjectCard({
+export function SubjectCard({
   classId,
   subjectId,
   subjectName,
   status,
   revision,
   viewMode,
+  initialExpanded = false,
 }: {
   classId: string;
   subjectId: string;
@@ -309,9 +312,10 @@ function SubjectCard({
   status: ReturnType<typeof getSubjectStatus>;
   revision: number;
   viewMode: ViewMode;
+  initialExpanded?: boolean;
 }) {
   const { toast } = useToast();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [editingSessionsMaterial, setEditingSessionsMaterial] = useState<Material | null>(null);
   const [sessionDraft, setSessionDraft] = useState('');
@@ -337,18 +341,19 @@ function SubjectCard({
   const progressPct = sessionsTotal ? Math.min(100, Math.round(Math.min(sessionsDone, sessionsTotal) / sessionsTotal * 100)) : 0;
   const available = status.sessLeft ?? 0;
   const needed = status.sessionsNeeded ?? status.remaining;
-  const deficit = Math.max(0, needed - available);
+  const deficit = status.daysLeft === undefined ? 0 : Math.max(0, needed - available);
   const tone = status.status === 'behind' ? 'red' : status.status === 'tight' ? 'amber' : 'green';
 
-  const parsedNote = useMemo(() => splitSessionNote(activeMaterial?.note), [activeMaterial?.note]);
+  const nextMeeting = getNextMeetingNote(classId, subjectId, data);
+  const parsedNote = splitSessionNote(nextMeeting.text);
 
   useEffect(() => {
     if (!editingNote) {
-      const { mainNote, reminder } = splitSessionNote(activeMaterial?.note);
+      const { mainNote, reminder } = splitSessionNote(nextMeeting.text);
       setTopicDraft(mainNote);
       setTeachingNoteDraft(reminder);
     }
-  }, [activeMaterial?.id, activeMaterial?.note, editingNote]);
+  }, [nextMeeting.text, editingNote]);
 
   const saveSessions = (m: Material) => {
     const parsed = Number(sessionDraft);
@@ -368,13 +373,8 @@ function SubjectCard({
     if (!activeMaterial) return;
     setIsSavingNote(true);
     const combinedNote = composeSessionNote(topicDraft, teachingNoteDraft);
-    updateMaterial(
-      activeMaterial.id,
-      activeMaterial.name,
-      activeMaterial.sessions ?? 1,
-      { pageStart: activeMaterial.pageStart, pageEnd: activeMaterial.pageEnd, note: combinedNote },
-      activeMaterial.examPeriod
-    );
+    try { updateNextMeetingNote(classId, subjectId, combinedNote); }
+    catch { setIsSavingNote(false); toast({ title: 'Belum tersimpan. Periksa penyimpanan perangkat lalu coba lagi.', variant: 'destructive' }); return; }
     setIsSavingNote(false);
     setEditingNote(false);
     notifyDataChanged();
@@ -431,7 +431,7 @@ function SubjectCard({
                   : 'border-green/20 bg-green/10 text-green'
               }`}
             >
-              {deficit ? `Kurang ${deficit} sesi` : tone === 'amber' ? 'Jadwal mepet' : 'Sesi cukup'}
+              {status.daysLeft === undefined ? 'Belum bisa diperkirakan' : deficit ? `Kurang ${deficit} sesi` : tone === 'amber' ? 'Jadwal mepet' : 'Sesi cukup'}
             </span>
           </div>
 
@@ -479,7 +479,7 @@ function SubjectCard({
               <div className="pt-1 flex gap-2">
                 <button
                   onClick={() => {
-                    const { mainNote, reminder } = splitSessionNote(activeMaterial.note);
+                    const { mainNote, reminder } = splitSessionNote(nextMeeting.text);
                     setTopicDraft(mainNote);
                     setTeachingNoteDraft(reminder);
                     setEditingNote(true);
@@ -504,12 +504,12 @@ function SubjectCard({
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs">📌</span>
-                      <p className="text-xs font-black uppercase tracking-wider text-primary">Pertemuan Berikutnya</p>
+                      <p className="text-sm font-semibold text-primary">{nextMeeting.legacy ? 'Referensi catatan lama' : 'Pertemuan berikutnya'}</p>
                     </div>
                     {!editingNote && (
                       <button
                         onClick={() => {
-                          const { mainNote, reminder } = splitSessionNote(activeMaterial.note);
+                          const { mainNote, reminder } = splitSessionNote(nextMeeting.text);
                           setTopicDraft(mainNote);
                           setTeachingNoteDraft(reminder);
                           setEditingNote(true);
@@ -825,11 +825,12 @@ function SubjectCard({
   );
 }
 
-function HistoryTab({ revision, repairDate }: { revision: number; repairDate: string | null }) {
+export function HistoryTab({ revision, repairDate, classId, subjectId, initialDate }: { revision: number; repairDate: string | null; classId?: string; subjectId?: string; initialDate?: string }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [retroactiveSheetOpen, setRetroactiveSheetOpen] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const items = useMemo(() => getSessionHistory(month), [month, revision]);
+  const items = useMemo(() => getSessionHistory(month).filter(s => (!classId || s.classId === classId) && (!subjectId || s.subjectId === subjectId)), [month, revision, classId, subjectId]);
+  useEffect(() => { if (initialDate) setMonth(initialDate.slice(0, 7)); }, [initialDate]);
   const data = useMemo(() => getData(), [revision]);
   const { toast } = useToast();
   const grouped = items.reduce((r, s) => {
@@ -1122,7 +1123,7 @@ function RetroactiveSessionSheet({
   );
 }
 
-function CalendarTab({ revision, classId, onRepair }: { revision: number; classId?: string; onRepair: (date: string) => void }) {
+export function CalendarTab({ revision, classId, onRepair }: { revision: number; classId?: string; onRepair: (date: string) => void }) {
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState(dateKey());
   const health = useMemo(() => getCalendarHealthSummary(month, classId), [month, classId, revision]);

@@ -1,5 +1,7 @@
 import { ArrowUpRight, CheckCircle2, CircleAlert, Sparkles } from 'lucide-react';
 import { getAssistantItems, type AssistantItem } from '@/lib/assistant';
+import { useState } from 'react';
+import { parseNavigationTarget, type NavigationTarget } from '@/lib/navigation';
 
 const styles: Record<AssistantItem['priority'], { icon: typeof CircleAlert; className: string; label: string }> = {
   urgent: { icon: CircleAlert, className: 'border-red/30 bg-red/10 text-red', label: 'Perlu segera' },
@@ -7,8 +9,9 @@ const styles: Record<AssistantItem['priority'], { icon: typeof CircleAlert; clas
   ready: { icon: CheckCircle2, className: 'border-primary/25 bg-primary/10 text-primary', label: 'Siap dikerjakan' },
 };
 
-export default function AssistantPanel({ onNavigate }: { onNavigate: (view: AssistantItem['view']) => void }) {
+export default function AssistantPanel({ onNavigate }: { onNavigate: (target: NavigationTarget) => void }) {
   const items = getAssistantItems();
+  const [expanded, setExpanded] = useState(false);
   return (
     <section aria-labelledby="assistant-title" className="work-panel">
       <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
@@ -22,7 +25,7 @@ export default function AssistantPanel({ onNavigate }: { onNavigate: (view: Assi
         <span className="text-sm font-bold tabular-nums text-text3">{items.length}</span>
       </div>
       <div className="divide-y divide-border">
-        {items.length ? items.map(item => {
+        {items.length ? (expanded ? items : items.slice(0, 3)).map(item => {
           const state = styles[item.priority];
           const Icon = state.icon;
           return <div key={item.id} className="flex gap-3 py-3">
@@ -30,13 +33,14 @@ export default function AssistantPanel({ onNavigate }: { onNavigate: (view: Assi
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold leading-5">{item.title}</p>
               <p className="mt-0.5 text-sm leading-5 text-text2">{item.reason}</p>
-              <button onClick={() => onNavigate(item.view)} className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-sm font-bold text-primary hover:underline">
+              <button onClick={() => onNavigate(item.target || parseNavigationTarget(item.view)!)} className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-primary hover:underline">
                 {item.action}<ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>;
         }) : <div className="py-5 text-sm text-text2">Tidak ada hal mendesak. Agenda dan progres sedang terkendali.</div>}
       </div>
+      {items.length > 3 && <button className="quiet-button w-full" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Ringkas' : `Lihat semua (${items.length})`}</button>}
     </section>
   );
 }

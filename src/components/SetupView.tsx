@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo, useEffect, type ElementType } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,11 +23,13 @@ interface SetupViewProps {
 
 export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }: SetupViewProps) {
   const data = getData();
-  const showGettingStarted = data.classes.length === 0 || data.subjects.length === 0;
+  const showGettingStarted = !data.classes.length || !data.subjects.length || !data.schedules.length || !data.materials.length;
   // Default to classes if first time, otherwise show menu
-  const [tab, setTabRaw] = useState<SetupTab | null>(showGettingStarted ? 'classes' : null);
+  const [params, setParams] = useSearchParams();
+  const requestedTab = params.get('section') as SetupTab;
+  const tab = ['classes', 'subjects', 'schedules', 'materials', 'semesters', 'holidays', 'leave', 'data'].includes(requestedTab) ? requestedTab : null;
   const [, forceUpdate] = useState(0);
-  const setTab = (t: SetupTab | null) => { setTabRaw(t); };
+  const setTab = (t: SetupTab | null) => { setParams(previous => { const next = new URLSearchParams(previous); if (t) next.set('section', t); else next.delete('section'); return next; }); };
   // Expose setTab globally so child tabs can navigate (e.g. "→ Buat Semester Sekarang")
   useEffect(() => {
     (document as any).__eduSetTab = setTab;
@@ -47,9 +50,9 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
   const ActiveTabIcon = tab ? tabs.find(t => t.id === tab)?.icon : null;
 
   return (
-    <div className="pt-2 animate-fade-in">
+    <div className="setup-workspace pt-2 animate-fade-in">
       {/* Getting Started Guide — when no classes or subjects yet */}
-      {showGettingStarted && (
+      {showGettingStarted && tab === null && (
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-3xl p-5 mb-4 shadow-sm animate-slide-up">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-xl flex-shrink-0">
@@ -64,9 +67,9 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
                 {[
                   { step: '1', title: 'Tambah Kelas', desc: 'Misal: 10A, 10B, 11 IPA', tab: 'classes' as SetupTab },
                   { step: '2', title: 'Tambah Mapel', desc: 'Misal: Matematika, Fisika', tab: 'subjects' as SetupTab },
-                  { step: '3', title: 'Buat Semester & Tanggal Ujian', desc: 'Set kapan UTS dan UAS, lalu hubungkan ke mapel', tab: 'semesters' as SetupTab },
-                  { step: '4', title: 'Atur Jadwal Mingguan', desc: 'Kelas mana, hari apa, jam berapa', tab: 'schedules' as SetupTab },
-                  { step: '5', title: 'Input Materi per Kelas', desc: 'Daftar bab/materi dan tandai UTS/UAS-nya', tab: 'materials' as SetupTab },
+                  { step: '3', title: 'Atur Jadwal Mingguan', desc: 'Kelas mana, hari apa, jam berapa', tab: 'schedules' as SetupTab },
+                  { step: '4', title: 'Input Materi per Kelas', desc: 'Daftar bab dan jumlah pertemuan', tab: 'materials' as SetupTab },
+                  { step: '5', title: 'Semester & Ujian (opsional)', desc: 'Tambahkan tanggal ujian untuk perkiraan kesiapan', tab: 'semesters' as SetupTab },
                 ].map(({ step, title, desc, tab: t }) => (
                   <button key={step} onClick={() => setTab(t)} className="w-full flex items-start gap-2.5 text-left hover:bg-primary/5 rounded-xl p-1.5 -mx-1.5 transition-colors group">
                     <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{step}</span>
@@ -83,7 +86,7 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
         </div>
       )}
       {/* Profile */}
-      <div className="app-card p-5 mb-4">
+      {tab === null && <div className="app-card p-5 mb-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center flex-shrink-0 ring-4 ring-primary/5 text-primary">
             <UserRound className="h-6 w-6" />
@@ -115,6 +118,7 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
         </div>
       </div>
 
+      }
       {/* Main Content Area */}
       {tab === null ? (
         // ─── SETTINGS MENU LIST ───
@@ -237,6 +241,7 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
           {tab === 'data' && <DataTab onRefresh={refresh} />}
           {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
           {tab === 'semesters' && <SemestersTab onRefresh={refresh} />}
+          {['classes', 'subjects', 'schedules'].includes(tab) && <button className="primary-button mt-6" onClick={() => setTab(tab === 'classes' ? 'subjects' : tab === 'subjects' ? 'schedules' : 'materials')}>Lanjut ke {tab === 'classes' ? 'mata pelajaran' : tab === 'subjects' ? 'jadwal' : 'materi'}</button>}
         </div>
       )}
     </div>
@@ -702,8 +707,9 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
 
 function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
-  const [subId, setSubId] = useState('');
-  const [classId, setClassId] = useState('');
+  const [params] = useSearchParams();
+  const [subId, setSubId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
+  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
   const [name, setName] = useState('');
   const [sessions, setSessions] = useState(1);
   const [pageStart, setPageStart] = useState('');
@@ -1003,8 +1009,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 }
 
 function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
-  const [classId, setClassId] = useState('');
-  const [subjectId, setSubjectId] = useState('');
+  const [params] = useSearchParams();
+  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
+  const [subjectId, setSubjectId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState('45');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);

@@ -12,9 +12,10 @@ import { supabase, type SupabaseUser } from '@/lib/supabase';
 import { getCurrentUser, initCloudSync, pullCloudToLocal, pushLocalToCloud, unsubscribeRealtime, REMOTE_SYNC_EVENT } from '@/lib/supabaseSync';
 import SyncModal from '@/components/SyncModal';
 import { useToast } from '@/hooks/use-toast';
+import { parseNavigationTarget } from '@/lib/navigation';
 
-const TodayView = lazy(() => import('@/components/TodayView'));
-const ProgressView = lazy(() => import('@/components/ProgressView'));
+const TodayView = lazy(() => import('@/components/DailyWorkspace'));
+const ProgressView = lazy(() => import('@/components/ProgressWorkspace'));
 const SetupView = lazy(() => import('@/components/SetupView'));
 const ExamView = lazy(() => import('@/components/ExamView'));
 const Onboarding = lazy(() => import('@/components/Onboarding'));
@@ -51,6 +52,7 @@ function AppInner() {
     setSearchParams(previous => {
       const params = new URLSearchParams(previous);
       params.set('view', next);
+      for (const key of ['section', 'classId', 'subjectId', 'date']) params.delete(key);
       return params;
     });
   }, [setSearchParams]);
@@ -170,13 +172,19 @@ function AppInner() {
   // Listen for custom nav events (from LandingPage footer, AuthModal links)
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      const correctionTarget = detail === 'exam-corrections';
-      const destination = correctionTarget ? 'exam' : detail;
-      if (!isAppView(destination)) return;
+      const target = parseNavigationTarget((e as CustomEvent).detail);
+      if (!target) return;
       normalizeProgressConsistency();
-      setExamTab(correctionTarget ? 'koreksi' : 'agenda');
-      setView(destination);
+      setExamTab(target.section === 'koreksi' ? 'koreksi' : 'agenda');
+      setSearchParams(previous => {
+        const params = new URLSearchParams(previous);
+        params.set('view', target.view);
+        for (const key of ['classId', 'subjectId', 'date', 'section'] as const) {
+          if (target[key]) params.set(key, target[key]);
+          else params.delete(key);
+        }
+        return params;
+      });
       setRefreshKey(k => k + 1);
     };
     window.addEventListener('edutrack-nav', handler);
@@ -185,7 +193,7 @@ function AppInner() {
       window.removeEventListener('edutrack-nav', handler);
       window.removeEventListener('set-tab', handler);
     };
-  }, [setView]);
+  }, [setSearchParams]);
 
   const handleViewChange = (v: ViewType) => {
     normalizeProgressConsistency();
@@ -197,7 +205,7 @@ function AppInner() {
   const openExamSettings = () => {
     normalizeProgressConsistency();
     setExamTab('settings');
-    setView('exam');
+    setSearchParams({ view: 'exam', section: 'settings' });
     setRefreshKey(k => k + 1);
   };
 
@@ -383,7 +391,7 @@ function AppInner() {
             </div>
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}
-              {view === 'progress' && <ProgressView key={refreshKey} />}
+              {view === 'progress' && <ProgressView refreshKey={refreshKey} />}
               {view === 'exam'     && <ExamView refreshKey={refreshKey} onRefresh={refresh} initialTab={examTab} />}
               {view === 'setup'    && <SetupView onRefresh={refresh} onOpenExamSettings={openExamSettings} onOpenInfo={() => setView('info')} />}
               {view === 'info'     && <InfoView onBackToSetup={returnToSetup} />}
