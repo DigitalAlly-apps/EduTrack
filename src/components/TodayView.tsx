@@ -6,7 +6,7 @@ import {
   getTasks, toggleTask, addTask, updateSessionNote, getData, generateDailyJournal, applySmartReschedule,
   dateKey, getTeachingPosition, applySubjectDismissal, getInsights, getTomorrowKbmSchedules, getMaterials,
   getLastPageReached, getNextStartPage, composeSessionNote, splitSessionNote,
-  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted,
+  recordTeachingSession, getMissingTeachingSessions, skipSessionForDate, updateMaterialEstimate, markMaterialCompleted, getTaskDisplayTitle,
 } from '@/lib/data';
 import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -1111,11 +1111,11 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 const sub = getData().subjects.find(s => s.id === t.subjectId);
                 return (
                   <div key={t.id} className={`p-3 flex items-start gap-3 ${i < pendingTasks.length - 1 ? 'border-b border-border2' : ''}`}>
-                    <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} aria-label={`Tandai tugas ${t.title} selesai`} className="mt-[2px] min-h-[36px] min-w-[36px] rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent transition-colors hover:border-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">
+                    <button onClick={() => { toggleTask(t.id); onRefresh(); toast({ title: 'Tugas selesai!' }); }} aria-label={`Tandai tugas ${getTaskDisplayTitle(t.title)} selesai`} className="mt-[2px] min-h-[36px] min-w-[36px] rounded-md border-2 border-border grid place-items-center flex-shrink-0 text-transparent transition-colors hover:border-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">
                       <span className="text-[12px]">✓</span>
                     </button>
                     <div>
-                      <div className="text-[13px] font-semibold leading-tight mb-1">{t.title}</div>
+                      <div className="text-[13px] font-semibold leading-tight mb-1">{getTaskDisplayTitle(t.title)}</div>
                       <div className="text-xs text-text2">{cls?.name} • {sub?.name} <span className="mx-1">•</span> <span className="text-amber">Batas: {t.deadline}</span></div>
                     </div>
                   </div>

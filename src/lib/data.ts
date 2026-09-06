@@ -1418,6 +1418,11 @@ export function getHolidayImpactSummary(): { subjectName: string; className: str
 
 // ── Task helpers ────────────────────────────────────────────────────────────
 export function getTasks() { return getData().tasks ?? []; }
+
+/** Normalizes legacy task titles for display without rewriting stored user data. */
+export function getTaskDisplayTitle(title: string) {
+  return title.replace(/^📚\s*Extra session:\s*(.+?)\s*\(catch-up\)$/i, '📚 Sesi tambahan: $1 (pengganti)');
+}
 export function addTask(classId: string, subjectId: string, title: string, deadline: string) {
   updateData(d => {
     if (!d.tasks) d.tasks = [];
