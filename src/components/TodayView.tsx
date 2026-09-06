@@ -20,6 +20,7 @@ import {
 import { getDailyBriefing } from '@/lib/briefing';
 import { requestNotifPermission } from '@/lib/notifications';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
+import AssistantPanel from './AssistantPanel';
 
 interface TodayViewProps {
   refreshKey: number;
@@ -707,7 +708,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </div>
       )}
       {/* Satu alur baca: ringkasan → fokus sekarang → jadwal lengkap. */}
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         <section aria-label="Ringkasan mengajar hari ini" className="app-card p-4 sm:p-5 mb-4">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2 text-sm font-semibold"><BookOpen aria-hidden="true" className="h-4 w-4 text-primary" /> Mengajar hari ini</div>
@@ -723,6 +725,8 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-text2"><Clock aria-hidden="true" className="h-3.5 w-3.5" /> Jadwal terakhir selesai pukul {fmt(lastTeachingEndTime)}</p>
         </section>
+        <div className="mb-4"><AssistantPanel onNavigate={(view) => window.dispatchEvent(new CustomEvent('edutrack-nav', { detail: view }))} /></div>
+        </div>
         <div>
       <div className={`mb-3 rounded-2xl border overflow-hidden transition-all ${hasUrgentBriefing ? 'border-amber/30 bg-amber/5' : 'border-border2/60 bg-surface/50'}`}>
         <button

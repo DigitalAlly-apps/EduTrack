@@ -27,10 +27,10 @@ const isAppView = (value: string | null): value is AppView =>
   value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
 
 const desktopNavItems: { id: AppView; icon: React.ElementType; label: string; desc: string }[] = [
-  { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Jurnal KBM harian' },
-  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Pantau progres & risiko' },
-  { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Jadwal & pengawasan' },
-  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola', desc: 'Kelas, jadwal & data' },
+  { id: 'today',    icon: CalendarCheck2,      label: 'Hari Ini',  desc: 'Agenda & catatan KBM' },
+  { id: 'progress', icon: ChartNoAxesCombined, label: 'Progres',   desc: 'Posisi materi & risiko' },
+  { id: 'exam',     icon: ClipboardList,       label: 'Ujian',     desc: 'Agenda & koreksi' },
+  { id: 'setup',    icon: SlidersHorizontal,   label: 'Kelola',    desc: 'Pengajaran & data' },
 ];
 
 function ViewFallback() {
@@ -217,15 +217,15 @@ function AppInner() {
 
   // ── Main App Shell ─────────────────────────────────────────────────────────
   return (
-    <div className="app-frame w-full mx-auto h-dvh flex flex-col overflow-hidden relative lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[256px_1fr]">
+    <div className="app-frame w-full mx-auto h-dvh flex flex-col overflow-hidden relative lg:max-w-none lg:w-full lg:h-dvh lg:my-0 lg:rounded-none lg:border-none lg:shadow-none lg:grid lg:grid-cols-[244px_1fr]">
       <a href="#main-content" className="skip-link">Langsung ke konten</a>
 
       {/* ── DESKTOP SIDEBAR (Visible only on lg: screens) ── */}
-      <aside className="hidden lg:flex flex-col justify-between p-6 border-r border-border/60 bg-surface/30 backdrop-blur-xl relative z-20 overflow-y-auto">
+      <aside className="hidden lg:flex flex-col justify-between p-5 border-r border-border bg-surface relative z-20 overflow-y-auto">
         <div className="space-y-6">
           {/* Brand Header */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-teal flex items-center justify-center text-primary-foreground font-black text-xl shadow-primary">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-xl">
               <GraduationCap aria-hidden="true" className="h-6 w-6" />
             </div>
             <div>
@@ -235,7 +235,7 @@ function AppInner() {
           </div>
 
           {/* Teacher info card */}
-          <div className="glass-panel p-3.5 rounded-2xl border-border/60">
+          <div className="work-panel p-3.5">
             <div className="text-xs font-black uppercase text-primary tracking-wider mb-1">
               {now().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
             </div>
@@ -326,7 +326,7 @@ function AppInner() {
         </div>
 
         {/* Desktop Top Navbar (Visible only on lg:) */}
-        <header className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-border/50 bg-surface/40 backdrop-blur-xl flex-shrink-0 relative z-20">
+        <header className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-border bg-surface flex-shrink-0 relative z-20">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xl shadow-inner flex-shrink-0">
               {view === 'today' && <CalendarCheck2 aria-hidden="true" className="h-5 w-5" />}
@@ -373,8 +373,8 @@ function AppInner() {
         </header>
 
         {/* Content view container. Jangan buat stacking-context sendiri: modal view harus bisa mengalahkan floating nav. */}
-        <main id="main-content" ref={contentRef} tabIndex={-1} aria-label={desktopNavItems.find(item => item.id === view)?.label || 'Panduan'} className="app-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
-          <div className="max-w-5xl mx-auto w-full">
+        <main id="main-content" ref={contentRef} tabIndex={-1} aria-label={desktopNavItems.find(item => item.id === view)?.label || 'Panduan'} className="app-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(104px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
+          <div className="max-w-6xl mx-auto w-full">
             <div className="lg:hidden mb-5">
               <h1 className="font-display text-2xl font-bold">{desktopNavItems.find(item => item.id === view)?.label || 'Panduan'}</h1>
               <p className="text-sm text-text2 mt-1">{desktopNavItems.find(item => item.id === view)?.desc || 'Kenali fitur dan cara menggunakan EduTrack.'}</p>

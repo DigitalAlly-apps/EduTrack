@@ -211,7 +211,15 @@ function ProgressTab({
         </select>
       </section>
 
-      {/* 1. Mini Summary Strip Banner */}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-text2">Pantauan kelas</p>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">{selectedClass?.name ?? 'Pilih kelas'}</h1>
+        </div>
+        <span className="text-sm font-bold tabular-nums text-text3">{subjects.length} mapel</span>
+      </div>
+
+      {/* Kondisi yang harus diputuskan guru ditampilkan sebelum detail mapel. */}
       {subjects.length > 0 && (
         <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-surface/80 p-2 shadow-xs" aria-label="Ringkasan kondisi mata pelajaran">
           <div className="flex items-center gap-2 rounded-xl border border-green/20 bg-green/10 px-2.5 py-2">
@@ -242,8 +250,8 @@ function ProgressTab({
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-widest text-text3">Progres kelas</p>
-            <h2 className="mt-0.5 font-display text-xl font-bold">{selectedClass?.name ?? 'Pilih kelas'}</h2>
+            <p className="text-sm font-bold text-text2">Posisi materi</p>
+            <h2 className="mt-0.5 font-display text-lg font-bold">Pilih mapel untuk melihat rencana dan riwayat</h2>
           </div>
 
           {/* 2. View Mode Toggle (Ringkasan vs Detail) */}
