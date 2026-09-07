@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   applySmartReschedule,
+  applyEarlyDismissal,
   applySubjectDismissal,
   applyTeacherLeave,
   bulkAddMaterials,
@@ -430,6 +431,21 @@ describe('smart reschedule', () => {
     ]));
     expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc1')).toBe(false);
     expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc3')).toBe(false);
+    expect(getTodaySchedules(dateKey(), true).map(item => item.id)).toEqual(['sc1', 'sc3']);
+  });
+
+  it('applies dismissal to an extra session and preserves a session already recorded', () => {
+    const today = dateKey();
+    const data = baseData((new Date().getDay() + 1) % 7);
+    data.scheduleOverrides = [{ date: today, scheduleId: 'sc1', startTime: '12:00', isExtra: true }];
+    saveData(data);
+
+    expect(applyEarlyDismissal(today, '11:00')).toBe(1);
+    expect(getTodaySchedules(today, true)).toEqual([]);
+
+    recordTeachingSession('sc1', today, 'm1');
+    expect(applyEarlyDismissal(today, '11:00')).toBe(0);
+    expect(getTodaySchedules(today, true)).toHaveLength(1);
   });
 });
 

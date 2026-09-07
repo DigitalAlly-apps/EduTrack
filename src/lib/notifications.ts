@@ -1,4 +1,4 @@
-import { getData, todayNum, currentMin, timeToMin, dateKey } from './data';
+import { getData, getTodaySchedules, getTomorrowKbmSchedules, todayNum, currentMin, timeToMin, dateKey } from './data';
 import { getAllExamSubjects, getCorrections, getExamSchedules, getProctorSessions, getExamReminderSettings } from './examData';
 
 let checkInt: ReturnType<typeof setInterval>;
@@ -67,11 +67,13 @@ async function checkAndNotify() {
   const examReminder = getExamReminderSettings();
 
   // 1. Notif kelas 5 menit sebelum mulai
-  const scheds = data.schedules.filter(s => s.days.includes(today));
+  // Read the same effective agenda as the workspace: holidays, dismissals,
+  // rescheduled times, and extra sessions all apply to reminders too.
+  const scheds = getTodaySchedules(todayStr, true).filter(s => !s.done);
   scheds.forEach(s => {
     const sMin = timeToMin(s.startTime);
     if (sMin - curMin <= 5 && sMin - curMin > 0) {
-      const key = `sched-${s.id}-${s.startTime}`;
+      const key = `sched-${s.id}-${todayStr}-${s.startTime}`;
       if (notifiedIds.has(key)) return;
       const cls = data.classes.find(c => c.id === s.classId);
       const sub = data.subjects.find(x => x.id === s.subjectId);
@@ -128,8 +130,7 @@ async function checkAndNotify() {
 
   // 3.5. Notif cerdas persiapan mengajar (jam 20:00–20:05)
   if (curMin >= 20 * 60 && curMin <= 20 * 60 + 5) {
-    const tomorrowNum = (today + 1) % 7;
-    const tomorrowScheds = data.schedules.filter(s => s.days.includes(tomorrowNum));
+    const tomorrowScheds = getTomorrowKbmSchedules().filter(s => !s.done);
     const key = `prep-tomorrow-${todayStr}`;
     
     if (!notifiedIds.has(key)) {
@@ -170,8 +171,6 @@ async function checkAndNotify() {
     const endMin = timeToMin(s.startTime) + (s.duration || 45);
     if (curMin >= endMin && curMin <= endMin + 15) {
       const key = `end-${s.id}-${todayStr}`;
-      const isDone = data.sessions.some(se => se.scheduleId === s.id && se.date === todayStr);
-      if (isDone) return;
       const cls = data.classes.find(c => c.id === s.classId);
       if (cls) {
         showOnce(`Kelas selesai: ${cls.name}`, `Waktunya tandai materi hari ini sudah selesai atau dilewati.`, key);

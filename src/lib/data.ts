@@ -272,8 +272,8 @@ function estimateEffectiveSessions(schedules: Schedule[], daysLeft: number, holi
     schedules.forEach(s => {
       if (s.days.includes(dayOfWeek)) {
         const override = data?.scheduleOverrides?.find(item => item.scheduleId === s.id && item.date === dateStr && !item.isExtra);
-        const alreadyRecorded = data?.sessions.some(session => session.scheduleId === s.id && session.date === dateStr && session.materialId !== 'SKIPPED');
-        if (override?.skipped || alreadyRecorded) return;
+        const alreadyHandled = data?.sessions.some(session => session.scheduleId === s.id && session.date === dateStr);
+        if (override?.skipped || alreadyHandled) return;
         if (isHoliday) {
           holidaysInPeriod++;
         } else {
@@ -283,7 +283,8 @@ function estimateEffectiveSessions(schedules: Schedule[], daysLeft: number, holi
     });
     for (const override of data?.scheduleOverrides ?? []) {
       if (!override.isExtra || override.date !== dateStr || override.skipped || isHoliday) continue;
-      if (schedules.some(schedule => schedule.id === override.scheduleId)) sessLeft++;
+      const alreadyHandled = data?.sessions.some(session => session.scheduleId === override.scheduleId && session.date === dateStr);
+      if (schedules.some(schedule => schedule.id === override.scheduleId) && !alreadyHandled) sessLeft++;
     }
   }
   return { sessLeft, holidaysInPeriod };
@@ -399,7 +400,9 @@ export function getTodaySchedules(sessionDate = dateKey(), includeExamMode = fal
 
     const session = data.sessions.find(se => se.scheduleId === s.id && se.date === todayStr);
     const done = !!session;
-    if (override?.skipped) return null;
+    // An action entered after a session was recorded must not erase that
+    // historical record from the agenda.
+    if (override?.skipped && !done) return null;
 
     const effectiveStartTime = override ? override.startTime : s.startTime;
     const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
@@ -434,13 +437,13 @@ export function getTodaySchedules(sessionDate = dateKey(), includeExamMode = fal
       return true;
     })
     .map(s => {
-      const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === todayStr);
+      const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === todayStr && !o.isExtra);
       return buildItem(s, override);
     })
     .filter(Boolean) as TodayScheduleItem[];
 
   const extraItems = (data.scheduleOverrides || [])
-    .filter(o => o.date === todayStr && o.isExtra && !o.skipped)
+    .filter(o => o.date === todayStr && o.isExtra && (!o.skipped || data.sessions.some(s => s.scheduleId === o.scheduleId && s.date === todayStr)))
     .map(o => {
       const sched = data.schedules.find(s => s.id === o.scheduleId);
       return sched ? buildItem(sched, o) : null;
@@ -472,7 +475,7 @@ export function getTomorrowKbmSchedules(): TodayScheduleItem[] {
 
     const session = data.sessions.find(se => se.scheduleId === s.id && se.date === tomorrowStr);
     const done = !!session;
-    if (override?.skipped) return null;
+    if (override?.skipped && !done) return null;
 
     const effectiveStartTime = override ? override.startTime : s.startTime;
     const effectiveDuration = override?.durationOverride ?? (s.duration || 45);
@@ -505,20 +508,20 @@ export function getTomorrowKbmSchedules(): TodayScheduleItem[] {
       return true;
     })
     .map(s => {
-      const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === tomorrowStr);
+      const override = (data.scheduleOverrides || []).find(o => o.scheduleId === s.id && o.date === tomorrowStr && !o.isExtra);
       return buildItem(s, override);
     })
     .filter(Boolean) as TodayScheduleItem[];
 
   const extraItems = (data.scheduleOverrides || [])
-    .filter(o => o.date === tomorrowStr && o.isExtra && !o.skipped)
+    .filter(o => o.date === tomorrowStr && o.isExtra && (!o.skipped || data.sessions.some(s => s.scheduleId === o.scheduleId && s.date === tomorrowStr)))
     .map(o => {
       const sched = data.schedules.find(s => s.id === o.scheduleId);
       return sched ? buildItem(sched, o) : null;
     })
     .filter(Boolean) as TodayScheduleItem[];
 
-  return [...regularItems, ...extraItems]
+  return [...new Map([...regularItems, ...extraItems].map(item => [item.id, item])).values()]
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
@@ -1010,7 +1013,10 @@ export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
   const dayOfWeek = dateFromKey(dateStr).getDay();
   const limitMin = timeToMin(skipAfterTime);
   
-  const scheds = data.schedules.filter(s => s.days.includes(dayOfWeek));
+  const scheds = data.schedules.filter(s =>
+    (s.days.includes(dayOfWeek) || data.scheduleOverrides?.some(o => o.scheduleId === s.id && o.date === dateStr && o.isExtra)) &&
+    !isDateHolidayForSubject(dateStr, data.subjects.find(x => x.id === s.subjectId)?.level)
+  );
   if (!data.scheduleOverrides) data.scheduleOverrides = [];
   
   let count = 0;
@@ -1018,7 +1024,8 @@ export function applyEarlyDismissal(dateStr: string, skipAfterTime: string) {
     const override = data.scheduleOverrides.find(o => o.scheduleId === s.id && o.date === dateStr);
     const effectiveStartMin = timeToMin(override ? override.startTime : s.startTime);
     
-    if (effectiveStartMin >= limitMin) {
+    const alreadyRecorded = data.sessions.some(session => session.scheduleId === s.id && session.date === dateStr);
+    if (effectiveStartMin >= limitMin && !alreadyRecorded && !override?.skipped) {
       if (override) {
         override.skipped = true;
       } else {
@@ -1042,7 +1049,7 @@ export function applySubjectDismissal(dateStr: string, subjectId: string, skipAf
   const limitMin = skipAfterTime ? timeToMin(skipAfterTime) : null;
 
   const scheds = data.schedules.filter(s => {
-    if (!s.days.includes(dayOfWeek)) return false;
+    if (!s.days.includes(dayOfWeek) && !data.scheduleOverrides?.some(o => o.scheduleId === s.id && o.date === dateStr && o.isExtra)) return false;
     if (s.subjectId !== subjectId) return false;
     if (classId && s.classId !== classId) return false;
     if (isDateHolidayForSubject(dateStr, data.subjects.find(x => x.id === s.subjectId)?.level)) return false;
@@ -1055,7 +1062,9 @@ export function applySubjectDismissal(dateStr: string, subjectId: string, skipAf
   for (const s of scheds) {
     const override = data.scheduleOverrides.find(o => o.scheduleId === s.id && o.date === dateStr);
     const effectiveStartMin = timeToMin(override ? override.startTime : s.startTime);
+    const alreadyRecorded = data.sessions.some(session => session.scheduleId === s.id && session.date === dateStr);
     if (limitMin !== null && effectiveStartMin < limitMin) continue;
+    if (alreadyRecorded || override?.skipped) continue;
 
     if (override) {
       override.skipped = true;
