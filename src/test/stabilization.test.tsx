@@ -164,7 +164,6 @@ describe('active workspace flows', () => {
     fireEvent.click(screen.getByText('Aksi hari ini'));
     fireEvent.click(screen.getByRole('button', { name: 'Libur Mapel' }));
     fireEvent.change(screen.getByLabelText('Kelas yang diliburkan'), { target: { value: 'c1' } });
-    fireEvent.click(screen.getByLabelText('Hanya jadwal mulai setelah jam tertentu'));
     fireEvent.click(screen.getByRole('button', { name: 'Terapkan' }));
     expect(getData().scheduleOverrides).toEqual([expect.objectContaining({ scheduleId: 'sc1', date: dateKey(), skipped: true })]);
   });

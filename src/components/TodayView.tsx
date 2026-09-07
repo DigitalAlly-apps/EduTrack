@@ -63,8 +63,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [subjectDismissSheet, setSubjectDismissSheet] = useState(false);
   const [subjectDismissSubjectId, setSubjectDismissSubjectId] = useState('');
   const [subjectDismissClassId, setSubjectDismissClassId] = useState('');
-  const [subjectDismissTime, setSubjectDismissTime] = useState('11:20');
-  const [subjectDismissUseTime, setSubjectDismissUseTime] = useState(true);
   const [newTaskSheet, setNewTaskSheet] = useState<{ classId: string; subjectId: string } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   // Orange fixes
@@ -1716,19 +1714,6 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 {availableClasses.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
               </select>
 
-              <label className="flex items-center gap-2 text-[12px] text-text2 font-semibold mb-2">
-                <input type="checkbox" checked={subjectDismissUseTime} onChange={e => setSubjectDismissUseTime(e.target.checked)} className="accent-primary" />
-                Hanya jadwal mulai setelah jam tertentu
-              </label>
-              {subjectDismissUseTime && (
-                <input
-                  type="time"
-                  value={subjectDismissTime}
-                  onChange={e => setSubjectDismissTime(e.target.value)}
-                  className="form-input-style mb-4"
-                />
-              )}
-
               <button
                 onClick={() => {
                   if (!subjectDismissSubjectId) {
@@ -1738,7 +1723,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   const count = applySubjectDismissal(
                     dateKey(),
                     subjectDismissSubjectId,
-                    subjectDismissUseTime ? subjectDismissTime : undefined,
+                    undefined,
                     subjectDismissClassId || undefined,
                   );
                   onRefresh();

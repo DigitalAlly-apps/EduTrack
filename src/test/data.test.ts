@@ -413,7 +413,7 @@ describe('smart reschedule', () => {
     expect(data.tasks.some(t => t.title.includes('Lanjutkan sesi tertunda'))).toBe(true);
   });
 
-  it('skips only the selected subject after the selected time', () => {
+  it('skips every schedule for the selected subject while keeping later subjects', () => {
     const day = new Date().getDay();
     const data = baseData(day);
     data.subjects.push({ id: 's2', name: 'IPA', level: '10', examDate: null });
@@ -423,15 +423,15 @@ describe('smart reschedule', () => {
     );
     saveData(data);
 
-    const count = applySubjectDismissal(dateKey(), 's1', '11:20');
+    const count = applySubjectDismissal(dateKey(), 's1');
 
-    expect(count).toBe(1);
+    expect(count).toBe(2);
     expect(getData().scheduleOverrides).toEqual(expect.arrayContaining([
+      expect.objectContaining({ scheduleId: 'sc1', skipped: true }),
       expect.objectContaining({ scheduleId: 'sc2', skipped: true }),
     ]));
-    expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc1')).toBe(false);
     expect(getData().scheduleOverrides?.some(o => o.scheduleId === 'sc3')).toBe(false);
-    expect(getTodaySchedules(dateKey(), true).map(item => item.id)).toEqual(['sc1', 'sc3']);
+    expect(getTodaySchedules(dateKey(), true).map(item => item.id)).toEqual(['sc3']);
   });
 
   it('applies dismissal to an extra session and preserves a session already recorded', () => {

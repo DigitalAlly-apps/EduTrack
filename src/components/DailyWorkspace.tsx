@@ -19,7 +19,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
   const [reschedule, setReschedule] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [taskDraft, setTaskDraft] = useState<{ classId: string; subjectId: string; title: string } | null>(null);
-  const [dismiss, setDismiss] = useState<{ kind: 'early' | 'subject'; subjectId: string; classId: string; time: string; useTime: boolean } | null>(null);
+  const [dismiss, setDismiss] = useState<{ kind: 'early' | 'subject'; subjectId: string; classId: string; time: string } | null>(null);
   const [actionError, setActionError] = useState('');
   const { toast } = useToast();
   useEffect(() => {
@@ -84,8 +84,8 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
             <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold">Aksi hari ini</summary>
             <p className="mb-2 text-sm text-text2">Berlaku untuk {date}.</p>
             <div className="flex flex-wrap gap-2">
-              <button className="quiet-button" onClick={() => { setActionError(''); setDismiss({ kind: 'early', subjectId: '', classId: '', time: '10:00', useTime: true }); }}>Pulang Awal</button>
-              <button className="quiet-button" onClick={() => { setActionError(''); setDismiss({ kind: 'subject', subjectId: pending[0]?.subjectId || '', classId: '', time: '11:20', useTime: true }); }}>Libur Mapel</button>
+              <button className="quiet-button" onClick={() => { setActionError(''); setDismiss({ kind: 'early', subjectId: '', classId: '', time: '10:00' }); }}>Pulang Awal</button>
+              <button className="quiet-button" onClick={() => { setActionError(''); setDismiss({ kind: 'subject', subjectId: pending[0]?.subjectId || '', classId: '', time: '' }); }}>Libur Mapel</button>
             </div>
           </details>
         </section>
@@ -131,20 +131,19 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
       </form>
     </DialogContent></Dialog>}
     {dismiss && <Dialog open onOpenChange={open => !open && setDismiss(null)}><DialogContent>
-      <DialogTitle>{dismiss.kind === 'early' ? 'Pulang Awal' : 'Libur Mapel'}</DialogTitle><DialogDescription>Coret jadwal pada {date} tanpa menambah progres materi.</DialogDescription>
+      <DialogTitle>{dismiss.kind === 'early' ? 'Pulang Awal' : 'Libur Mapel'}</DialogTitle><DialogDescription>{dismiss.kind === 'early' ? `Coret jadwal mulai ${dismiss.time} pada ${date} tanpa menambah progres materi.` : `Coret seluruh jadwal mapel terpilih pada ${date} tanpa menambah progres materi.`}</DialogDescription>
       <form className="space-y-4" onSubmit={event => {
         event.preventDefault();
         try {
-          const count = dismiss.kind === 'early' ? applyEarlyDismissal(date, dismiss.time) : applySubjectDismissal(date, dismiss.subjectId, dismiss.useTime ? dismiss.time : undefined, dismiss.classId || undefined);
+          const count = dismiss.kind === 'early' ? applyEarlyDismissal(date, dismiss.time) : applySubjectDismissal(date, dismiss.subjectId, undefined, dismiss.classId || undefined);
           setDismiss(null); onRefresh(); toast({ title: `${count} jadwal diliburkan` });
         } catch { setActionError('Perubahan belum tersimpan. Coba lagi.'); }
       }}>
         {dismiss.kind === 'subject' && <>
           <label className="block">Mapel yang diliburkan<select required className="workspace-input mt-1" value={dismiss.subjectId} onChange={e => setDismiss({ ...dismiss, subjectId: e.target.value, classId: '' })}><option value="">Pilih mapel</option>{data.subjects.filter(s => pending.some(item => item.subjectId === s.id)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
           <label className="block">Kelas yang diliburkan<select className="workspace-input mt-1" value={dismiss.classId} onChange={e => setDismiss({ ...dismiss, classId: e.target.value })}><option value="">Semua kelas untuk mapel ini</option>{data.classes.filter(c => pending.some(item => item.classId === c.id && item.subjectId === dismiss.subjectId)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-          <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={dismiss.useTime} onChange={e => setDismiss({ ...dismiss, useTime: e.target.checked })} />Hanya jadwal mulai setelah jam tertentu</label>
         </>}
-        {dismiss.useTime && <label className="block">Mulai libur dari jam<input required type="time" className="workspace-input mt-1" value={dismiss.time} onChange={e => setDismiss({ ...dismiss, time: e.target.value })} /></label>}
+        {dismiss.kind === 'early' && <label className="block">Mulai libur dari jam<input required type="time" className="workspace-input mt-1" value={dismiss.time} onChange={e => setDismiss({ ...dismiss, time: e.target.value })} /></label>}
         {actionError && <p role="alert" className="text-red">{actionError}</p>}
         <div className="flex gap-3"><button type="button" className="quiet-button" onClick={() => setDismiss(null)}>Batal</button><button className="primary-button flex-1">Terapkan</button></div>
       </form>
