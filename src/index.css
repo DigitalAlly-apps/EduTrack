@@ -481,3 +481,35 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Setup & Academic Planning Utility Classes */
+.setup-step-done {
+  @apply bg-emerald-500/15 border-emerald-500/40 text-emerald-400 dark:text-emerald-300;
+}
+.setup-step-active {
+  @apply bg-teal-500/20 border-teal-500/60 text-teal-300 dark:text-teal-200 ring-2 ring-teal-500/30;
+}
+.setup-step-pending {
+  @apply bg-surface2 border-border text-text3 opacity-60;
+}
+
+/* 4-Quadrant Semester/Exam Badges & Borders */
+.badge-smt1-uts {
+  @apply bg-blue-500/15 text-blue-400 border-blue-500/30 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40;
+}
+.badge-smt1-uas {
+  @apply bg-violet-500/15 text-violet-400 border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800/40;
+}
+.badge-smt2-uts {
+  @apply bg-indigo-500/15 text-indigo-400 border-indigo-500/30 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40;
+}
+.badge-smt2-uas {
+  @apply bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30 dark:bg-fuchsia-950/40 dark:text-fuchsia-300 dark:border-fuchsia-800/40;
+}
+
+.mat-smt1-uts { border-left: 4px solid #3b82f6; }
+.mat-smt1-uas { border-left: 4px solid #8b5cf6; }
+.mat-smt2-uts { border-left: 4px solid #6366f1; }
+.mat-smt2-uas { border-left: 4px solid #d946ef; }
+.mat-untagged { border-left: 4px solid #6b7280; }
+

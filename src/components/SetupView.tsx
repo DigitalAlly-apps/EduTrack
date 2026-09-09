@@ -58,74 +58,116 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
 
   return (
     <div className="setup-workspace pt-2 animate-fade-in">
-      {/* Getting Started Guide — when no classes or subjects yet */}
-      {showGettingStarted && tab === null && (
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/30 rounded-3xl p-5 mb-4 shadow-sm animate-slide-up">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-xl flex-shrink-0">
-              👋
+      {/* ─── VISUAL ACADEMIC SETUP STEPPER ─── */}
+      {tab === null && (
+        <div className="bg-gradient-to-br from-primary/10 via-surface2/60 to-surface border border-primary/25 rounded-3xl p-4 sm:p-5 mb-4 shadow-sm animate-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">
+                🎯
+              </div>
+              <div>
+                <h2 className="text-sm font-extrabold text-foreground tracking-tight">Alur Perencanaan Akademik</h2>
+                <p className="text-[11px] text-text3 font-medium">Progress penyiapan aplikasi ({completedCount}/5 Selesai)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold font-mono text-primary bg-primary-dim px-2.5 py-1 rounded-full border border-primary/20">
+                {progressPct}%
+              </span>
+            </div>
+          </div>
+
+          {/* Stepper Progress Bar */}
+          <div className="w-full h-2 bg-surface2 rounded-full overflow-hidden mb-4 border border-border/40">
+            <div
+              className="h-full bg-gradient-to-r from-teal-500 via-primary to-emerald-400 transition-all duration-500 rounded-full"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          {/* Step Cards Grid */}
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            {[
+              { id: 'classes' as SetupTab, step: 1, label: 'Kelas', desc: 'Rombel', done: data.classes.length > 0 },
+              { id: 'subjects' as SetupTab, step: 2, label: 'Mapel', desc: 'Pelajaran', done: data.subjects.length > 0 },
+              { id: 'schedules' as SetupTab, step: 3, label: 'Jadwal', desc: 'Mingguan', done: data.schedules.length > 0 },
+              { id: 'materials' as SetupTab, step: 4, label: 'Materi', desc: 'Bab & Ujian', done: data.materials.length > 0 },
+              { id: 'semesters' as SetupTab, step: 5, label: 'Semester', desc: 'UTS & UAS', done: getSemesters().length > 0 },
+            ].map((st, idx) => {
+              const isNext = !st.done && (idx === 0 || [
+                data.classes.length > 0,
+                data.subjects.length > 0,
+                data.schedules.length > 0,
+                data.materials.length > 0,
+                getSemesters().length > 0
+              ][idx - 1]);
+
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => setTab(st.id)}
+                  className={`flex flex-col items-center justify-center p-2 rounded-2xl border text-center transition-all min-h-[64px] group ${
+                    st.done
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 dark:text-emerald-300'
+                      : isNext
+                        ? 'bg-primary/15 border-primary/50 text-primary ring-2 ring-primary/20 animate-pulse-dot'
+                        : 'bg-surface2/60 border-border/60 text-text3 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black mb-1 transition-transform group-hover:scale-110 ${
+                    st.done
+                      ? 'bg-emerald-500 text-white'
+                      : isNext
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-surface3 text-text3'
+                  }`}>
+                    {st.done ? '✓' : st.step}
+                  </div>
+                  <span className="text-[11px] font-bold leading-none truncate w-full">{st.label}</span>
+                  <span className="text-[9px] text-text3 mt-0.5 leading-none truncate w-full hidden sm:block">{st.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Profile */}
+      {tab === null && (
+        <div className="app-card p-4 sm:p-5 mb-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center flex-shrink-0 ring-4 ring-primary/5 text-primary">
+              <UserRound className="h-6 w-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[15px] font-bold text-foreground mb-1">Selamat Datang di EduTrack!</div>
-              <div className="text-[13px] text-text2 leading-relaxed">
-                Ikuti urutan langkah ini agar semua fitur berjalan dengan benar:
+              <div className="text-base font-bold tracking-tight break-words">
+                {data.teacherName || 'Belum diisi'}
               </div>
-              <div className="mt-3 space-y-2.5">
-                {[
-                  { step: '1', title: 'Tambah Kelas', desc: 'Misal: 10A, 10B, 11 IPA', tab: 'classes' as SetupTab },
-                  { step: '2', title: 'Tambah Mapel', desc: 'Misal: Matematika, Fisika', tab: 'subjects' as SetupTab },
-                  { step: '3', title: 'Atur Jadwal Mingguan', desc: 'Kelas mana, hari apa, jam berapa', tab: 'schedules' as SetupTab },
-                  { step: '4', title: 'Input Materi per Kelas', desc: 'Daftar bab dan jumlah pertemuan', tab: 'materials' as SetupTab },
-                  { step: '5', title: 'Semester & Ujian (opsional)', desc: 'Tambahkan tanggal ujian untuk perkiraan kesiapan', tab: 'semesters' as SetupTab },
-                ].map(({ step, title, desc, tab: t }) => (
-                  <button key={step} onClick={() => setTab(t)} className="w-full flex items-start gap-2.5 text-left hover:bg-primary/5 rounded-xl p-1.5 -mx-1.5 transition-colors group">
-                    <span className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">{step}</span>
-                    <div>
-                      <div className="text-[13px] font-semibold text-foreground leading-tight">{title}</div>
-                      <div className="text-xs text-text2 mt-0.5">{desc}</div>
-                    </div>
-                    <span className="ml-auto text-text3 text-base opacity-0 group-hover:opacity-100 transition-opacity self-center">›</span>
-                  </button>
-                ))}
+              <div className="text-xs text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-primary">
+                ✦ {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel &middot; {data.materials?.length ?? 0} Materi
               </div>
+              {data.academicYear ? (
+                <div className="text-xs text-text2 mt-1 flex items-center gap-1.5">
+                  <span className="opacity-60">📅</span>
+                  <span className="truncate">Tahun Ajaran: {data.academicYear}</span>
+                </div>
+              ) : (
+                <div className="text-xs text-amber mt-1 flex items-center gap-1.5">
+                  <span>⚠️</span>
+                  <span>Belum mengatur tahun ajaran</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full border-t border-border pt-3">
+              <EditTeacherButton onRefresh={refresh} />
+              <EditAcademicYearButton onRefresh={refresh} />
             </div>
           </div>
         </div>
       )}
-      {/* Profile */}
-      {tab === null && <div className="app-card p-5 mb-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 grid place-items-center flex-shrink-0 ring-4 ring-primary/5 text-primary">
-            <UserRound className="h-6 w-6" />
-          </div>
-           <div className="flex-1 min-w-0">
-             <div className="text-base font-bold tracking-tight break-words">
-               {data.teacherName || 'Belum diisi'}
-             </div>
-             <div className="text-xs text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
-             <div className="text-xs font-bold uppercase tracking-wider text-primary">
-               &#x2736; {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel
-             </div>
-             {data.academicYear ? (
-               <div className="text-xs text-text2 mt-1 flex items-center gap-1.5">
-                 <span className="opacity-60">📅</span>
-                 <span className="truncate">Tahun Ajaran: {data.academicYear}</span>
-               </div>
-             ) : (
-               <div className="text-xs text-amber mt-1 flex items-center gap-1.5">
-                 <span>⚠️</span>
-                 <span>Belum mengatur tahun ajaran</span>
-               </div>
-             )}
-           </div>
-           <div className="flex flex-col sm:flex-row gap-2 w-full border-t border-border pt-3">
-             <EditTeacherButton onRefresh={refresh} />
-             <EditAcademicYearButton onRefresh={refresh} />
-           </div>
-        </div>
-      </div>
 
-      }
       {/* Main Content Area */}
       {tab === null ? (
         // ─── SETTINGS MENU LIST ───
@@ -136,26 +178,43 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
               <div className="app-card overflow-hidden">
                 {tabs.filter(t => t.group === 'akademik').map((t, idx, arr) => {
                   const Icon = t.icon;
+                  const getTabBadge = (id: SetupTab) => {
+                    if (id === 'classes') return `${data.classes.length} Kelas`;
+                    if (id === 'subjects') return `${data.subjects.length} Mapel`;
+                    if (id === 'materials') return `${data.materials.length} Bab`;
+                    if (id === 'semesters') return `${getSemesters().length} Semester`;
+                    return null;
+                  };
+                  const badgeText = getTabBadge(t.id);
+
                   return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
-                      idx !== arr.length - 1 ? 'border-b border-border/50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
-                        <Icon className="h-5 w-5" />
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                        idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary flex-shrink-0 shadow-inner">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="text-[14px] font-bold text-foreground leading-tight flex items-center gap-2">
+                            <span>{t.label}</span>
+                            {badgeText && (
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                {badgeText}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                        <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
-                      </div>
-                    </div>
-                    <span className="text-text3 text-lg opacity-50">›</span>
-                  </button>
-                );})}
+                      <span className="text-text3 text-lg opacity-50">›</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -164,26 +223,42 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
               <div className="app-card overflow-hidden">
                 {tabs.filter(t => t.group === 'jadwal').map((t, idx, arr) => {
                   const Icon = t.icon;
+                  const getScheduleBadge = (id: SetupTab) => {
+                    if (id === 'schedules') return `${data.schedules.length} Slot`;
+                    if (id === 'holidays') return `${getHolidays().length} Libur`;
+                    if (id === 'leave') return `${data.leaves?.length ?? 0} Cuti`;
+                    return null;
+                  };
+                  const badgeText = getScheduleBadge(t.id);
+
                   return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
-                      idx !== arr.length - 1 ? 'border-b border-border/50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner">
-                        <Icon className="h-5 w-5" />
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className={`w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 ${
+                        idx !== arr.length - 1 ? 'border-b border-border/50' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="text-[14px] font-bold text-foreground leading-tight flex items-center gap-2">
+                            <span>{t.label}</span>
+                            {badgeText && (
+                              <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-surface3 text-text2 border border-border2">
+                                {badgeText}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[14px] font-bold text-foreground leading-tight">{t.label}</div>
-                        <div className="text-[12px] text-text3 mt-0.5">{t.desc}</div>
-                      </div>
-                    </div>
-                    <span className="text-text3 text-lg opacity-50">›</span>
-                  </button>
-                );})}
+                      <span className="text-text3 text-lg opacity-50">›</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -388,18 +463,24 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
   if (editing) {
     return (
-      <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px]">
-        <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 h-10" autoFocus />
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
+      <div className="bg-surface2 border border-primary-border rounded-2xl p-4 mb-2 space-y-3 animate-slide-up">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">Edit Bab Materi</span>
+          <span className="text-[11px] text-text3 font-mono">ID: #{id}</span>
+        </div>
+        <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style text-sm font-semibold h-11" autoFocus placeholder="Nama materi..." />
+        
+        {/* Pertemuan */}
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
           <div className="flex items-center gap-1 flex-wrap">
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} onClick={() => setSessVal(n)}
-                className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
-                  sessVal === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
+                className={`w-8 h-8 rounded-xl text-xs font-bold border transition-all ${
+                  sessVal === n ? 'bg-primary border-primary text-primary-foreground shadow-xs' : 'bg-surface border-border text-text2 hover:border-primary'
                 }`}>{n}×</button>
             ))}
-            <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+            <div className="flex items-center gap-1 bg-surface border border-border2 rounded-xl px-2 h-8 ml-0.5">
               <span className="text-xs text-text3 font-bold">Lainnya:</span>
               <input
                 type="number"
@@ -411,71 +492,114 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Semester:</label>
-          <div className="flex gap-1">
-            {([1, 2] as const).map(s => (
-              <button key={s} onClick={() => setSemesterNum(s)}
-                className={`px-2.5 h-7 rounded-md text-xs font-bold border transition-all ${
-                  semesterNum === s
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                    : 'bg-surface border-border text-text3 hover:border-border3'
-                }`}>Smt {s}</button>
-            ))}
+
+        {/* 4-Quadrant Selector in Edit Mode */}
+        <div>
+          <label className="text-xs font-bold text-text2 uppercase tracking-wide block mb-1.5">Target Semester & Ujian:</label>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => { setSemesterNum(1); setExamPeriod('UTS'); }}
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                semesterNum === 1 && examPeriod === 'UTS'
+                  ? 'badge-smt1-uts border-blue-500 ring-2 ring-blue-500/30'
+                  : 'bg-surface border-border/80 text-text3 hover:text-foreground'
+              }`}
+            >
+              📘 Smt 1 UTS
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSemesterNum(1); setExamPeriod('UAS'); }}
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                semesterNum === 1 && examPeriod === 'UAS'
+                  ? 'badge-smt1-uas border-violet-500 ring-2 ring-violet-500/30'
+                  : 'bg-surface border-border/80 text-text3 hover:text-foreground'
+              }`}
+            >
+              💜 Smt 1 UAS
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSemesterNum(2); setExamPeriod('UTS'); }}
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                semesterNum === 2 && examPeriod === 'UTS'
+                  ? 'badge-smt2-uts border-indigo-500 ring-2 ring-indigo-500/30'
+                  : 'bg-surface border-border/80 text-text3 hover:text-foreground'
+              }`}
+            >
+              📗 Smt 2 UTS
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSemesterNum(2); setExamPeriod('UAS'); }}
+              className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                semesterNum === 2 && examPeriod === 'UAS'
+                  ? 'badge-smt2-uas border-fuchsia-500 ring-2 ring-fuchsia-500/30'
+                  : 'bg-surface border-border/80 text-text3 hover:text-foreground'
+              }`}
+            >
+              💖 Smt 2 UAS
+            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setExamPeriod(null)}
+            className={`w-full mt-1 py-1 rounded-xl text-[11px] font-bold border transition-all ${
+              examPeriod === null
+                ? 'bg-surface3 border-border3 text-foreground'
+                : 'bg-transparent border-transparent text-text3 hover:text-foreground'
+            }`}
+          >
+            ⚪ Tanpa Tag Ujian (Bebas)
+          </button>
         </div>
-        <div className="flex items-center gap-2 mb-2">
-          <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Ujian:</label>
-          <div className="flex gap-1">
-            {(['UTS', 'UAS', null] as const).map(p => (
-              <button key={p ?? 'none'} onClick={() => setExamPeriod(p)}
-                className={`px-2.5 h-7 rounded-md text-xs font-bold border transition-all ${
-                  examPeriod === p
-                    ? p === 'UTS' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                      : p === 'UAS' ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                      : 'bg-surface2 border-border3 text-text2'
-                    : 'bg-surface border-border text-text3 hover:border-border3'
-                }`}>{p ?? '—'}</button>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2 mb-2">
-          <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. mulai" />
-          <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style h-10 flex-1" placeholder="Hal. akhir" />
-        </div>
-        <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[70px] mb-2 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal" />
+
         <div className="flex gap-2">
-          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }, examPeriod, semesterNum); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
-          <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-md text-[13px] font-medium">Batal</button>
+          <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style h-9 flex-1 text-xs" placeholder="Hal. mulai" />
+          <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style h-9 flex-1 text-xs" placeholder="Hal. akhir" />
+        </div>
+        <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[60px] resize-none text-xs" placeholder="Catatan opsional..." />
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }, examPeriod, semesterNum); setEditing(false); }} className="flex-1 min-h-[44px] bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-sm">Simpan</button>
+          <button onClick={() => setEditing(false)} className="flex-1 min-h-[44px] bg-surface text-text2 border border-border rounded-xl text-xs font-medium">Batal</button>
         </div>
       </div>
     );
   }
 
+  const matSmt = item.semesterNum ?? 1;
+  const matExam = item.examPeriod;
+
+  // Quad class for left border
+  const borderClass = matExam === 'UTS'
+    ? matSmt === 1 ? 'mat-smt1-uts' : 'mat-smt2-uts'
+    : matExam === 'UAS'
+      ? matSmt === 1 ? 'mat-smt1-uas' : 'mat-smt2-uas'
+      : 'mat-untagged';
+
+  // Quadrant Badge
+  const quadrantBadge = matExam === 'UTS'
+    ? matSmt === 1
+      ? <span className="badge-smt1-uts border px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">Smt 1 UTS</span>
+      : <span className="badge-smt2-uts border px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">Smt 2 UTS</span>
+    : matExam === 'UAS'
+      ? matSmt === 1
+        ? <span className="badge-smt1-uas border px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">Smt 1 UAS</span>
+        : <span className="badge-smt2-uas border px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">Smt 2 UAS</span>
+      : <span className="bg-surface2 text-text3 border border-border px-2 py-0.5 rounded-md text-[10px] font-bold">Smt {matSmt}</span>;
+
   const sessBadge = (item.sessions ?? 1) > 1
-    ? <span className="inline-block ml-1 bg-primary-dim text-primary text-xs font-bold px-[5px] py-[1px] rounded">{item.sessions}×</span>
-    : null;
-
-  const semesterBadge = (
-    <span className="inline-block ml-1 text-xs font-bold px-[5px] py-[1px] rounded border bg-emerald-500/15 border-emerald-500/30 text-emerald-400">
-      Smt {item.semesterNum ?? 1}
-    </span>
-  );
-
-  const periodBadge = item.examPeriod
-    ? <span className={`inline-block ml-1.5 text-xs font-bold px-[5px] py-[1px] rounded border ${
-        item.examPeriod === 'UTS'
-          ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-          : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
-      }`}>{item.examPeriod}</span>
+    ? <span className="bg-primary/15 text-primary border border-primary/25 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md">{item.sessions}×</span>
     : null;
 
   const statusBadge = item.progressStatus ? (
-    <span className={`inline-block ml-1.5 text-xs font-bold px-[5px] py-[1px] rounded border ${
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
       item.progressStatus.type === 'finished'
-        ? 'bg-green/15 border-green/30 text-green'
+        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
         : item.progressStatus.type === 'current'
-          ? 'bg-primary/15 border-primary/30 text-primary'
+          ? 'bg-teal-500/20 border-teal-500/40 text-teal-300 ring-2 ring-teal-500/20'
           : 'bg-surface2 border-border text-text3'
     }`}>
       {item.progressStatus.label}
@@ -484,20 +608,59 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className={`bg-surface border ${isDragging ? 'border-primary border-[2px] shadow-lg' : 'border-border'} rounded-2xl p-3 flex items-center justify-between mb-2`}>
-        <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
-          <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
-          <div>
-            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{semesterBadge}{periodBadge}{statusBadge}</div>
-            <div className="text-xs text-text2 mt-[2px] leading-snug">{item.meta}</div>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`bg-surface border ${
+          isDragging ? 'border-primary border-2 shadow-xl' : 'border-border/80'
+        } ${borderClass} rounded-2xl p-3.5 flex items-center justify-between mb-2 transition-shadow hover:border-border3 group`}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+          {/* Drag Handle min touch target 44px */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="w-8 h-10 rounded-xl bg-surface2/60 border border-border/40 text-text3 hover:text-foreground flex items-center justify-center cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+            title="Tahan & geser untuk mengubah urutan"
+          >
+            <span className="text-base leading-none">⋮⋮</span>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+              <span className="text-sm font-bold text-foreground leading-snug">{item.name}</span>
+              {sessBadge}
+              {quadrantBadge}
+              {statusBadge}
+            </div>
+            <div className="text-xs text-text3 leading-snug truncate">{item.meta}</div>
           </div>
         </div>
-        <div className="flex gap-[4px] items-center flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9" aria-label="Edit materi"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setDelSheet(true)} className="w-11 h-11 rounded-2xl bg-red/10 text-red border border-red/20 grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus materi"><Trash2 className="h-4 w-4" /></button>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => setEditing(true)}
+            className="w-10 h-10 rounded-xl bg-surface2 border border-border/60 text-text2 hover:text-foreground hover:border-border3 grid place-items-center transition-all active:scale-95"
+            aria-label="Edit materi"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setDelSheet(true)}
+            className="w-10 h-10 rounded-xl bg-red/10 border border-red/20 text-red hover:bg-red/20 grid place-items-center transition-all active:scale-95"
+            aria-label="Hapus materi"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
-      <DeleteConfirmSheet open={delSheet} onOpenChange={setDelSheet} onConfirm={() => onDelete(id)} title={`Hapus "${item.name}"?`} desc="Data progres kelas untuk materi ini akan terpengaruh jika sudah dilewati." />
+      <DeleteConfirmSheet
+        open={delSheet}
+        onOpenChange={setDelSheet}
+        onConfirm={() => onDelete(id)}
+        title={`Hapus "${item.name}"?`}
+        desc="Data progres kelas untuk materi ini akan terpengaruh jika sudah dilewati."
+      />
     </>
   );
 }
@@ -1092,58 +1255,86 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                  <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block mb-1">Target Semester:</label>
-                  <div className="flex gap-1">
-                    {([1, 2] as const).map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setSingleSemesterNum(s)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                          singleSemesterNum === s
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                            : 'bg-surface border-border text-text3 hover:border-border3'
-                        }`}
-                      >
-                        Smt {s}
-                      </button>
-                    ))}
-                  </div>
+              {/* 4-Quadrant Semester & Exam Tagging Chips */}
+              <div className="mb-3 space-y-1.5">
+                <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block">Target Semester & Ujian:</label>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UTS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 1 && singleExamPeriod === 'UTS'
+                        ? 'badge-smt1-uts border-blue-500 ring-2 ring-blue-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>📘 Smt 1 UTS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UAS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 1 && singleExamPeriod === 'UAS'
+                        ? 'badge-smt1-uas border-violet-500 ring-2 ring-violet-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>💜 Smt 1 UAS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UTS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 2 && singleExamPeriod === 'UTS'
+                        ? 'badge-smt2-uts border-indigo-500 ring-2 ring-indigo-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>📗 Smt 2 UTS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UAS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 2 && singleExamPeriod === 'UAS'
+                        ? 'badge-smt2-uas border-fuchsia-500 ring-2 ring-fuchsia-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>💖 Smt 2 UAS</span>
+                  </button>
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block mb-1">Target Ujian:</label>
-                  <div className="flex gap-1">
-                    {(['UTS', 'UAS', null] as const).map(p => (
-                      <button
-                        key={p ?? 'none'}
-                        type="button"
-                        onClick={() => setSingleExamPeriod(p)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                          singleExamPeriod === p
-                            ? p === 'UTS'
-                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                              : p === 'UAS'
-                              ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                              : 'bg-surface2 border-border3 text-text2'
-                            : 'bg-surface border-border text-text3 hover:border-border3'
-                        }`}
-                      >
-                        {p ?? '—'}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center justify-between text-[11px] pt-0.5">
+                  <span className="text-text3">Tag terpilih: <strong className="text-foreground font-semibold">Semester {singleSemesterNum} {singleExamPeriod ? `(${singleExamPeriod})` : '— Tanpa Ujian'}</strong></span>
+                  {singleExamPeriod !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setSingleExamPeriod(null)}
+                      className="text-text3 hover:text-foreground underline"
+                    >
+                      Reset tag
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex gap-2 mb-2">
-                <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1" placeholder="Hal. mulai" />
-                <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1" placeholder="Hal. akhir" />
-              </div>
-              <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[72px] mb-3 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal, ulang konsep dasar" />
+
+              {/* Progressive Disclosure for optional details */}
+              <details className="group border border-border/50 rounded-xl p-2.5 bg-surface2/30 mb-3">
+                <summary className="text-xs font-bold text-text2 cursor-pointer flex items-center justify-between select-none">
+                  <span>＋ Halaman & Catatan <span className="font-normal text-text3">(opsional)</span></span>
+                  <span className="text-text3 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="pt-2.5 space-y-2">
+                  <div className="flex gap-2">
+                    <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. mulai (cth: 1)" />
+                    <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. akhir (cth: 15)" />
+                  </div>
+                  <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[60px] resize-none text-xs" placeholder="Catatan opsional (cth: banyak latihan soal, ulang konsep dasar)" />
+                </div>
+              </details>
             </>
           )}
-          <button onClick={add} className="btn-primary-style bg-primary text-primary-foreground min-h-[44px]">＋ {bulkMode ? 'Tambah Semua' : 'Tambah'}</button>
+          <button onClick={add} className="btn-primary-style bg-primary text-primary-foreground min-h-[44px] w-full font-bold text-sm shadow-sm hover:brightness-105 active:scale-[0.99] transition-all">＋ {bulkMode ? 'Tambah Semua Bab' : 'Tambah Bab Materi'}</button>
         </div>
       )}
 
@@ -1885,6 +2076,38 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div>
+      {/* Visual Academic Journey Timeline */}
+      <div className="bg-surface2/80 border border-border rounded-2xl p-3 mb-4 space-y-2">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
+          <span>🎓 Alur Perjalanan Akademik per Semester</span>
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+          <div className="badge-smt1-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
+            <span>📘 Smt 1 (Ganjil)</span>
+          </div>
+          <span className="text-text3 text-xs font-mono">→</span>
+          <div className="bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
+            📝 UTS
+          </div>
+          <span className="text-text3 text-xs font-mono">→</span>
+          <div className="bg-violet-500/15 border border-violet-500/30 text-violet-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
+            🏆 UAS
+          </div>
+          <span className="text-text3 text-xs font-mono">→</span>
+          <div className="badge-smt2-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
+            <span>📗 Smt 2 (Genap)</span>
+          </div>
+          <span className="text-text3 text-xs font-mono">→</span>
+          <div className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
+            📝 UTS
+          </div>
+          <span className="text-text3 text-xs font-mono">→</span>
+          <div className="bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
+            🎓 UAS / Kenaikan
+          </div>
+        </div>
+      </div>
+
       {/* Penjelasan konsep */}
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
         <p className="text-xs text-text2 leading-relaxed">
