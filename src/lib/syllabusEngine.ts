@@ -25,6 +25,14 @@ export interface SyllabusOverview {
   className: string;
   totalMaterials: number;
   totalSessions: number;
+  smt1Materials: number;
+  smt1Sessions: number;
+  smt1UtsMaterials: number;
+  smt1UasMaterials: number;
+  smt2Materials: number;
+  smt2Sessions: number;
+  smt2UtsMaterials: number;
+  smt2UasMaterials: number;
   utsMaterials: number;
   utsSessions: number;
   uasMaterials: number;
@@ -42,6 +50,7 @@ export interface DistributionSuggestion {
   materialId: string;
   materialName: string;
   sessions: number;
+  suggestedSemester: 1 | 2;
   suggestedPeriod: 'UTS' | 'UAS';
   order: number;
 }
@@ -82,6 +91,7 @@ export function suggestExamPeriodDistribution(materials: Material[]): Distributi
       materialId: materials[0].id,
       materialName: materials[0].name,
       sessions: materials[0].sessions ?? 1,
+      suggestedSemester: materials[0].semesterNum ?? 1,
       suggestedPeriod: 'UTS',
       order: materials[0].order
     }];
@@ -89,18 +99,32 @@ export function suggestExamPeriodDistribution(materials: Material[]): Distributi
 
   const totalSessions = materials.reduce((sum, m) => sum + (m.sessions ?? 1), 0);
   let cumulative = 0;
-  let hasUas = false;
 
   for (let i = 0; i < materials.length; i++) {
     const m = materials[i];
     const sessions = m.sessions ?? 1;
+    const midPoint = cumulative + sessions / 2;
+    const progressPct = midPoint / totalSessions;
+
+    let sem: 1 | 2 = 1;
     let period: 'UTS' | 'UAS' = 'UTS';
 
-    if (i === materials.length - 1 && !hasUas) {
+    if (progressPct <= 0.25) {
+      sem = 1;
+      period = 'UTS';
+    } else if (progressPct <= 0.50) {
+      sem = 1;
       period = 'UAS';
-    } else if (i > 0 && cumulative + sessions / 2 > totalSessions / 2) {
+    } else if (progressPct <= 0.75) {
+      sem = 2;
+      period = 'UTS';
+    } else {
+      sem = 2;
       period = 'UAS';
-      hasUas = true;
+    }
+
+    if (m.semesterNum === 1 || m.semesterNum === 2) {
+      sem = m.semesterNum;
     }
 
     cumulative += sessions;
@@ -108,6 +132,7 @@ export function suggestExamPeriodDistribution(materials: Material[]): Distributi
       materialId: m.id,
       materialName: m.name,
       sessions,
+      suggestedSemester: sem,
       suggestedPeriod: period,
       order: m.order
     });
@@ -121,6 +146,7 @@ export function applyExamPeriodDistribution(suggestions: DistributionSuggestion[
       const mat = d.materials.find(m => m.id === s.materialId);
       if (mat) {
         mat.examPeriod = s.suggestedPeriod;
+        mat.semesterNum = s.suggestedSemester;
       }
     });
   });
@@ -138,13 +164,31 @@ export function getSyllabusOverview(subjectId: string, classId: string): Syllabu
   let utsMaterials = 0, utsSessions = 0;
   let uasMaterials = 0, uasSessions = 0;
   let untaggedMaterials = 0;
-  
+
+  let smt1Materials = 0, smt1Sessions = 0;
+  let smt1UtsMaterials = 0, smt1UasMaterials = 0;
+  let smt2Materials = 0, smt2Sessions = 0;
+  let smt2UtsMaterials = 0, smt2UasMaterials = 0;
+
   const utsMatIds = new Set<string>();
   const uasMatIds = new Set<string>();
 
   materials.forEach(m => {
     const s = m.sessions ?? 1;
     totalSessions += s;
+    const sem = m.semesterNum ?? 1;
+    if (sem === 2) {
+      smt2Materials++;
+      smt2Sessions += s;
+      if (m.examPeriod === 'UTS') smt2UtsMaterials++;
+      else if (m.examPeriod === 'UAS') smt2UasMaterials++;
+    } else {
+      smt1Materials++;
+      smt1Sessions += s;
+      if (m.examPeriod === 'UTS') smt1UtsMaterials++;
+      else if (m.examPeriod === 'UAS') smt1UasMaterials++;
+    }
+
     if (m.examPeriod === 'UTS') {
       utsMaterials++;
       utsSessions += s;
@@ -195,6 +239,14 @@ export function getSyllabusOverview(subjectId: string, classId: string): Syllabu
     className,
     totalMaterials: materials.length,
     totalSessions,
+    smt1Materials,
+    smt1Sessions,
+    smt1UtsMaterials,
+    smt1UasMaterials,
+    smt2Materials,
+    smt2Sessions,
+    smt2UtsMaterials,
+    smt2UasMaterials,
     utsMaterials,
     utsSessions,
     uasMaterials,

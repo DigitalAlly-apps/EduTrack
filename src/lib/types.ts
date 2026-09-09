@@ -29,6 +29,7 @@ export interface Material {
   pageEnd?: string;
   note?: string;
   examPeriod?: 'UTS' | 'UAS' | null; // bab ini masuk ujian mana — null = belum ditentukan
+  semesterNum?: 1 | 2 | null; // semester 1 (ganjil) atau semester 2 (genap)
 }
 export interface Schedule {
   id: string;

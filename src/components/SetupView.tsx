@@ -383,6 +383,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
   const [pageEnd, setPageEnd] = useState(item.pageEnd || '');
   const [note, setNote] = useState(item.note || '');
   const [examPeriod, setExamPeriod] = useState<'UTS' | 'UAS' | null>(item.examPeriod ?? null);
+  const [semesterNum, setSemesterNum] = useState<1 | 2 | null>(item.semesterNum ?? 1);
   const [delSheet, setDelSheet] = useState(false);
 
   if (editing) {
@@ -410,6 +411,19 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Semester:</label>
+          <div className="flex gap-1">
+            {([1, 2] as const).map(s => (
+              <button key={s} onClick={() => setSemesterNum(s)}
+                className={`px-2.5 h-7 rounded-md text-xs font-bold border transition-all ${
+                  semesterNum === s
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                    : 'bg-surface border-border text-text3 hover:border-border3'
+                }`}>Smt {s}</button>
+            ))}
+          </div>
+        </div>
         <div className="flex items-center gap-2 mb-2">
           <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Ujian:</label>
           <div className="flex gap-1">
@@ -431,7 +445,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
         </div>
         <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[70px] mb-2 resize-none text-[13px]" placeholder="Catatan opsional, cth: banyak latihan soal" />
         <div className="flex gap-2">
-          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }, examPeriod); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
+          <button onClick={() => { onSave(id, val, sessVal, { pageStart, pageEnd, note }, examPeriod, semesterNum); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
           <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-surface text-text2 border border-border rounded-md text-[13px] font-medium">Batal</button>
         </div>
       </div>
@@ -441,6 +455,12 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
   const sessBadge = (item.sessions ?? 1) > 1
     ? <span className="inline-block ml-1 bg-primary-dim text-primary text-xs font-bold px-[5px] py-[1px] rounded">{item.sessions}×</span>
     : null;
+
+  const semesterBadge = (
+    <span className="inline-block ml-1 text-xs font-bold px-[5px] py-[1px] rounded border bg-emerald-500/15 border-emerald-500/30 text-emerald-400">
+      Smt {item.semesterNum ?? 1}
+    </span>
+  );
 
   const periodBadge = item.examPeriod
     ? <span className={`inline-block ml-1.5 text-xs font-bold px-[5px] py-[1px] rounded border ${
@@ -468,7 +488,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
           <div {...attributes} {...listeners} className="text-text3 cursor-grab p-1 touch-none">≡</div>
           <div>
-            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{periodBadge}{statusBadge}</div>
+            <div className="text-sm font-medium leading-snug">{item.name}{sessBadge}{semesterBadge}{periodBadge}{statusBadge}</div>
             <div className="text-xs text-text2 mt-[2px] leading-snug">{item.meta}</div>
           </div>
         </div>
@@ -722,6 +742,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const [pageStart, setPageStart] = useState('');
   const [pageEnd, setPageEnd] = useState('');
   const [note, setNote] = useState('');
+  const [singleSemesterNum, setSingleSemesterNum] = useState<1 | 2>(1);
+  const [singleExamPeriod, setSingleExamPeriod] = useState<'UTS' | 'UAS' | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [bulkSessions, setBulkSessions] = useState(1);
@@ -750,8 +772,19 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
     } else {
       if(!name.trim()) return toast({ title: 'Isi nama materi' });
-      bulkAddMaterials(subId, [{ name, sessions, pageStart, pageEnd, note }], sessions, undefined, classId);
-      setName(''); setPageStart(''); setPageEnd(''); setNote(''); toast({ title: 'Materi ditambahkan' }); onRefresh();
+      bulkAddMaterials(
+        subId,
+        [{ name, sessions, pageStart, pageEnd, note, examPeriod: singleExamPeriod, semesterNum: singleSemesterNum }],
+        sessions,
+        undefined,
+        classId,
+        singleExamPeriod,
+        singleSemesterNum
+      );
+      setName(''); setPageStart(''); setPageEnd(''); setNote('');
+      const examLabel = singleExamPeriod ? ` (${singleExamPeriod})` : '';
+      toast({ title: `✓ Materi ditambahkan ke Semester ${singleSemesterNum}${examLabel}` });
+      onRefresh();
     }
   };
 
@@ -780,6 +813,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
   const [autoDistModalOpen, setAutoDistModalOpen] = useState(false);
   const [autoDistSuggestions, setAutoDistSuggestions] = useState<DistributionSuggestion[]>([]);
+  const [semesterFilter, setSemesterFilter] = useState<'all' | '1' | '2'>('all');
+  const [rangeSemester, setRangeSemester] = useState<1 | 2 | null>(null);
 
   // Ambil materi untuk kelas ini
   const mats = (() => {
@@ -791,12 +826,11 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
 
   const handleAutoDistribute = () => {
     if (!subId || !classId) return;
-    const untaggedMats = mats.filter(m => !m.examPeriod);
-    if (!untaggedMats.length) {
-      toast({ title: 'Semua materi sudah memiliki tag UTS/UAS' });
+    if (!mats.length) {
+      toast({ title: 'Masukkan materi terlebih dahulu' });
       return;
     }
-    const suggestions = suggestExamPeriodDistribution(untaggedMats);
+    const suggestions = suggestExamPeriodDistribution(mats);
     setAutoDistSuggestions(suggestions);
     setAutoDistModalOpen(true);
   };
@@ -804,7 +838,25 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
   const handleConfirmAutoDistribute = () => {
     applyExamPeriodDistribution(autoDistSuggestions);
     setAutoDistModalOpen(false);
-    toast({ title: `✓ ${autoDistSuggestions.length} materi berhasil dibagi untuk UTS & UAS` });
+    toast({ title: `✓ ${autoDistSuggestions.length} materi berhasil dibagi untuk Semester 1 & 2 (UTS/UAS)` });
+    onRefresh();
+  };
+
+  const applyRangeWithSemester = () => {
+    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10) || mats.length;
+    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
+    const actualTo = Math.min(to, mats.length);
+    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
+    const targetMats = mats.slice(from - 1, actualTo);
+    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
+    const minOrder = Math.min(...targetMats.map(m => m.order));
+    const maxOrder = Math.max(...targetMats.map(m => m.order));
+    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod, rangeSemester);
+    const examLabel = rangePeriod ?? '—';
+    const semLabel = rangeSemester ? `Smt ${rangeSemester}` : '';
+    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${semLabel} ${examLabel}`.trim() });
     onRefresh();
   };
 
@@ -836,7 +888,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
         <p className="text-xs text-text2 leading-relaxed">
           <span className="font-bold text-foreground">ℹ️ Cara kerja Materi & Ujian:</span><br />
-          Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Tandai setiap bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span> untuk mengelompokkan cakupan ujiannya. Ini berbeda dengan <em>tanggal</em> UTS/UAS yang diatur di tab Semester.
+          Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Anda dapat memasukkan bab untuk <span className="font-bold text-emerald-400">Semester 1 & 2</span> sekaligus dan menandai bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span>.
         </p>
       </div>
 
@@ -877,12 +929,12 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         )}
       </div>
 
-      {/* Ringkasan Silabus & Auto-Distribusi Cerdas */}
+      {/* Ringkasan Silabus & Auto-Distribusi Cerdas 4-Kuadran */}
       {syllabusOverview && syllabusOverview.totalMaterials > 0 && (
-        <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between mb-2">
+        <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">💡 Ringkasan Silabus Cerdas</span>
+              <span className="text-sm font-bold text-foreground">💡 Silabus Cerdas Smt 1 & 2</span>
               {syllabusOverview.untaggedMaterials > 0 ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber border border-amber-500/30">
                   {syllabusOverview.untaggedMaterials} belum di-tag
@@ -893,39 +945,47 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                 </span>
               )}
             </div>
-            {syllabusOverview.untaggedMaterials > 0 && (
-              <button
-                onClick={handleAutoDistribute}
-                className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
-              >
-                <span>⚡ Bagi UTS/UAS</span>
-              </button>
-            )}
+            <button
+              onClick={handleAutoDistribute}
+              className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
+            >
+              <span>⚡ Bagi Smt 1 & 2</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-2 mb-2 text-xs">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-2.5 text-center">
-              <div className="text-[10px] uppercase font-bold text-blue-400 tracking-wider">Cakupan UTS</div>
-              <div className="text-base font-extrabold text-foreground mt-0.5">{syllabusOverview.utsMaterials} Bab</div>
-              <div className="text-[11px] text-text3">{syllabusOverview.utsSessions} Pertemuan</div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
+              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
+                <span>📘 Semester 1</span>
+                <span className="text-text3">{syllabusOverview.smt1Materials} Bab</span>
+              </div>
+              <div className="flex gap-1 text-[10px] font-bold">
+                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt1UtsMaterials}</span>
+                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt1UasMaterials}</span>
+              </div>
             </div>
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5 text-center">
-              <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">Cakupan UAS</div>
-              <div className="text-base font-extrabold text-foreground mt-0.5">{syllabusOverview.uasMaterials} Bab</div>
-              <div className="text-[11px] text-text3">{syllabusOverview.uasSessions} Pertemuan</div>
+            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
+              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
+                <span>📗 Semester 2</span>
+                <span className="text-text3">{syllabusOverview.smt2Materials} Bab</span>
+              </div>
+              <div className="flex gap-1 text-[10px] font-bold">
+                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt2UtsMaterials}</span>
+                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt2UasMaterials}</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Dialog untuk Konfirmasi Auto-Distribusi */}
+      {/* Modal Dialog untuk Konfirmasi Auto-Distribusi 4 Kuadran */}
       {autoDistModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">⚡</div>
-                <h3 className="font-bold text-base text-foreground">Saran Pembagian Ujian</h3>
+                <h3 className="font-bold text-base text-foreground">Saran Pembagian Semester 1 & 2</h3>
               </div>
               <button onClick={() => setAutoDistModalOpen(false)} className="text-text3 hover:text-foreground">
                 <X className="w-5 h-5" />
@@ -933,7 +993,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             </div>
 
             <p className="text-xs text-text2 leading-relaxed">
-              EduTrack membagi bab secara seimbang berdasarkan perkiraan total pertemuan untuk UTS dan UAS:
+              EduTrack membagi bab secara seimbang ke <strong>Semester 1</strong> dan <strong>Semester 2</strong>, serta membaginya ke <strong>UTS</strong> dan <strong>UAS</strong>:
             </p>
 
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
@@ -944,11 +1004,16 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                     <span className="font-semibold text-foreground truncate">{s.materialName}</span>
                     <span className="text-[11px] text-text3">({s.sessions}×)</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                    s.suggestedPeriod === 'UTS' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                  }`}>
-                    {s.suggestedPeriod}
-                  </span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Smt {s.suggestedSemester}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                      s.suggestedPeriod === 'UTS' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                    }`}>
+                      {s.suggestedPeriod}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1027,6 +1092,50 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                   </div>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block mb-1">Target Semester:</label>
+                  <div className="flex gap-1">
+                    {([1, 2] as const).map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSingleSemesterNum(s)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          singleSemesterNum === s
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                            : 'bg-surface border-border text-text3 hover:border-border3'
+                        }`}
+                      >
+                        Smt {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block mb-1">Target Ujian:</label>
+                  <div className="flex gap-1">
+                    {(['UTS', 'UAS', null] as const).map(p => (
+                      <button
+                        key={p ?? 'none'}
+                        type="button"
+                        onClick={() => setSingleExamPeriod(p)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          singleExamPeriod === p
+                            ? p === 'UTS'
+                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                              : p === 'UAS'
+                              ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                              : 'bg-surface2 border-border3 text-text2'
+                            : 'bg-surface border-border text-text3 hover:border-border3'
+                        }`}
+                      >
+                        {p ?? '—'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-2 mb-2">
                 <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1" placeholder="Hal. mulai" />
                 <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1" placeholder="Hal. akhir" />
@@ -1046,8 +1155,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
 
           {mats.length > 0 && (
-            <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40">
-              <div className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Set Rentang Bab ke Ujian</div>
+            <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40 space-y-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-primary">Set Rentang Bab ke Semester & Ujian</div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-text2">Bab</span>
                 <input
@@ -1068,12 +1177,25 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                   onChange={e => setRangeTo(e.target.value)}
                   className="form-input-style w-14 text-center h-8 text-xs p-1"
                 />
-                <div className="flex gap-1 ml-auto">
+                <div className="flex gap-1 ml-auto flex-wrap">
+                  {([1, 2, null] as const).map(s => (
+                    <button
+                      key={`sem-${s ?? 'none'}`}
+                      onClick={() => setRangeSemester(s)}
+                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
+                        rangeSemester === s
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                          : 'bg-surface border-border text-text3 hover:border-border3'
+                      }`}
+                    >
+                      {s ? `Smt ${s}` : 'Smt —'}
+                    </button>
+                  ))}
                   {(['UTS', 'UAS', null] as const).map(p => (
                     <button
-                      key={p ?? 'none'}
+                      key={`exam-${p ?? 'none'}`}
                       onClick={() => setRangePeriod(p)}
-                      className={`px-2.5 h-8 rounded-md text-xs font-bold border transition-all ${
+                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
                         rangePeriod === p
                           ? p === 'UTS'
                             ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
@@ -1083,17 +1205,41 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                           : 'bg-surface border-border text-text3 hover:border-border3'
                       }`}
                     >
-                      {p ?? '—'}
+                      {p ?? 'Ujian —'}
                     </button>
                   ))}
                 </div>
                 <button
-                  onClick={applyRange}
-                  className="w-full mt-1.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold transition-all hover:brightness-105 active:scale-95"
+                  onClick={applyRangeWithSemester}
+                  className="w-full mt-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold transition-all hover:brightness-105 active:scale-95"
                 >
                   Terapkan ke Rentang Bab
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Filter Tab Semester 1 vs Semester 2 */}
+          {mats.length > 0 && (
+            <div className="flex items-center gap-1 mb-3 bg-surface2 p-1 rounded-xl border border-border/50 text-xs font-bold">
+              <button
+                onClick={() => setSemesterFilter('all')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semua Bab ({mats.length})
+              </button>
+              <button
+                onClick={() => { setSemesterFilter('1'); setSingleSemesterNum(1); }}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '1' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semester 1 ({mats.filter(m => (m.semesterNum ?? 1) === 1).length})
+              </button>
+              <button
+                onClick={() => { setSemesterFilter('2'); setSingleSemesterNum(2); }}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '2' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semester 2 ({mats.filter(m => m.semesterNum === 2).length})
+              </button>
             </div>
           )}
 
@@ -1104,7 +1250,13 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                 const completedIds = new Set(teachingPos?.completedMaterialIds ?? []);
                 let runningTotal = 0;
 
-                return mats.map((m, i) => {
+                const displayMats = mats.filter(m => {
+                  if (semesterFilter === '1') return (m.semesterNum ?? 1) === 1;
+                  if (semesterFilter === '2') return m.semesterNum === 2;
+                  return true;
+                });
+
+                return displayMats.map((m, i) => {
                   const sessions = m.sessions ?? 1;
                   const isFinished = completedIds.has(m.id) || (teachingPos && teachingPos.totalSessionsDone >= runningTotal + sessions);
                   const isCurrent = teachingPos && teachingPos.material?.id === m.id;
@@ -1119,7 +1271,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                   }
 
                   const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
-                  const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${i+1}`;
+                  const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${m.order}`;
                   return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta, progressStatus }} onSave={saveItem} onDelete={del} />;
                 });
               })()}

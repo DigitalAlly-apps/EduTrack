@@ -57,6 +57,7 @@ export type MaterialDraft = MaterialDetails & {
   name: string;
   sessions?: number;
   examPeriod?: 'UTS' | 'UAS' | null;
+  semesterNum?: 1 | 2 | null;
 };
 
 function cleanOptionalText(value: string | undefined) {
@@ -69,17 +70,23 @@ function parseSessionCount(value: string | undefined, fallback: number) {
   return match ? Math.max(1, Number(match[0])) : fallback;
 }
 
-function parsePageRange(value: string | undefined): MaterialDetails {
-  const cleaned = value
-    ?.replace(/^(halaman|hal|hlm|page|pg)\.?\s*/i, '')
-    .trim();
+function parsePageRange(rawRange: string | undefined): { pageStart?: string; pageEnd?: string } {
+  if (!rawRange) return {};
+  const cleaned = rawRange.trim();
   if (!cleaned) return {};
 
-  const range = cleaned.match(/^(.+?)\s*[-–—]\s*(.+)$/);
-  if (range) {
+  const rangeMatch = cleaned.match(/^(?:hal\.?|halaman)?\s*(\d+)\s*[-–—]\s*(\d+)$/i);
+  if (rangeMatch) {
     return {
-      pageStart: cleanOptionalText(range[1]),
-      pageEnd: cleanOptionalText(range[2]),
+      pageStart: rangeMatch[1],
+      pageEnd: rangeMatch[2],
+    };
+  }
+
+  const singlePageMatch = cleaned.match(/^(?:hal\.?|halaman)?\s*(\d+)$/i);
+  if (singlePageMatch) {
+    return {
+      pageStart: singlePageMatch[1],
     };
   }
 
@@ -92,29 +99,35 @@ export function parseMaterialDraftLine(line: string, defaultSessions = 1): Mater
   if (!name) return null;
 
   let examPeriod: 'UTS' | 'UAS' | null = null;
-  const nonExamParts: string[] = [name];
+  let semesterNum: 1 | 2 | null = null;
+  const nonTagParts: string[] = [name];
 
   for (let i = 1; i < allParts.length; i++) {
     const p = allParts[i];
-    const upper = p.toUpperCase();
+    const upper = p.toUpperCase().replace(/\s+/g, '');
     if (upper === 'UTS' || upper === 'UAS') {
       examPeriod = upper as 'UTS' | 'UAS';
+    } else if (upper === 'SMT1' || upper === 'SEMESTER1' || upper === 'GANJIL') {
+      semesterNum = 1;
+    } else if (upper === 'SMT2' || upper === 'SEMESTER2' || upper === 'GENAP') {
+      semesterNum = 2;
     } else {
-      nonExamParts.push(p);
+      nonTagParts.push(p);
     }
   }
 
-  if (nonExamParts.length === 1) {
-    return { name, sessions: defaultSessions, examPeriod };
+  if (nonTagParts.length === 1) {
+    return { name, sessions: defaultSessions, examPeriod, ...(semesterNum ? { semesterNum } : {}) };
   }
 
-  const pageDetails = parsePageRange(nonExamParts[2]);
+  const pageDetails = parsePageRange(nonTagParts[2]);
   return {
     name,
-    sessions: parseSessionCount(nonExamParts[1], defaultSessions),
+    sessions: parseSessionCount(nonTagParts[1], defaultSessions),
     ...pageDetails,
-    note: cleanOptionalText(nonExamParts.slice(3).join(' | ')),
+    note: cleanOptionalText(nonTagParts.slice(3).join(' | ')),
     examPeriod,
+    ...(semesterNum ? { semesterNum } : {}),
   };
 }
 
@@ -1272,7 +1285,7 @@ export function getCurrentExamPhase(sem: Semester | null, todayKey?: string): Ex
   return null; // sudah melewati UAS
 }
 
-export function updateMaterial(id: string, name: string, sessions?: number, details?: MaterialDetails, examPeriod?: 'UTS' | 'UAS' | null) {
+export function updateMaterial(id: string, name: string, sessions?: number, details?: MaterialDetails, examPeriod?: 'UTS' | 'UAS' | null, semesterNum?: 1 | 2 | null) {
   updateData(d => {
     const m = d.materials.find(x => x.id === id);
     if (m) {
@@ -1284,6 +1297,7 @@ export function updateMaterial(id: string, name: string, sessions?: number, deta
         m.note = cleanOptionalText(details.note);
       }
       if (examPeriod !== undefined) m.examPeriod = examPeriod;
+      if (semesterNum !== undefined) m.semesterNum = semesterNum;
     }
   });
 }
@@ -1302,7 +1316,7 @@ export function reorderMaterials(subjectId: string, orderedIds: string[], level?
     });
   });
 }
-export function bulkAddMaterials(subjectId: string, names: (string | MaterialDraft)[], sessions = 1, level?: string, classId?: string, examPeriod?: 'UTS' | 'UAS' | null) {
+export function bulkAddMaterials(subjectId: string, names: (string | MaterialDraft)[], sessions = 1, level?: string, classId?: string, examPeriod?: 'UTS' | 'UAS' | null, semesterNum?: 1 | 2 | null) {
   updateData(d => {
     // Hitung maxOrder hanya untuk scope yang sama (level atau classId)
     const scopedMats = d.materials.filter(m =>
@@ -1327,6 +1341,7 @@ export function bulkAddMaterials(subjectId: string, names: (string | MaterialDra
           pageEnd: cleanOptionalText(draft.pageEnd),
           note: cleanOptionalText(draft.note),
           examPeriod: draft.examPeriod ?? examPeriod ?? null,
+          semesterNum: draft.semesterNum ?? semesterNum ?? 1,
         });
       }
     });
@@ -1338,7 +1353,8 @@ export function bulkSetExamPeriodByOrderRange(
   classId: string | undefined,
   startOrder: number,
   endOrder: number,
-  examPeriod: 'UTS' | 'UAS' | null
+  examPeriod?: 'UTS' | 'UAS' | null,
+  semesterNum?: 1 | 2 | null
 ) {
   updateData(d => {
     d.materials.forEach(m => {
@@ -1348,7 +1364,8 @@ export function bulkSetExamPeriodByOrderRange(
         m.order >= startOrder &&
         m.order <= endOrder
       ) {
-        m.examPeriod = examPeriod;
+        if (examPeriod !== undefined) m.examPeriod = examPeriod;
+        if (semesterNum !== undefined) m.semesterNum = semesterNum;
       }
     });
   });
