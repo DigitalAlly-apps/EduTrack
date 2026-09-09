@@ -56,6 +56,16 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
   ];
   const ActiveTabIcon = tab ? tabs.find(t => t.id === tab)?.icon : null;
 
+  const setupSteps = [
+    { id: 'classes' as SetupTab, step: 1, label: 'Kelas', desc: 'Rombel', done: data.classes.length > 0 },
+    { id: 'subjects' as SetupTab, step: 2, label: 'Mapel', desc: 'Pelajaran', done: data.subjects.length > 0 },
+    { id: 'schedules' as SetupTab, step: 3, label: 'Jadwal', desc: 'Mingguan', done: data.schedules.length > 0 },
+    { id: 'materials' as SetupTab, step: 4, label: 'Materi', desc: 'Bab & Ujian', done: data.materials.length > 0 },
+    { id: 'semesters' as SetupTab, step: 5, label: 'Semester', desc: 'UTS & UAS', done: getSemesters().length > 0 },
+  ];
+  const completedCount = setupSteps.filter(s => s.done).length;
+  const progressPct = Math.round((completedCount / setupSteps.length) * 100);
+
   return (
     <div className="setup-workspace pt-2 animate-fade-in">
       {/* ─── VISUAL ACADEMIC SETUP STEPPER ─── */}

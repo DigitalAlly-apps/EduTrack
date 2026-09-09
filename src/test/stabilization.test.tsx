@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import DailyWorkspace from '@/components/DailyWorkspace';
 import ProgressWorkspace from '@/components/ProgressWorkspace';
+import SetupView from '@/components/SetupView';
 import {
   composeSessionNote, dateKey, getData, getLastPageReached, getNextMeetingNote,
   getNextStartPage, getTeachingPosition, recordTeachingSession, saveData,
@@ -182,4 +183,14 @@ describe('active workspace flows', () => {
     expect(screen.getByLabelText(/Materi selanjutnya/)).toHaveValue('Jangan hilang');
     expect(getData().sessions).toHaveLength(0);
   });
+
+  it('renders SetupView (Kelola tab) without crashing or blank screen', () => {
+    render(
+      <MemoryRouter>
+        <SetupView onRefresh={() => {}} onOpenExamSettings={() => {}} onOpenInfo={() => {}} />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Alur Perencanaan Akademik')).toBeInTheDocument();
+  });
 });
+
