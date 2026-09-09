@@ -616,11 +616,11 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
         } ${borderClass} rounded-2xl p-3.5 flex items-center justify-between mb-2 transition-shadow hover:border-border3 group`}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
-          {/* Drag Handle min touch target 44px */}
+          {/* Drag Handle min touch target 44x44px */}
           <div
             {...attributes}
             {...listeners}
-            className="w-8 h-10 rounded-xl bg-surface2/60 border border-border/40 text-text3 hover:text-foreground flex items-center justify-center cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+            className="w-11 h-11 rounded-xl bg-surface2/60 border border-border/40 text-text3 hover:text-foreground flex items-center justify-center cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
             title="Tahan & geser untuk mengubah urutan"
           >
             <span className="text-base leading-none">⋮⋮</span>
@@ -637,17 +637,17 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => setEditing(true)}
-            className="w-10 h-10 rounded-xl bg-surface2 border border-border/60 text-text2 hover:text-foreground hover:border-border3 grid place-items-center transition-all active:scale-95"
+            className="w-11 h-11 rounded-xl bg-surface2 border border-border/60 text-text2 hover:text-foreground hover:border-border3 grid place-items-center transition-all active:scale-95"
             aria-label="Edit materi"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
             onClick={() => setDelSheet(true)}
-            className="w-10 h-10 rounded-xl bg-red/10 border border-red/20 text-red hover:bg-red/20 grid place-items-center transition-all active:scale-95"
+            className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red hover:bg-red/20 grid place-items-center transition-all active:scale-95"
             aria-label="Hapus materi"
           >
             <Trash2 className="h-4 w-4" />
