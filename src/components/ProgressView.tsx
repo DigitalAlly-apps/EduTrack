@@ -27,6 +27,11 @@ import {
   type DayStatus,
 } from '@/lib/data';
 import { getCalendarDayAudit, getCalendarHealthSummary, normalizeProgressConsistency } from '@/lib/progressConsistency';
+import {
+  getExamReadiness,
+  getClassReadinessSummary,
+  getSyllabusOverview
+} from '@/lib/syllabusEngine';
 import { useToast } from '@/hooks/use-toast';
 import type { Material } from '@/lib/types';
 
@@ -346,6 +351,9 @@ export function SubjectCard({
   const deficit = status.daysLeft === undefined ? 0 : Math.max(0, needed - available);
   const tone = status.status === 'behind' ? 'red' : status.status === 'tight' ? 'amber' : 'green';
 
+  const readiness = getExamReadiness(subjectId, classId);
+  const overview = getSyllabusOverview(subjectId, classId);
+
   const nextMeeting = getNextMeetingNote(classId, subjectId, data);
   const parsedNote = splitSessionNote(nextMeeting.text);
 
@@ -440,8 +448,59 @@ export function SubjectCard({
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <p className="text-xs font-bold uppercase tracking-wider text-primary">Rencana sampai ujian</p>
             <p className="mt-1 text-sm font-semibold">{status.daysLeft === undefined ? 'Tanggal ujian belum diatur.' : `Masih perlu ${needed} kali mengajar. Ada ${available} jadwal rutin tersisa.`}</p>
-            {status.daysLeft !== undefined && <p className="mt-1 text-xs text-text2">Ujian berlangsung ${status.daysLeft} hari lagi.</p>}
+            {status.daysLeft !== undefined && <p className="mt-1 text-xs text-text2">Ujian berlangsung {status.daysLeft} hari lagi.</p>}
           </div>
+
+          {/* Exam Readiness & Syllabus Progress Widget */}
+          {overview && (
+            <div className="rounded-xl border border-border2 bg-surface2/60 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-foreground">📊 Kesiapan Ujian & Silabus</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    readiness.status === 'ahead' || readiness.status === 'on-track' || readiness.status === 'complete'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : readiness.status === 'tight'
+                      ? 'bg-amber-500/20 text-amber border border-amber-500/30'
+                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {readiness.status === 'complete' ? 'Selesai ✓' : `Skor ${readiness.score}%`}
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-text3">{readiness.phaseLabel}</span>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                {/* UTS bar */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-0.5">
+                    <span className="font-semibold text-blue-400">Cakupan UTS ({overview.utsMaterials} Bab / {overview.utsSessions} Sesi)</span>
+                    <span className="font-bold text-foreground">{overview.utsPct}%</span>
+                  </div>
+                  <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-border/50">
+                    <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${overview.utsPct}%` }} />
+                  </div>
+                </div>
+
+                {/* UAS bar */}
+                <div>
+                  <div className="flex justify-between text-[11px] mb-0.5">
+                    <span className="font-semibold text-purple-400">Cakupan UAS ({overview.uasMaterials} Bab / {overview.uasSessions} Sesi)</span>
+                    <span className="font-bold text-foreground">{overview.uasPct}%</span>
+                  </div>
+                  <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-border/50">
+                    <div className="bg-purple-500 h-full rounded-full transition-all" style={{ width: `${overview.uasPct}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              {readiness.recommendation && (
+                <p className="text-[11px] italic text-text2 pt-0.5 border-t border-border/40">
+                  💡 {readiness.recommendation}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* BAB SAAT INI (High Contrast Visual Anchor) */}
           <div className="rounded-xl border border-border/70 bg-surface2/50 p-3.5 shadow-inner">

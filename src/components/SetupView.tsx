@@ -10,6 +10,13 @@ import {
   addHoliday, removeHoliday, getHolidays, getHolidayImpactSummary, getMaterials, setAcademicYear, applyTeacherLeave, parseMaterialDraftLines, getTeachingPosition,
   getSemesters, addSemester, updateSemester, deleteSemester, getCurrentExamPhase, getSubjectSemester, linkSubjectToSemester,
 } from '@/lib/data';
+import {
+  suggestExamPeriodDistribution,
+  applyExamPeriodDistribution,
+  getSyllabusOverview,
+  type DistributionSuggestion,
+  type SyllabusOverview,
+} from '@/lib/syllabusEngine';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
@@ -771,12 +778,36 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
     onRefresh();
   };
 
+  const [autoDistModalOpen, setAutoDistModalOpen] = useState(false);
+  const [autoDistSuggestions, setAutoDistSuggestions] = useState<DistributionSuggestion[]>([]);
+
   // Ambil materi untuk kelas ini
   const mats = (() => {
     if (!subId || !classId) return [];
     return getMaterials(subId, classId);
   })();
-  
+
+  const syllabusOverview = subId && classId ? getSyllabusOverview(subId, classId) : null;
+
+  const handleAutoDistribute = () => {
+    if (!subId || !classId) return;
+    const untaggedMats = mats.filter(m => !m.examPeriod);
+    if (!untaggedMats.length) {
+      toast({ title: 'Semua materi sudah memiliki tag UTS/UAS' });
+      return;
+    }
+    const suggestions = suggestExamPeriodDistribution(untaggedMats);
+    setAutoDistSuggestions(suggestions);
+    setAutoDistModalOpen(true);
+  };
+
+  const handleConfirmAutoDistribute = () => {
+    applyExamPeriodDistribution(autoDistSuggestions);
+    setAutoDistModalOpen(false);
+    toast({ title: `✓ ${autoDistSuggestions.length} materi berhasil dibagi untuk UTS & UAS` });
+    onRefresh();
+  };
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
@@ -845,6 +876,101 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           </div>
         )}
       </div>
+
+      {/* Ringkasan Silabus & Auto-Distribusi Cerdas */}
+      {syllabusOverview && syllabusOverview.totalMaterials > 0 && (
+        <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">💡 Ringkasan Silabus Cerdas</span>
+              {syllabusOverview.untaggedMaterials > 0 ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber border border-amber-500/30">
+                  {syllabusOverview.untaggedMaterials} belum di-tag
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  ✓ Terorganisir
+                </span>
+              )}
+            </div>
+            {syllabusOverview.untaggedMaterials > 0 && (
+              <button
+                onClick={handleAutoDistribute}
+                className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
+              >
+                <span>⚡ Bagi UTS/UAS</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mt-2 mb-2 text-xs">
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] uppercase font-bold text-blue-400 tracking-wider">Cakupan UTS</div>
+              <div className="text-base font-extrabold text-foreground mt-0.5">{syllabusOverview.utsMaterials} Bab</div>
+              <div className="text-[11px] text-text3">{syllabusOverview.utsSessions} Pertemuan</div>
+            </div>
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-2.5 text-center">
+              <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">Cakupan UAS</div>
+              <div className="text-base font-extrabold text-foreground mt-0.5">{syllabusOverview.uasMaterials} Bab</div>
+              <div className="text-[11px] text-text3">{syllabusOverview.uasSessions} Pertemuan</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog untuk Konfirmasi Auto-Distribusi */}
+      {autoDistModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">⚡</div>
+                <h3 className="font-bold text-base text-foreground">Saran Pembagian Ujian</h3>
+              </div>
+              <button onClick={() => setAutoDistModalOpen(false)} className="text-text3 hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-text2 leading-relaxed">
+              EduTrack membagi bab secara seimbang berdasarkan perkiraan total pertemuan untuk UTS dan UAS:
+            </p>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {autoDistSuggestions.map((s, idx) => (
+                <div key={s.materialId} className="flex items-center justify-between p-2.5 rounded-xl bg-surface2 border border-border2 text-xs">
+                  <div className="flex items-center gap-2 truncate pr-2">
+                    <span className="font-mono text-text3 font-bold">#{idx + 1}</span>
+                    <span className="font-semibold text-foreground truncate">{s.materialName}</span>
+                    <span className="text-[11px] text-text3">({s.sessions}×)</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                    s.suggestedPeriod === 'UTS' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                  }`}>
+                    {s.suggestedPeriod}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <button
+                onClick={() => setAutoDistModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmAutoDistribute}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all"
+              >
+                Terapkan Pembagian
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {subId && classId && (
         <div className="app-card-soft p-4 mb-4">

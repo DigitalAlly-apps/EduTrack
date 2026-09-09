@@ -18,6 +18,11 @@ import {
   getTomorrowExamItems, getTomorrowProctorSessions,
 } from '@/lib/examData';
 import { getDailyBriefing } from '@/lib/briefing';
+import {
+  getSyllabusAlerts,
+  getExamReadiness,
+  type SyllabusAlert
+} from '@/lib/syllabusEngine';
 import { requestNotifPermission } from '@/lib/notifications';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '@/lib/sessionDraft';
 import AssistantPanel from './AssistantPanel';
@@ -100,6 +105,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const insights = getInsights();
   const briefingItems = getDailyBriefing();
   const hasUrgentBriefing = briefingItems.some(b => b.urgent && b.type !== 'semua-beres');
+  const syllabusAlerts = getSyllabusAlerts(items.map(i => ({ classId: i.classId, subjectId: i.subjectId })));
 
   const [statusBarOpen, setStatusBarOpen] = useState(false);
   const [agendaBesokOpen, setAgendaBesokOpen] = useState(false);
@@ -765,7 +771,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         </button>
 
         {statusBarOpen && (
-          <div className="px-3.5 pb-3 space-y-1.5 border-t border-border2/40">
+          <div className="px-3.5 pb-3 space-y-1.5 border-t border-border2/40 pt-2">
             {briefingItems.filter(b => b.type !== 'semua-beres').map((item, i) => (
               <div key={i} className={`flex items-start gap-2 px-2.5 py-2 rounded-xl border text-xs ${
                 item.urgent ? 'bg-amber/10 border-amber/20 text-foreground' : 'bg-surface2/50 border-border/40 text-text2'
@@ -777,7 +783,35 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 </div>
               </div>
             ))}
-            {briefingItems.every(b => b.type === 'semua-beres') && (
+
+            {syllabusAlerts.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
+                <div className="text-[11px] font-bold text-text3 uppercase tracking-wider">🎯 Perhatian Silabus & Ujian</div>
+                {syllabusAlerts.slice(0, 4).map((alert, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-2 rounded-xl border text-xs flex items-center justify-between gap-2 ${
+                      alert.severity === 'critical'
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        : alert.severity === 'warning'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber'
+                        : alert.severity === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                        : 'bg-surface2/60 border-border/50 text-text2'
+                    }`}
+                  >
+                    <span className="font-semibold truncate">{alert.message}</span>
+                    {alert.phase && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-surface border border-border/40 flex-shrink-0">
+                        {alert.phase}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {briefingItems.every(b => b.type === 'semua-beres') && syllabusAlerts.length === 0 && (
               <div className="text-xs text-text3 px-2.5 py-2">✅ Tidak ada ujian mendekat atau koreksi pending.</div>
             )}
           </div>
