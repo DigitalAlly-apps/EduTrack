@@ -20,7 +20,7 @@ import {
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
-import { Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FlaskConical, GraduationCap, HardDrive, HeartPulse, HelpCircle, Layers, Link2, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Award, Bell, BookMarked, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Database, Download, FileText, FlaskConical, GraduationCap, HardDrive, HeartPulse, HelpCircle, Info, Layers, Link2, Palmtree, Pencil, RotateCcw, Save, ShieldAlert, SkipForward, SlidersHorizontal, Sparkles, Stethoscope, Trash2, Upload, UserRound, X } from 'lucide-react';
 
 interface SetupViewProps {
   onRefresh: () => void;
@@ -73,8 +73,8 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
         <div className="bg-gradient-to-br from-primary/10 via-surface2/60 to-surface border border-primary/25 rounded-3xl p-4 sm:p-5 mb-4 shadow-sm animate-slide-up">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">
-                🎯
+              <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary flex-shrink-0">
+                <Sparkles className="h-4 w-4" />
               </div>
               <div>
                 <h2 className="text-sm font-extrabold text-foreground tracking-tight">Alur Perencanaan Akademik</h2>
@@ -155,17 +155,21 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
                 {data.teacherName || 'Belum diisi'}
               </div>
               <div className="text-xs text-text3 font-medium truncate mb-1">Guru / Pengajar</div>
-              <div className="text-xs font-bold uppercase tracking-wider text-primary">
-                ✦ {data.classes.length} Kelas &middot; {data.subjects?.length ?? 0} Mapel &middot; {data.materials?.length ?? 0} Materi
+              <div className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 flex-wrap">
+                <span>{data.classes.length} Kelas</span>
+                <span>&middot;</span>
+                <span>{data.subjects?.length ?? 0} Mapel</span>
+                <span>&middot;</span>
+                <span>{data.materials?.length ?? 0} Materi</span>
               </div>
               {data.academicYear ? (
                 <div className="text-xs text-text2 mt-1 flex items-center gap-1.5">
-                  <span className="opacity-60">📅</span>
+                  <CalendarDays className="h-3.5 w-3.5 text-text3" />
                   <span className="truncate">Tahun Ajaran: {data.academicYear}</span>
                 </div>
               ) : (
                 <div className="text-xs text-amber mt-1 flex items-center gap-1.5">
-                  <span>⚠️</span>
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber" />
                   <span>Belum mengatur tahun ajaran</span>
                 </div>
               )}
@@ -516,7 +520,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                   : 'bg-surface border-border/80 text-text3 hover:text-foreground'
               }`}
             >
-              📘 Smt 1 UTS
+              Smt 1 UTS
             </button>
             <button
               type="button"
@@ -527,7 +531,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                   : 'bg-surface border-border/80 text-text3 hover:text-foreground'
               }`}
             >
-              💜 Smt 1 UAS
+              Smt 1 UAS
             </button>
             <button
               type="button"
@@ -538,7 +542,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                   : 'bg-surface border-border/80 text-text3 hover:text-foreground'
               }`}
             >
-              📗 Smt 2 UTS
+              Smt 2 UTS
             </button>
             <button
               type="button"
@@ -549,7 +553,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                   : 'bg-surface border-border/80 text-text3 hover:text-foreground'
               }`}
             >
-              💖 Smt 2 UAS
+              Smt 2 UAS
             </button>
           </div>
           <button
@@ -561,7 +565,7 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
                 : 'bg-transparent border-transparent text-text3 hover:text-foreground'
             }`}
           >
-            ⚪ Tanpa Tag Ujian (Bebas)
+            Tanpa Tag Ujian (Bebas)
           </button>
         </div>
 
@@ -1060,7 +1064,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       {/* Konteks penjelasan examPeriod */}
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
         <p className="text-xs text-text2 leading-relaxed">
-          <span className="font-bold text-foreground">ℹ️ Cara kerja Materi & Ujian:</span><br />
+          <Info className="h-4 w-4 text-primary inline mr-1" />
+          <span className="font-bold text-foreground">Cara kerja Materi & Ujian:</span><br />
           Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Anda dapat memasukkan bab untuk <span className="font-bold text-emerald-400">Semester 1 & 2</span> sekaligus dan menandai bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span>.
         </p>
       </div>
@@ -1076,7 +1081,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           <FormField label="Kelas" className="mb-0">
             <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} disabled={!subId || classesForSubject.length === 0} className="form-select-style border-primary text-xs disabled:opacity-50">
               <option value="">{!subId ? '← Pilih mapel dulu' : classesForSubject.length === 0 ? 'Belum ada kelas' : 'Pilih kelas...'}</option>
-              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}{classesWithSchedule.find(x => x.id === c.id) ? '' : ' ⚠️'}</option>)}
+              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}{classesWithSchedule.find(x => x.id === c.id) ? '' : ' (perlu jadwal)'}</option>)}
             </select>
           </FormField>
         </div>
@@ -1084,8 +1089,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         {/* Info panel setelah mapel & kelas dipilih */}
         {subId && classId && (
           <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-xs text-text2 space-y-0.5">
-            <div className="font-bold text-foreground text-[12px]">
-              📚 {selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}
+            <div className="font-bold text-foreground text-[12px] flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-primary" />
+              <span>{selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}</span>
             </div>
             {subjectSemester ? (
               <div>Semester: <span className="font-medium text-foreground">{subjectSemester.name}</span>
@@ -1093,10 +1099,16 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                 {subjectSemester.uasDate && <span className="ml-2 text-purple-400">UAS: {subjectSemester.uasDate}</span>}
               </div>
             ) : (
-              <div className="text-amber">⚠️ Mapel ini belum dihubungkan ke semester. <button onClick={() => (document as any).__eduSetTab?.('semesters')} className="underline font-semibold">Atur di Semester →</button></div>
+              <div className="text-amber flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>Mapel ini belum dihubungkan ke semester. <button onClick={() => (document as any).__eduSetTab?.('semesters')} className="underline font-semibold">Atur di Semester →</button></span>
+              </div>
             )}
             {hasNoSchedule && (
-              <div className="text-amber">⚠️ Belum ada jadwal untuk mapel ini — materi tersimpan tapi belum aktif. <button onClick={() => (document as any).__eduSetTab?.('schedules')} className="underline font-semibold">Buat Jadwal →</button></div>
+              <div className="text-amber flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>Belum ada jadwal untuk mapel ini — materi tersimpan tapi belum aktif. <button onClick={() => (document as any).__eduSetTab?.('schedules')} className="underline font-semibold">Buat Jadwal →</button></span>
+              </div>
             )}
           </div>
         )}
@@ -1107,7 +1119,8 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
         <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">💡 Silabus Cerdas Smt 1 & 2</span>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-bold text-foreground">Silabus Cerdas Smt 1 & 2</span>
               {syllabusOverview.untaggedMaterials > 0 ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber border border-amber-500/30">
                   {syllabusOverview.untaggedMaterials} belum di-tag
@@ -1122,14 +1135,15 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
               onClick={handleAutoDistribute}
               className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
             >
-              <span>⚡ Bagi Smt 1 & 2</span>
+              <SlidersHorizontal className="h-3 w-3" />
+              <span>Bagi Smt 1 & 2</span>
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
               <div className="text-[11px] font-extrabold text-foreground flex justify-between">
-                <span>📘 Semester 1</span>
+                <span>Semester 1 (Ganjil)</span>
                 <span className="text-text3">{syllabusOverview.smt1Materials} Bab</span>
               </div>
               <div className="flex gap-1 text-[10px] font-bold">
@@ -1139,7 +1153,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             </div>
             <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
               <div className="text-[11px] font-extrabold text-foreground flex justify-between">
-                <span>📗 Semester 2</span>
+                <span>Semester 2 (Genap)</span>
                 <span className="text-text3">{syllabusOverview.smt2Materials} Bab</span>
               </div>
               <div className="flex gap-1 text-[10px] font-bold">
@@ -1157,7 +1171,9 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
           <div className="bg-surface border border-border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-bold">⚡</div>
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </div>
                 <h3 className="font-bold text-base text-foreground">Saran Pembagian Semester 1 & 2</h3>
               </div>
               <button onClick={() => setAutoDistModalOpen(false)} className="text-text3 hover:text-foreground">
@@ -1278,7 +1294,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                         : 'bg-surface border-border text-text3 hover:border-border3'
                     }`}
                   >
-                    <span>📘 Smt 1 UTS</span>
+                    <span>Smt 1 UTS</span>
                   </button>
                   <button
                     type="button"
@@ -1289,7 +1305,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                         : 'bg-surface border-border text-text3 hover:border-border3'
                     }`}
                   >
-                    <span>💜 Smt 1 UAS</span>
+                    <span>Smt 1 UAS</span>
                   </button>
                   <button
                     type="button"
@@ -1300,7 +1316,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                         : 'bg-surface border-border text-text3 hover:border-border3'
                     }`}
                   >
-                    <span>📗 Smt 2 UTS</span>
+                    <span>Smt 2 UTS</span>
                   </button>
                   <button
                     type="button"
@@ -1311,7 +1327,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
                         : 'bg-surface border-border text-text3 hover:border-border3'
                     }`}
                   >
-                    <span>💖 Smt 2 UAS</span>
+                    <span>Smt 2 UAS</span>
                   </button>
                 </div>
                 <div className="flex items-center justify-between text-[11px] pt-0.5">
@@ -2089,31 +2105,32 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
       {/* Visual Academic Journey Timeline */}
       <div className="bg-surface2/80 border border-border rounded-2xl p-3 mb-4 space-y-2">
         <div className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
-          <span>🎓 Alur Perjalanan Akademik per Semester</span>
+          <GraduationCap className="h-3.5 w-3.5 text-primary" />
+          <span>Alur Perjalanan Akademik per Semester</span>
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
           <div className="badge-smt1-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
-            <span>📘 Smt 1 (Ganjil)</span>
+            <span>Smt 1 (Ganjil)</span>
           </div>
           <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
-            📝 UTS
+          <div className="bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
+            UTS
           </div>
           <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-violet-500/15 border border-violet-500/30 text-violet-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
-            🏆 UAS
+          <div className="bg-violet-500/15 border border-violet-500/30 text-violet-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
+            UAS
           </div>
           <span className="text-text3 text-xs font-mono">→</span>
           <div className="badge-smt2-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
-            <span>📗 Smt 2 (Genap)</span>
+            <span>Smt 2 (Genap)</span>
           </div>
           <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
-            📝 UTS
+          <div className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
+            UTS
           </div>
           <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-400 px-2 py-1 rounded-xl font-bold whitespace-nowrap">
-            🎓 UAS / Kenaikan
+          <div className="bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
+            UAS / Kenaikan
           </div>
         </div>
       </div>
@@ -2121,7 +2138,8 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
       {/* Penjelasan konsep */}
       <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
         <p className="text-xs text-text2 leading-relaxed">
-          <span className="font-bold text-foreground">ℹ️ Semester & Ujian:</span><br />
+          <Info className="h-4 w-4 text-primary inline mr-1" />
+          <span className="font-bold text-foreground">Semester & Ujian:</span><br />
           Buat semester (mis. <em>Smt 1 Ganjil 2025/2026</em>), tentukan kapan UTS dan UAS berlangsung, lalu <strong>hubungkan mapel</strong> ke semester ini. Sistem akan otomatis tahu batas materi UTS dan UAS untuk setiap mapel.
         </p>
       </div>
