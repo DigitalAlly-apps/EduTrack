@@ -1359,6 +1359,12 @@ export function getSessionHistory(monthPrefix: string) { // YYYY-MM
     .filter(s => s.date.startsWith(monthPrefix))
     .sort((a, b) => b.date.localeCompare(a.date) || b.completedAt.localeCompare(a.completedAt));
 }
+export function getSessionStartTime(session: Session): string | null {
+  const data = getData();
+  const schedule = data.schedules.find(s => s.id === session.scheduleId);
+  return schedule?.startTime ?? null;
+}
+
 export function getExamCountdowns() {
   const data = getData();
   const res: { subject: string; daysLeft: number }[] = [];

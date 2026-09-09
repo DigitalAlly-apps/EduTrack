@@ -114,12 +114,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
   const [endedBanner, setEndedBanner] = useState<string | null>(null);
   const endedNotifiedRef = useRef<Set<string>>(new Set());
 
-  // Tick every 30s to detect class ending
+  // Tick every 15s if active session, 30s otherwise to detect class ending & update countdowns
   const [tick, setTick] = useState(0);
+  const activeSessionExists = items.some(x => x.active && !x.done);
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    const intervalMs = activeSessionExists ? 15_000 : 30_000;
+    const id = setInterval(() => setTick(t => t + 1), intervalMs);
     return () => clearInterval(id);
-  }, []);
+  }, [activeSessionExists]);
 
   // Detect class just ended (within 10 min) and not yet marked done
   useEffect(() => {
@@ -1249,19 +1251,18 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             style={{ animationDelay: `${i * 0.05}s` }}
           >
             {/* Spine */}
-            <div className="flex flex-col items-center w-[48px] flex-shrink-0 py-[12px] gap-[6px]">
+            <div className="flex flex-col items-center w-[54px] flex-shrink-0 py-[12px] gap-[4px]">
               {state === 'done' ? (
                 <div className="flex flex-col items-center">
-                  <div className="text-xs font-bold text-text2 tabular-nums text-center">{fmt(item.startTime)}</div>
+                  <div className="text-sm font-black text-foreground tabular-nums text-center">{fmt(item.startTime)}</div>
                   <div className={`text-xs font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
+                  <div className="mt-0.5 rounded bg-surface2/60 px-1 py-0.5 text-[10px] font-extrabold text-text3">{item.duration || 45}m</div>
                 </div>
                ) : (
-                 <div className="flex flex-col items-center">
-                   <div className="text-xs font-semibold text-text2 tabular-nums whitespace-nowrap">{fmt(item.startTime)}</div>
-                   <div className={`text-xs font-medium tabular-nums mt-0.5 ${item.active ? 'text-primary font-bold' : 'text-text3'}`}>{fmt(item.endTime)}</div>
-                   {!item.active && !item.done && (
-                     <div className="text-xs font-medium text-teal tabular-nums">{fmtCountdown(timeToMin(item.startTime) - currentMin())}</div>
-                   )}
+                 <div className={`flex flex-col items-center w-full rounded-xl py-1 transition-colors ${item.active ? 'bg-primary/10 border border-primary/30' : ''}`}>
+                   <div className={`text-sm font-black tabular-nums whitespace-nowrap text-center ${item.active ? 'text-primary' : 'text-foreground'}`}>{fmt(item.startTime)}</div>
+                   <div className={`text-xs font-bold tabular-nums text-center mt-0.5 ${item.active ? 'text-primary/90' : 'text-text3'}`}>{fmt(item.endTime)}</div>
+                   <div className="mt-0.5 rounded bg-surface2/80 px-1 py-0.5 text-[10px] font-extrabold text-text3">{item.duration || 45}m</div>
                  </div>
                )}
 
@@ -1286,7 +1287,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
               } ${markingId === item.id ? 'scale-[0.98] opacity-70' : ''}`}>
                 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
                      <div className={`text-[15px] font-bold tracking-tight leading-tight truncate ${item.skipped ? 'text-text2' : 'text-foreground'}`}>
                        {item.className}
                      </div>
@@ -1295,7 +1296,37 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         ? <span className="text-xs font-bold text-amber bg-amber/10 px-1.5 py-0.5 rounded-full uppercase">Dilewati</span>
                         : <span className="text-xs font-bold text-green bg-green/10 px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
                     )}
+                    {!item.active && !item.done && (
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-teal/30 bg-teal/10 px-2 py-0.5 text-xs font-black text-teal shadow-2xs">
+                        <span>⏱</span>
+                        <span>{fmtCountdown(timeToMin(item.startTime) - currentMin())}</span>
+                      </span>
+                    )}
                   </div>
+
+                  {state === 'active' && (() => {
+                    const totalDuration = item.duration || 45;
+                    const elapsed = currentMin() - timeToMin(item.startTime);
+                    const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+                    const remainingMin = Math.max(0, timeToMin(item.endTime) - currentMin());
+                    const isOvertime = currentMin() >= timeToMin(item.endTime);
+                    return (
+                      <div className="my-1.5 space-y-1 rounded-xl border border-primary/20 bg-primary/10 p-2">
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span className="text-primary flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                            <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
+                          </span>
+                          <span className={isOvertime ? 'text-red font-black' : 'text-primary font-black'}>
+                            {isOvertime ? 'Overtime' : `${remainingMin} mnt tersisa`}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface2/80">
+                          <div className={`h-full transition-all duration-500 ${isOvertime ? 'bg-red' : 'bg-primary'}`} style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
                   
                   <div className="text-[12px] text-text2 font-medium flex items-center flex-wrap gap-x-1.5 gap-y-0.5 min-w-0">
                     <span className="min-w-0 max-w-full truncate">{item.subjectName}</span>

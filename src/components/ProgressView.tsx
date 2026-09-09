@@ -5,11 +5,13 @@ import {
   composeSessionNote,
   dateFromKey,
   dateKey,
+  fmt,
   getData,
   getMaterials,
   getNextMeetingNote,
   updateNextMeetingNote,
   getSessionHistory,
+  getSessionStartTime,
   getSubjectStatus,
   getSubjectTarget,
   getTeachingPosition,
@@ -862,7 +864,13 @@ export function HistoryTab({ revision, repairDate, classId, subjectId, initialDa
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [retroactiveSheetOpen, setRetroactiveSheetOpen] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const items = useMemo(() => getSessionHistory(month).filter(s => (!classId || s.classId === classId) && (!subjectId || s.subjectId === subjectId)), [month, revision, classId, subjectId]);
+  const [filterClassId, setFilterClassId] = useState(classId ?? '');
+  const [filterSubjectId, setFilterSubjectId] = useState(subjectId ?? '');
+
+  useEffect(() => { setFilterClassId(classId ?? ''); }, [classId]);
+  useEffect(() => { setFilterSubjectId(subjectId ?? ''); }, [subjectId]);
+
+  const items = useMemo(() => getSessionHistory(month).filter(s => (!filterClassId || s.classId === filterClassId) && (!filterSubjectId || s.subjectId === filterSubjectId)), [month, revision, filterClassId, filterSubjectId]);
   useEffect(() => { if (initialDate) setMonth(initialDate.slice(0, 7)); }, [initialDate]);
   const data = useMemo(() => getData(), [revision]);
   const { toast } = useToast();
@@ -880,17 +888,46 @@ export function HistoryTab({ revision, repairDate, classId, subjectId, initialDa
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border/70 pb-3">
-        <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-primary/30" htmlFor="history-month">
-          <span className="shrink-0 text-xs font-black uppercase tracking-wide text-text3">Bulan</span>
-          <input id="history-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-xs font-bold shadow-none focus:ring-0" />
-        </label>
-        <button
-          onClick={() => setRetroactiveSheetOpen(true)}
-          className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3 text-xs font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> <span>Catat KBM Terlupa</span>
-        </button>
+      <div className="mb-3 space-y-2 border-b border-border/70 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex min-h-[44px] min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:ring-2 focus-within:ring-primary/30" htmlFor="history-month">
+            <span className="shrink-0 text-xs font-black uppercase tracking-wide text-text3">Bulan</span>
+            <input id="history-month" type="month" value={month} onChange={e => setMonth(e.target.value)} className="form-input-style min-h-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-xs font-bold shadow-none focus:ring-0" />
+          </label>
+          <button
+            onClick={() => setRetroactiveSheetOpen(true)}
+            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3 text-xs font-black text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> <span>Catat KBM Terlupa</span>
+          </button>
+        </div>
+        {/* Optional Filter Chips */}
+        <div className="flex flex-wrap gap-2 text-xs">
+          <select
+            value={filterClassId}
+            onChange={e => setFilterClassId(e.target.value)}
+            className="rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/30"
+          >
+            <option value="">Semua Kelas</option>
+            {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select
+            value={filterSubjectId}
+            onChange={e => setFilterSubjectId(e.target.value)}
+            className="rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/30"
+          >
+            <option value="">Semua Mapel</option>
+            {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          {(filterClassId || filterSubjectId) && (
+            <button
+              onClick={() => { setFilterClassId(''); setFilterSubjectId(''); }}
+              className="rounded-xl border border-border/80 bg-surface2/50 px-2 py-1 text-[11px] font-semibold text-text3 hover:text-foreground"
+            >
+              Reset Filter
+            </button>
+          )}
+        </div>
       </div>
       {!dates.length ? (
         <EmptyState title="Tidak ada riwayat" text="Belum ada sesi tercatat di bulan ini." />
@@ -906,15 +943,27 @@ export function HistoryTab({ revision, repairDate, classId, subjectId, initialDa
                   const cls = data.classes.find(i => i.id === session.classId)?.name ?? '?';
                   const subject = data.subjects.find(i => i.id === session.subjectId)?.name ?? '?';
                   const material = data.materials.find(i => i.id === session.materialId);
+                  const startTime = getSessionStartTime(session);
+                  const isSkipped = session.materialId === 'SKIPPED';
                   const { mainNote, reminder } = splitSessionNote(session.note);
                   return (
                     <article key={session.id} className="bg-surface/30 px-1 py-2.5">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2.5">
+                        {startTime && (
+                          <div className="flex shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface2/70 px-2 py-1 text-center font-mono text-xs font-black text-foreground shadow-xs">
+                            {fmt(startTime)}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-black leading-snug text-foreground">
-                            {cls} <span className="text-text3" aria-hidden="true">·</span> {subject}
-                          </p>
-                          <p className="mt-0.5 text-xs leading-snug text-text2">{material?.name ?? (session.materialId === 'SKIPPED' ? 'Dilewati' : 'Tanpa materi')}</p>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${isSkipped ? 'bg-amber/15 text-amber' : 'bg-green/15 text-green'}`}>
+                              {isSkipped ? '○' : '✓'}
+                            </span>
+                            <p className="text-[13px] font-black leading-snug text-foreground truncate">
+                              {cls} <span className="text-text3" aria-hidden="true">·</span> {subject}
+                            </p>
+                          </div>
+                          <p className="mt-0.5 text-xs leading-snug text-text2">{material?.name ?? (isSkipped ? 'Dilewati' : 'Tanpa materi')}</p>
                         </div>
                         <button
                           onClick={() => setEditingSessionId(session.id)}
