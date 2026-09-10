@@ -385,11 +385,10 @@ function AppInner() {
         </header>
 
         {/* Content view container. Jangan buat stacking-context sendiri: modal view harus bisa mengalahkan floating nav. */}
-        <main id="main-content" ref={contentRef} tabIndex={-1} aria-label={desktopNavItems.find(item => item.id === view)?.label || 'Panduan'} className="app-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(120px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
+        <main id="main-content" ref={contentRef} tabIndex={-1} aria-label={desktopNavItems.find(item => item.id === view)?.label || 'Panduan'} className="app-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-[calc(90px+env(safe-area-inset-bottom))] lg:pb-8 lg:px-10 lg:pt-6 scrollbar-thin">
           <div className="max-w-5xl mx-auto w-full">
-            <div className="lg:hidden mb-5">
-              <h1 className="font-display text-2xl font-bold">{desktopNavItems.find(item => item.id === view)?.label || 'Panduan'}</h1>
-              <p className="text-sm text-text2 mt-1">{desktopNavItems.find(item => item.id === view)?.desc || 'Kenali fitur dan cara menggunakan EduTrack.'}</p>
+            <div className="lg:hidden mb-4">
+              <h1 className="font-display text-xl font-bold text-foreground">{desktopNavItems.find(item => item.id === view)?.label || 'Panduan'}</h1>
             </div>
             <Suspense fallback={<ViewFallback />}>
               {view === 'today'    && <TodayView refreshKey={refreshKey} onRefresh={refresh} />}

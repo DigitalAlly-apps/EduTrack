@@ -469,7 +469,7 @@ body {
   }
   input, select, textarea { scroll-margin-block: 24px; }
 }
-.app-content { scroll-padding-block: 24px 110px; }
+.app-content { scroll-padding-block: 24px 90px; }
 .app-icon-button { min-width: 44px; min-height: 44px; }
 .app-bottom-sheet { background: hsl(var(--card)); }
 .skip-link { position: fixed; top: 12px; left: 12px; z-index: 1000; transform: translateY(-160%); padding: 12px 20px; border-radius: 12px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, Plus, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bookmark, CalendarDays, Check, ChevronDown, History, LayoutDashboard, Loader2, Pencil, Plus, RotateCcw, X } from 'lucide-react';
 import {
   composeSessionNote,
   dateFromKey,
@@ -456,7 +456,7 @@ export function SubjectCard({
             <div className="rounded-xl border border-border2 bg-surface2/60 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-foreground">📊 Kesiapan Ujian & Silabus</span>
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5"><BarChart3 aria-hidden="true" className="h-3.5 w-3.5" /> Kesiapan Ujian &amp; Silabus</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     readiness.status === 'ahead' || readiness.status === 'on-track' || readiness.status === 'complete'
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -558,8 +558,8 @@ export function SubjectCard({
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 transition-all">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs">📌</span>
-                      <p className="text-sm font-semibold text-primary">{nextMeeting.legacy ? 'Referensi catatan lama' : 'Pertemuan berikutnya'}</p>
+                      <Bookmark aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
+                       <p className="text-sm font-semibold text-primary">{nextMeeting.legacy ? 'Referensi catatan lama' : 'Pertemuan berikutnya'}</p>
                     </div>
                     {!editingNote && (
                       <button

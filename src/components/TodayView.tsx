@@ -11,7 +11,7 @@ import {
 import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import SmartReschedulerModal from './SmartReschedulerModal';
-import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X, CalendarDays, BookOpen, Clock } from 'lucide-react';
+import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X, CalendarDays, BookOpen, Clock, Bell, Pin, BookMarked } from 'lucide-react';
 import {
   getExamDayMode, setExamDayMode,
   getTodayExamItems, getTodayProctorSessions,
@@ -692,7 +692,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
     <div>
       {examModeBanner && showKbmDuringExam && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber/30 bg-amber/10 px-3.5 py-3">
-          <span className="mt-0.5 text-base">📋</span>
+          <FilePenLine aria-hidden="true" className="mt-0.5 h-4 w-4 text-amber flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="text-[12px] font-bold text-amber">Mode fokus ujian aktif</div>
             <div className="text-xs leading-snug text-text2">Jadwal KBM tetap dapat dicatat dari halaman ini.</div>
@@ -825,7 +825,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         return (
           <div className="flex items-center justify-between bg-primary/10 border border-primary-border rounded-2xl px-4 py-3 mb-3 animate-slide-up">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🔔</span>
+              <Bell aria-hidden="true" className="h-4 w-4 text-primary flex-shrink-0" />
               <div>
                 <div className="text-xs font-bold text-primary uppercase tracking-wide">Pelajaran Selesai</div>
                 <div className="text-xs text-text2">{endedItem.className} · {endedItem.subjectName}</div>
@@ -1057,15 +1057,16 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
       {/* Next Card */}
       {active && next && next.id !== active.id && (
-        <div className="bg-surface border border-border rounded-lg p-[13px_15px] flex items-center gap-3 mb-[10px] relative overflow-hidden animate-slide-up-delay-1">
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-teal rounded-r" />
-          <div className="w-[38px] h-[38px] rounded-[10px] bg-teal-dim border border-teal grid place-items-center text-base flex-shrink-0">📚</div>
+        <div className="bg-surface border border-teal/20 rounded-xl p-[13px_15px] flex items-center gap-3 mb-[10px] animate-slide-up-delay-1">
+          <div className="w-[38px] h-[38px] rounded-xl bg-teal-dim border border-teal/40 grid place-items-center flex-shrink-0">
+            <BookOpen aria-hidden="true" className="h-4 w-4 text-teal" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold tracking-[0.8px] uppercase text-teal mb-[2px]">Setelah ini</div>
             <div className="text-sm font-semibold truncate">{next.className} — {next.subjectName} <span className="opacity-50 font-normal ml-1">(Sesi ke-{Math.min(next.materialsDone + 1, next.totalMats)}/{next.totalMats})</span></div>
-            {next.nextMat && <div className="text-xs text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">📖 {next.nextMat.name}{getMaterialPageLabel(next.nextMat) ? ` · ${getMaterialPageLabel(next.nextMat)}` : ''}</div>}
+            {next.nextMat && <div className="text-xs text-text2 mt-[1px] leading-snug break-words [overflow-wrap:anywhere] line-clamp-2">{next.nextMat.name}{getMaterialPageLabel(next.nextMat) ? ` · ${getMaterialPageLabel(next.nextMat)}` : ''}</div>}
           </div>
-          <div className="bg-teal-dim border border-teal rounded-[9px] p-[6px_10px] text-center flex-shrink-0">
+          <div className="bg-teal-dim border border-teal/40 rounded-lg p-[6px_10px] text-center flex-shrink-0">
             <span className="text-[13px] font-semibold text-teal tabular-nums block leading-tight">{fmt(next.startTime)}</span>
             <div className="text-xs text-text3">{fmtCountdown(timeToMin(next.startTime) - currentMin())}</div>
           </div>
@@ -1117,7 +1118,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   className="w-full min-h-[44px] flex items-center justify-between gap-3 px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                   aria-expanded={suggestionsOpen}
                 >
-                  <span className="text-xs font-bold text-primary">📌 Disarankan hari ini ({suggestions.length})</span>
+                  <span className="text-xs font-bold text-primary flex items-center gap-1.5"><Pin aria-hidden="true" className="h-3 w-3" /> Disarankan hari ini ({suggestions.length})</span>
                   <ChevronDown className={`h-4 w-4 text-primary transition-transform ${suggestionsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {suggestionsOpen && <div className="space-y-2 border-t border-primary/15 p-2.5 animate-slide-up">{renderInsights(suggestions)}</div>}
@@ -1254,6 +1255,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
         const teachingPosition = !item.done ? getTeachingPosition(item.classId, item.subjectId) : null;
         const itemMaterial = teachingPosition?.material;
         const itemPageLabel = getMaterialPageLabel(itemMaterial);
+        // Apakah item ini adalah sesi "berikutnya" (upcoming pertama yang belum done)
+        const isNextUpcoming = !item.done && !item.active && items.filter(x => !x.done && !x.active).indexOf(item) === 0;
+        const diffToStart = timeToMin(item.startTime) - currentMin();
 
         const remainingSessionsInBab = teachingPosition && itemMaterial 
           ? Math.max(0, teachingPosition.totalSessionsInMaterial - teachingPosition.sessionIndex)
@@ -1284,25 +1288,60 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             className="flex items-stretch gap-[10px] mb-1 animate-slide-up"
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            {/* Spine */}
+            {/* Spine — jam + status dot */}
             <div className="flex flex-col items-center w-[54px] flex-shrink-0 py-[12px] gap-[4px]">
               {state === 'done' ? (
-                <div className="flex flex-col items-center">
-                  <div className="text-sm font-black text-foreground tabular-nums text-center">{fmt(item.startTime)}</div>
-                  <div className={`text-xs font-bold tabular-nums text-center opacity-80 ${item.skipped ? 'text-text3' : 'text-green'}`}>{fmt(item.endTime)}</div>
+                <div className="flex flex-col items-center w-full">
+                  {/* Jam selesai — muted */}
+                  <div className={`w-full text-center rounded-lg px-0.5 py-0.5 ${item.skipped ? 'bg-amber/10' : 'bg-green/10'}`}>
+                    <div className={`text-sm font-black tabular-nums leading-tight ${item.skipped ? 'text-amber/70' : 'text-green'}`}>{fmt(item.startTime)}</div>
+                    <div className={`text-[10px] font-bold tabular-nums opacity-80 ${item.skipped ? 'text-amber/50' : 'text-green/70'}`}>{fmt(item.endTime)}</div>
+                  </div>
                   <div className="mt-0.5 rounded bg-surface2/60 px-1 py-0.5 text-[10px] font-extrabold text-text3">{item.duration || 45}m</div>
                 </div>
-               ) : (
-                 <div className={`flex flex-col items-center w-full rounded-xl py-1 transition-colors ${item.active ? 'bg-primary/10 border border-primary/30' : ''}`}>
-                   <div className={`text-sm font-black tabular-nums whitespace-nowrap text-center ${item.active ? 'text-primary' : 'text-foreground'}`}>{fmt(item.startTime)}</div>
-                   <div className={`text-xs font-bold tabular-nums text-center mt-0.5 ${item.active ? 'text-primary/90' : 'text-text3'}`}>{fmt(item.endTime)}</div>
-                   <div className="mt-0.5 rounded bg-surface2/80 px-1 py-0.5 text-[10px] font-extrabold text-text3">{item.duration || 45}m</div>
-                 </div>
-               )}
+              ) : state === 'active' ? (
+                <div className="flex flex-col items-center w-full">
+                  {/* Jam aktif */}
+                  <div className="w-full rounded-xl bg-primary/15 border border-primary/40 px-0.5 py-1.5 text-center">
+                    <div className="text-sm font-black text-primary tabular-nums leading-tight">{fmt(item.startTime)}</div>
+                    <div className="text-[10px] font-bold text-primary/80 tabular-nums mt-0.5">{fmt(item.endTime)}</div>
+                  </div>
+                  {/* Sisa waktu */}
+                  <div className="mt-1 w-full rounded-lg bg-primary/10 border border-primary/20 px-0.5 py-0.5 text-center">
+                    <div className="text-[10px] font-black text-primary tabular-nums leading-tight">
+                      {Math.max(0, timeToMin(item.endTime) - currentMin())}m
+                    </div>
+                  </div>
+                </div>
+              ) : isNextUpcoming ? (
+                <div className="flex flex-col items-center w-full">
+                  {/* Jam berikutnya */}
+                  <div className="w-full rounded-xl bg-teal/15 border border-teal/40 px-0.5 py-1.5 text-center">
+                    <div className="text-sm font-black text-teal tabular-nums leading-tight">{fmt(item.startTime)}</div>
+                    <div className="text-[10px] font-bold text-teal/70 tabular-nums mt-0.5">{fmt(item.endTime)}</div>
+                  </div>
+                  {/* Countdown mulai */}
+                  <div className="mt-1 w-full rounded-lg bg-teal/10 border border-teal/20 px-0.5 py-0.5 text-center">
+                    <div className="text-[10px] font-black text-teal tabular-nums leading-tight">
+                      {diffToStart <= 0 ? 'Skrg' : diffToStart < 60 ? `${diffToStart}m` : `${Math.floor(diffToStart/60)}j${diffToStart%60>0?diffToStart%60+'m':''}`}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center w-full">
+                  {/* Jam belum tiba — muted */}
+                  <div className="w-full rounded-xl bg-surface2/60 border border-border/40 px-0.5 py-1.5 text-center">
+                    <div className="text-sm font-black text-foreground/70 tabular-nums leading-tight">{fmt(item.startTime)}</div>
+                    <div className="text-[10px] font-bold text-text3 tabular-nums mt-0.5">{fmt(item.endTime)}</div>
+                  </div>
+                  <div className="mt-0.5 rounded bg-surface2/80 px-1 py-0.5 text-[10px] font-extrabold text-text3">{item.duration || 45}m</div>
+                </div>
+              )}
 
               <div className={`w-[8px] h-[8px] rounded-full flex-shrink-0 mt-[2px] transition-all duration-500 relative ${
-                state === 'active' ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary-glow))]' :
-                state === 'done' ? (item.skipped ? 'bg-text3' : 'bg-green') : 'bg-border3'
+                state === 'active' ? 'bg-primary' :
+                state === 'done' ? (item.skipped ? 'bg-text3' : 'bg-green') :
+                isNextUpcoming ? 'bg-teal' : 'bg-border3'
               }`}>
                 {state === 'active' && <div className="absolute inset-0 rounded-full border border-primary animate-ping opacity-50" />}
               </div>
@@ -1331,9 +1370,13 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         : <span className="text-xs font-bold text-green bg-green/10 px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
                     )}
                     {!item.active && !item.done && (
-                      <span className="inline-flex items-center gap-1 rounded-lg border border-teal/30 bg-teal/10 px-2 py-0.5 text-xs font-black text-teal shadow-2xs">
+                      <span className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-black shadow-sm ${
+                        isNextUpcoming
+                          ? 'border-teal/40 bg-teal/15 text-teal'
+                          : 'border-border/40 bg-surface2/60 text-text3'
+                      }`}>
                         <span>⏱</span>
-                        <span>{fmtCountdown(timeToMin(item.startTime) - currentMin())}</span>
+                        <span>{fmtCountdown(diffToStart)}</span>
                       </span>
                     )}
                   </div>
@@ -1371,7 +1414,10 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         : 'Belum ada materi'}
                     </span>
                     {!item.done && itemMaterial && (
-                      <span className="basis-full min-w-0 text-text3/80 leading-snug break-words line-clamp-2">📖 {itemMaterial.name}</span>
+                      <span className="basis-full min-w-0 text-text3/80 leading-snug break-words line-clamp-2 flex items-center gap-1">
+                        <BookOpen aria-hidden="true" className="h-3 w-3 flex-shrink-0" />
+                        {itemMaterial.name}
+                      </span>
                     )}
                   </div>
                   {!item.done && (
@@ -1401,7 +1447,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         const { nextPage } = getNextStartPage(lastPage);
                         return (
                           <div className="inline-flex items-center gap-1 mt-0.5 bg-primary/8 border border-primary/20 rounded-full px-2 py-0.5 w-fit">
-                            <span className="text-xs">📄</span>
+                            <BookMarked aria-hidden="true" className="h-3 w-3 text-primary" />
                             <span className="text-xs font-bold text-primary">Mulai hal. {nextPage}</span>
                           </div>
                         );
@@ -1431,7 +1477,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         {(lastPage || hasNote) && (
                           <div className="flex items-start gap-1.5 text-xs text-text2 leading-snug flex-wrap">
                             {lastPage && (
-                              <span className="font-bold text-primary flex-shrink-0">📄 s/d hal. {lastPage}</span>
+                              <span className="font-bold text-primary flex-shrink-0 flex items-center gap-1">
+                                <BookMarked aria-hidden="true" className="h-3 w-3" /> s/d hal. {lastPage}
+                              </span>
                             )}
                             {lastPage && hasNote && <span className="text-border3 flex-shrink-0">·</span>}
                             {hasNote && (
@@ -1441,7 +1489,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                         )}
                         {hasReminder && (
                           <div className="inline-flex items-center gap-1 bg-amber/10 border border-amber/25 rounded-full px-2 py-0.5">
-                            <span className="text-xs">📌</span>
+                            <Pin aria-hidden="true" className="h-3 w-3 text-amber" />
                             <span className="text-xs font-semibold text-amber">Ada catatan pendukung pertemuan berikutnya</span>
                           </div>
                         )}
@@ -1463,7 +1511,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
                         }`}
                       >
-                        <span className="text-lg">📝</span>
+                        <FilePenLine aria-hidden="true" className="h-4 w-4" />
                       </button>
                     )
                   ) : (
@@ -1481,9 +1529,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
             {/* Reminder pertemuan depan dari sesi lalu */}
             {prevReminder && (
               <div className="mt-1.5 bg-amber/10 border border-amber/25 rounded-xl px-3 py-2 flex items-start gap-2 animate-slide-up">
-                <span className="text-base flex-shrink-0 mt-0.5">📌</span>
+                <Pin aria-hidden="true" className="h-3.5 w-3.5 text-amber flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-amber mb-0.5">📋 Catatan dari Pertemuan Lalu</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber mb-0.5">Catatan dari Pertemuan Lalu</div>
                   <div className="text-[12px] text-foreground/80 font-medium leading-snug whitespace-pre-wrap">{prevReminder}</div>
                 </div>
               </div>
