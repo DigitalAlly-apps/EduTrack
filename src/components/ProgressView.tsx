@@ -455,16 +455,16 @@ export function SubjectCard({
           {overview && (
             <div className="rounded-xl border border-border2 bg-surface2/60 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5"><BarChart3 aria-hidden="true" className="h-3.5 w-3.5" /> Kesiapan Ujian &amp; Silabus</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  <span className={`text-[11px] font-black tabular-nums ${
                     readiness.status === 'ahead' || readiness.status === 'on-track' || readiness.status === 'complete'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      ? 'text-green'
                       : readiness.status === 'tight'
-                      ? 'bg-amber-500/20 text-amber border border-amber-500/30'
-                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      ? 'text-amber'
+                      : 'text-red'
                   }`}>
-                    {readiness.status === 'complete' ? 'Selesai ✓' : `Skor ${readiness.score}%`}
+                    {readiness.status === 'complete' ? 'Selesai' : `${readiness.score}%`}
                   </span>
                 </div>
                 <span className="text-[11px] font-bold text-text3">{readiness.phaseLabel}</span>
@@ -474,29 +474,29 @@ export function SubjectCard({
                 {/* UTS bar */}
                 <div>
                   <div className="flex justify-between text-[11px] mb-0.5">
-                    <span className="font-semibold text-blue-400">Cakupan UTS ({overview.utsMaterials} Bab / {overview.utsSessions} Sesi)</span>
-                    <span className="font-bold text-foreground">{overview.utsPct}%</span>
+                    <span className="font-semibold text-primary">Cakupan UTS ({overview.utsMaterials} Bab / {overview.utsSessions} Sesi)</span>
+                    <span className="font-bold text-foreground tabular-nums">{overview.utsPct}%</span>
                   </div>
-                  <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-border/50">
-                    <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${overview.utsPct}%` }} />
+                  <div className="w-full bg-surface h-1.5 rounded-sm overflow-hidden">
+                    <div className="bg-primary h-full transition-all" style={{ width: `${overview.utsPct}%` }} />
                   </div>
                 </div>
 
                 {/* UAS bar */}
                 <div>
                   <div className="flex justify-between text-[11px] mb-0.5">
-                    <span className="font-semibold text-purple-400">Cakupan UAS ({overview.uasMaterials} Bab / {overview.uasSessions} Sesi)</span>
-                    <span className="font-bold text-foreground">{overview.uasPct}%</span>
+                    <span className="font-semibold text-teal">Cakupan UAS ({overview.uasMaterials} Bab / {overview.uasSessions} Sesi)</span>
+                    <span className="font-bold text-foreground tabular-nums">{overview.uasPct}%</span>
                   </div>
-                  <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-border/50">
-                    <div className="bg-purple-500 h-full rounded-full transition-all" style={{ width: `${overview.uasPct}%` }} />
+                  <div className="w-full bg-surface h-1.5 rounded-sm overflow-hidden">
+                    <div className="bg-teal h-full transition-all" style={{ width: `${overview.uasPct}%` }} />
                   </div>
                 </div>
               </div>
 
               {readiness.recommendation && (
-                <p className="text-[11px] italic text-text2 pt-0.5 border-t border-border/40">
-                  💡 {readiness.recommendation}
+                <p className="text-[11px] text-text2 pt-0.5 border-t border-border/40">
+                  {readiness.recommendation}
                 </p>
               )}
             </div>
@@ -506,7 +506,7 @@ export function SubjectCard({
           <div className="rounded-xl border border-border/70 bg-surface2/50 p-3.5 shadow-inner">
             <p className="text-xs font-black uppercase tracking-widest text-text3">Bab Saat Ini</p>
             {position.isComplete ? (
-              <p className="mt-1 text-sm font-black text-green flex items-center gap-1">✓ Semua bab selesai 🎉</p>
+              <p className="mt-1 text-sm font-semibold text-green flex items-center gap-1"><Check aria-hidden="true" className="h-4 w-4" /> Semua bab selesai</p>
             ) : activeMaterial ? (
               <>
                 <p className="mt-1 text-[15px] font-black leading-snug text-foreground">{activeMaterial.name}</p>
