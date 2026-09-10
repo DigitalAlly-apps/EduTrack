@@ -1030,7 +1030,9 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                 )}
                 
                 <div className="bg-teal-dim/60 backdrop-blur-md border border-teal/20 rounded-3xl p-5 flex items-center gap-5 shadow-inner">
-                  <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center text-[28px]">⏱</div>
+                  <div className="w-12 h-12 rounded-2xl bg-teal/10 border border-teal/30 flex items-center justify-center">
+                    <Clock aria-hidden="true" className="w-6 h-6 text-teal" />
+                  </div>
                   <div className="flex-1">
                     <div className="text-xs font-bold uppercase tracking-widest text-teal/70 mb-1">Mulai Pukul {fmt(upcoming.startTime)}</div>
                     <div className="flex items-baseline gap-2">
@@ -1375,7 +1377,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           ? 'border-teal/40 bg-teal/15 text-teal'
                           : 'border-border/40 bg-surface2/60 text-text3'
                       }`}>
-                        <span>⏱</span>
+                        <Clock aria-hidden="true" className="w-3 h-3 flex-shrink-0" />
                         <span>{fmtCountdown(diffToStart)}</span>
                       </span>
                     )}
