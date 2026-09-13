@@ -11,7 +11,7 @@ import {
 import { TodayScheduleItem, MissingTeachingSession, Material } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import SmartReschedulerModal from './SmartReschedulerModal';
-import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X, CalendarDays, BookOpen, Clock, Bell, Pin, BookMarked } from 'lucide-react';
+import { Check, ChevronDown, FilePenLine, HeartPulse, Home, SkipForward, X, CalendarDays, BookOpen, Clock, Bell, Pin, BookMarked, Zap, Timer, CheckCircle, FileText } from 'lucide-react';
 import {
   getExamDayMode, setExamDayMode,
   getTodayExamItems, getTodayProctorSessions,
@@ -35,6 +35,49 @@ interface TodayViewProps {
 function getMaterialPageLabel(material?: { pageStart?: string; pageEnd?: string } | null) {
   if (!material?.pageStart) return '';
   return material.pageEnd ? `Hal. ${material.pageStart}-${material.pageEnd}` : `Hal. ${material.pageStart}`;
+}
+
+function LiveActiveSession({ 
+  startTime, 
+  endTime, 
+  totalDuration, 
+  onRefresh,
+  children 
+}: { 
+  startTime: string, 
+  endTime: string, 
+  totalDuration: number, 
+  onRefresh: () => void,
+  children: (progress: number, diffSec: number, isOvertime: boolean) => JSX.Element 
+}) {
+  const [nowMs, setNowMs] = useState(Date.now());
+  
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const now = new Date(nowMs);
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  
+  const endSec = timeToMin(endTime) * 60;
+  const diffSec = Math.max(0, endSec - nowSec);
+
+  const startSec = timeToMin(startTime) * 60;
+  const elapsedSec = Math.max(0, nowSec - startSec);
+  const totalDurationSec = totalDuration * 60;
+  const progress = Math.min(100, Math.max(0, (elapsedSec / totalDurationSec) * 100));
+
+  const isOvertime = diffSec === 0;
+
+  useEffect(() => {
+    if (isOvertime) {
+      const timer = setTimeout(() => onRefresh(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOvertime, onRefresh]);
+
+  return <>{children(progress, diffSec, isOvertime)}</>;
 }
 
 export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
@@ -854,138 +897,147 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
           const activeMaterial = teachingPosition.material;
           const activePageLabel = getMaterialPageLabel(activeMaterial);
           const totalDuration = active.duration || 45;
-          const elapsed = currentMin() - timeToMin(active.startTime);
-          const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
-          const isOvertime = currentMin() >= timeToMin(active.endTime);
 
           return (
-            <div className={`glass-panel rounded-[34px] overflow-hidden relative mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/40'}`}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,hsl(var(--primary-glow)),transparent_42%),radial-gradient(circle_at_90%_22%,hsl(var(--teal-glow)),transparent_36%)] pointer-events-none" />
-              <div className="absolute right-5 top-5 text-[80px] leading-none opacity-[0.045] font-display font-black pointer-events-none">{active.className.slice(0, 2).toUpperCase()}</div>
-              
-              {/* Time Up Notification Banner */}
-              {isOvertime && (
-                <div className="bg-red text-white py-2 px-4 text-center text-xs font-bold uppercase tracking-[2px] animate-pulse">
-                  ⚡ Waktu Pelajaran Selesai
+            <LiveActiveSession startTime={active.startTime} endTime={active.endTime} totalDuration={totalDuration} onRefresh={onRefresh}>
+              {(progress, diffSec, isOvertime) => (
+                <div className={`glass-panel rounded-[34px] overflow-hidden relative mb-4 animate-slide-up group transition-all duration-500 ${isOvertime ? 'border-red/40 ring-1 ring-red/20' : 'border-primary-border/40'}`}>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,hsl(var(--primary-glow)),transparent_42%),radial-gradient(circle_at_90%_22%,hsl(var(--teal-glow)),transparent_36%)] pointer-events-none" />
+                  <div className="absolute right-5 top-5 text-[80px] leading-none opacity-[0.045] font-display font-black pointer-events-none">{active.className.slice(0, 2).toUpperCase()}</div>
+                  
+                  {/* Time Up Notification Banner */}
+                  {isOvertime && (
+                    <div className="bg-red text-white py-2 px-4 text-center text-xs font-bold uppercase tracking-[2px] animate-pulse flex items-center justify-center gap-1.5">
+                      <Zap className="w-4 h-4" /> Waktu Pelajaran Selesai
+                    </div>
+                  )}
+                  
+                  <div className="p-5 relative">
+                    {/* Status at Top */}
+                    <div className="flex items-center justify-between gap-3 mb-5">
+                      <div className={`inline-flex items-center gap-2 border text-xs font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
+                        <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="h-1.5 w-full bg-surface2 rounded-full mb-6 overflow-hidden border border-border/30">
+                      <div 
+                        className={`h-full transition-all duration-1000 ease-linear ${isOvertime ? 'bg-red' : 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]'}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <div className="font-display text-[34px] font-bold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
+                    <div className="text-[15px] font-semibold text-text2 mb-6 flex flex-wrap items-center gap-2.5 w-full">
+                      <span className="opacity-90">{active.subjectName}</span>
+                      <span className="opacity-20">•</span>
+                      <span className="font-bold text-primary">
+                        {teachingPosition.totalSessionsAll > 0 && !teachingPosition.isComplete
+                          ? `Pertemuan ${teachingPosition.sessionIndex}/${teachingPosition.totalSessionsInMaterial} di bab ini`
+                          : teachingPosition.isComplete
+                            ? 'Semua materi selesai'
+                          : 'Belum ada materi'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-6">
+                       <div className={`flex-1 p-4 rounded-[24px] border flex items-center gap-4 ${isOvertime ? 'bg-red/10 border-red/20' : 'bg-surface2/70 border-border/40'}`}>
+                          <div className={`w-10 h-10 rounded-xl bg-surface/50 flex items-center justify-center ${isOvertime ? 'text-red' : 'text-primary'}`}>
+                            {isOvertime ? <Clock className="w-5 h-5" /> : <Timer className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold uppercase tracking-wider text-text3 mb-0.5">
+                              {isOvertime ? 'Kelebihan Waktu' : 'Sisa Waktu'}
+                            </div>
+                            <div className={`text-xl font-black tabular-nums leading-none ${isOvertime ? 'text-red' : 'text-primary'}`}>
+                               {isOvertime ? '0 menit' : diffSec < 60 ? `${diffSec} detik tersisa` : `${Math.floor(diffSec / 60)} menit tersisa`}
+                            </div>
+                          </div>
+                       </div>
+                        <div className="bg-surface2/70 border border-border/40 rounded-[24px] p-3 px-4 min-w-[100px] text-center">
+                          <div className="text-xs font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
+                          <div className="text-sm font-bold opacity-90">{fmt(active.endTime)}</div>
+                       </div>
+                    </div>
+
+                    <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4 overflow-hidden">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
+                        <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">
+                          {activeMaterial ? activeMaterial.name : (
+                            <span className="flex items-center gap-1.5">Semua materi selesai <CheckCircle className="w-4 h-4 text-green-500" /></span>
+                          )}
+                        </div>
+                        {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
+                        {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
+                        {activeMaterial && (
+                          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                            <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="min-h-[36px] text-xs font-bold text-primary border border-primary/20 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Ubah estimasi</button>
+                            <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="min-h-[36px] text-xs font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">
+                              <Zap className="w-3.5 h-3.5" /> Selesaikan bab ini
+                            </button>
+                          </div>
+                        )}
+                        {/* Info halaman dari sesi sebelumnya */}
+                        {(() => {
+                          const lastPage = getLastPageReached(active.classId, active.subjectId);
+                          if (!lastPage) return null;
+                          const { nextPage } = getNextStartPage(lastPage);
+                          return (
+                            <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
+                              <FileText className="w-3 h-3 text-primary" />
+                              <span className="text-[12px] font-bold text-primary">Mulai hal. {nextPage}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                     <div className="px-6 pb-6 pt-1">
+                     {/* Main action buttons */}
+                     <div className="flex gap-2 relative">
+                       <button
+                          onClick={() => handleHeroDone(active.id)}
+                          className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:brightness-105 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                            isOvertime 
+                              ? 'bg-red text-white' 
+                              : 'bg-primary text-primary-foreground'
+                         }`}
+                       >
+                          <Check className="h-5 w-5" /> SELESAI
+                        </button>
+                       {/* Skip — now opens confirmation sheet */}
+                       <button
+                         onClick={() => setSkipConfirm(active)}
+                          className="app-icon-button w-[58px] h-[58px] flex-shrink-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                          title="Lewati sesi ini"
+                        >
+                          <SkipForward className="h-5 w-5" />
+                        </button>
+                     </div>
+
+                      <div className="mt-2.5">
+                        <button
+                          onClick={() => {
+                            setSubjectDismissSubjectId(active.subjectId);
+                            setSubjectDismissClassId('');
+                            setSubjectDismissSheet(true);
+                          }}
+                           className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        >
+                          <SkipForward className="h-4 w-4" /> Libur
+                        </button>
+                      </div>
+                   </div>
                 </div>
               )}
-              
-              <div className="p-5 relative">
-                {/* Status at Top */}
-                <div className="flex items-center justify-between gap-3 mb-5">
-                  <div className={`inline-flex items-center gap-2 border text-xs font-black tracking-wider uppercase px-3 py-2 rounded-full flex-shrink-0 ${isOvertime ? 'bg-red/10 border-red/30 text-red' : 'bg-primary-dim border-primary-border/30 text-primary'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOvertime ? 'bg-red animate-pulse' : 'bg-primary'}`} />
-                    <span>{isOvertime ? 'Waktu Habis' : 'Sedang Berlangsung'}</span>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="h-1.5 w-full bg-surface2 rounded-full mb-6 overflow-hidden border border-border/30">
-                  <div 
-                    className={`h-full transition-all duration-1000 ease-linear ${isOvertime ? 'bg-red' : 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.35)]'}`}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-
-                <div className="font-display text-[34px] font-bold tracking-tight leading-none mb-3 text-foreground break-words">{active.className}</div>
-                <div className="text-[15px] font-semibold text-text2 mb-6 flex flex-wrap items-center gap-2.5 w-full">
-                  <span className="opacity-90">{active.subjectName}</span>
-                  <span className="opacity-20">•</span>
-                  <span className="font-bold text-primary">
-                    {teachingPosition.totalSessionsAll > 0 && !teachingPosition.isComplete
-                      ? `Pertemuan ${teachingPosition.sessionIndex}/${teachingPosition.totalSessionsInMaterial} di bab ini`
-                      : teachingPosition.isComplete
-                        ? 'Semua materi selesai'
-                      : 'Belum ada materi'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4 mb-6">
-                   <div className={`flex-1 p-4 rounded-[24px] border flex items-center gap-4 ${isOvertime ? 'bg-red/10 border-red/20' : 'bg-surface2/70 border-border/40'}`}>
-                      <div className="w-10 h-10 rounded-xl bg-surface/50 flex items-center justify-center text-xl">
-                        {isOvertime ? '⏰' : '⏳'}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-wider text-text3 mb-0.5">
-                          {isOvertime ? 'Kelebihan Waktu' : 'Sisa Waktu'}
-                        </div>
-                        <div className={`text-2xl font-black tabular-nums leading-none ${isOvertime ? 'text-red' : 'text-primary'}`}>
-                           {Math.abs(timeToMin(active.endTime) - currentMin())}m
-                        </div>
-                      </div>
-                   </div>
-                    <div className="bg-surface2/70 border border-border/40 rounded-[24px] p-3 px-4 min-w-[100px] text-center">
-                      <div className="text-xs font-bold uppercase text-text3 mb-1">Jadwal Selesai</div>
-                      <div className="text-sm font-bold opacity-90">{fmt(active.endTime)}</div>
-                   </div>
-                </div>
-
-                <div className="bg-surface2/65 backdrop-blur-sm border border-border/40 rounded-[26px] p-4 flex items-start gap-4 overflow-hidden">
-                  <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">📖</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold tracking-wider uppercase text-text3 mb-0.5">Materi Hari Ini</div>
-                    <div className="text-[15px] font-bold leading-tight text-foreground/90 break-words [overflow-wrap:anywhere]">{activeMaterial ? activeMaterial.name : 'Semua materi selesai 🎉'}</div>
-                    {activePageLabel && <div className="text-[12px] font-semibold text-text2 mt-1 break-words">{activePageLabel}</div>}
-                    {activeMaterial?.note && <div className="text-[12px] text-text3 mt-1 leading-snug break-words">Catatan: {activeMaterial.note}</div>}
-                    {activeMaterial && (
-                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                        <button onClick={() => { setEstimateDraft(String(activeMaterial.sessions ?? 1)); setEstimateSheet(activeMaterial); }} className="min-h-[36px] text-xs font-bold text-primary border border-primary/20 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Ubah estimasi</button>
-                        <button onClick={() => setFinishBabConfirm({ schedule: active, material: activeMaterial })} className="min-h-[36px] text-xs font-bold text-amber bg-amber/10 border border-amber/25 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors hover:bg-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2">⚡ Selesaikan bab ini</button>
-                      </div>
-                    )}
-                    {/* Info halaman dari sesi sebelumnya */}
-                    {(() => {
-                      const lastPage = getLastPageReached(active.classId, active.subjectId);
-                      if (!lastPage) return null;
-                      const { nextPage } = getNextStartPage(lastPage);
-                      return (
-                        <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/25 rounded-full px-2.5 py-1">
-                          <span className="text-xs">📄</span>
-                          <span className="text-[12px] font-bold text-primary">Mulai hal. {nextPage}</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-                 <div className="px-6 pb-6 pt-1">
-                 {/* Main action buttons */}
-                 <div className="flex gap-2 relative">
-                   <button
-                      onClick={() => handleHeroDone(active.id)}
-                      className={`flex-1 min-h-[58px] rounded-2xl text-[15px] font-black flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all hover:brightness-105 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                        isOvertime 
-                          ? 'bg-red text-white' 
-                          : 'bg-primary text-primary-foreground'
-                     }`}
-                   >
-                      <Check className="h-5 w-5" /> {isOvertime ? 'SELESAI' : 'SELESAI'}
-                    </button>
-                   {/* Skip — now opens confirmation sheet */}
-                   <button
-                     onClick={() => setSkipConfirm(active)}
-                      className="app-icon-button w-[58px] h-[58px] flex-shrink-0 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                      title="Lewati sesi ini"
-                    >
-                      <SkipForward className="h-5 w-5" />
-                    </button>
-                 </div>
-
-                  <div className="mt-2.5">
-                    <button
-                      onClick={() => {
-                        setSubjectDismissSubjectId(active.subjectId);
-                        setSubjectDismissClassId('');
-                        setSubjectDismissSheet(true);
-                      }}
-                       className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-[12px] font-bold text-text2 flex items-center justify-center gap-1.5 transition-colors hover:bg-surface2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    >
-                      <SkipForward className="h-4 w-4" /> Libur
-                    </button>
-                  </div>
-               </div>
-            </div>
+            </LiveActiveSession>
           );
         }
 
