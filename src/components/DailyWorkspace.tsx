@@ -73,10 +73,46 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
         <section aria-labelledby="daily-agenda">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 id="daily-agenda" className="text-lg font-semibold">Agenda mengajar</h2><span className="text-sm text-text2">{completed.length}/{items.length} tercatat</span></div>
           <div className="divide-y divide-border rounded-2xl border border-border bg-surface">
-            {pending.map(item => <div key={item.id} className="flex items-center gap-3 p-4">
-              <div className="min-w-0 flex-1"><p className="text-sm tabular-nums text-text2">{item.startTime}–{item.endTime}</p><p className="font-semibold">{item.className} · {item.subjectName}</p><p className="text-sm text-text2">{item.active ? 'Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Belum dicatat' : 'Terjadwal'}</p></div>
-              <button className="quiet-button shrink-0" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
-            </div>)}
+            {pending.map(item => {
+              const position = getTeachingPosition(item.classId, item.subjectId);
+              const note = getNextMeetingNote(item.classId, item.subjectId);
+              const lastPage = getLastPageReached(item.classId, item.subjectId);
+              const plan = splitSessionNote(note.text);
+              return (
+              <div key={item.id} className="flex flex-col gap-3 p-4 hover:bg-surface2/50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-primary mb-1 tabular-nums">{item.startTime}–{item.endTime}</p>
+                    <p className="text-base font-bold text-foreground leading-snug">{item.className} · {item.subjectName}</p>
+                    <p className="text-sm text-text2 mt-0.5 font-medium">{item.active ? '🔴 Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Menunggu dicatat' : 'Terjadwal'}</p>
+                  </div>
+                  <button className="primary-button shrink-0 text-xs px-4 min-h-[44px] shadow-sm active:scale-95 transition-all" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
+                </div>
+                
+                <div className="mt-1 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <BookOpen size={16} className="mt-0.5 shrink-0 text-text3" aria-hidden="true" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground/90">{position.material?.name || 'Materi belum diatur / sudah selesai'}</p>
+                      {(position.material || lastPage) && (
+                        <p className="text-text2 text-xs mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {position.material && <span>Sesi {position.sessionIndex}/{position.totalSessionsInMaterial}</span>}
+                          {position.material && lastPage && <span className="opacity-30">•</span>}
+                          {lastPage && <span className="font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Mulai hal. {getNextStartPage(lastPage).nextPage}</span>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {note.text && (
+                    <div className="bg-surface2/60 rounded-xl p-3 border border-border/50 border-l-2 border-l-primary/60">
+                      {plan.mainNote && <p className="text-sm italic text-text2 leading-relaxed">"{plan.mainNote}"</p>}
+                      {plan.reminder && <p className="text-xs text-amber font-semibold mt-1.5 flex items-center gap-1.5"><span className="text-[10px]">📌</span> {plan.reminder}</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )})}
             {!pending.length && <p className="p-4 text-sm text-text2">Tidak ada sesi yang menunggu pencatatan pada tanggal ini.</p>}
           </div>
           <button className="quiet-button mt-3" onClick={() => setReschedule(true)}>Sesuaikan jadwal</button>
@@ -156,12 +192,38 @@ function FocusSession({ item, date, onRecord }: { item: TodayScheduleItem; date:
   const note = getNextMeetingNote(item.classId, item.subjectId);
   const lastPage = getLastPageReached(item.classId, item.subjectId);
   const plan = splitSessionNote(note.text);
-  return <section className="work-panel daily-focus-hero space-y-3 border-primary/30" aria-labelledby="focus-class">
-    <div className="flex flex-wrap justify-between gap-2 text-sm text-text2"><span>{item.active ? 'Sekarang' : 'Berikutnya / belum dicatat'}</span><span className="tabular-nums">{item.startTime}–{item.endTime}</span></div>
-    <h2 id="focus-class" className="text-xl font-semibold">{item.className} · {item.subjectName}</h2>
-    <div><p className="flex items-start gap-2"><BookOpen size={18} className="mt-1 shrink-0 text-primary" aria-hidden="true" />{position.material?.name || 'Materi belum diatur / sudah selesai'}</p><p className="mt-1 text-sm text-text2">{position.material && `Pertemuan ${position.sessionIndex} dari ${position.totalSessionsInMaterial}`}{lastPage && ` · Pertemuan selanjutnya hal. ${getNextStartPage(lastPage).nextPage}`}</p></div>
-    {note.text && <div className="rounded-xl bg-surface2 p-3"><p className="mb-1 text-sm font-semibold">{note.legacy ? 'Referensi catatan lama' : 'Untuk pertemuan berikutnya'}</p>{plan.mainNote && <p className="whitespace-pre-wrap">{plan.mainNote}</p>}{plan.reminder && <p className="mt-2 whitespace-pre-wrap text-sm text-text2">Informasi selain materi: {plan.reminder}</p>}</div>}
-    <button className="primary-button w-full" disabled={date > dateKey()} onClick={onRecord}>Catat hasil</button>
+  return <section className="work-panel daily-focus-hero space-y-4 border-primary/40 bg-primary/5 shadow-md hover:shadow-lg transition-all" aria-labelledby="focus-class">
+    <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-bold">
+      <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-full uppercase tracking-widest text-[10px]">
+        {item.active ? <><span className="w-2 h-2 rounded-full bg-primary animate-pulse" /> Sedang Berlangsung</> : 'Berikutnya / belum dicatat'}
+      </span>
+      <span className="tabular-nums text-text2 bg-surface2/80 px-2.5 py-1 rounded-full text-xs border border-border/50">{item.startTime}–{item.endTime}</span>
+    </div>
+    <h2 id="focus-class" className="text-2xl font-black tracking-tight text-foreground">{item.className} <span className="opacity-40 font-normal">·</span> {item.subjectName}</h2>
+    <div className="bg-surface/60 rounded-2xl p-4 border border-border/60">
+      <p className="flex items-start gap-2.5 text-base font-semibold text-foreground/90">
+        <BookOpen size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+        {position.material?.name || 'Materi belum diatur / sudah selesai'}
+      </p>
+      {(position.material || lastPage) && (
+        <div className="mt-2.5 ml-7 flex flex-wrap items-center gap-2 text-xs text-text2 font-medium">
+          {position.material && <span className="bg-surface2 px-2 py-1 rounded-md border border-border/50">Sesi {position.sessionIndex} dari {position.totalSessionsInMaterial}</span>}
+          {lastPage && <span className="text-primary bg-primary/10 px-2 py-1 rounded-md font-bold">Lanjut hal. {getNextStartPage(lastPage).nextPage}</span>}
+        </div>
+      )}
+    </div>
+    {note.text && (
+      <div className="rounded-2xl bg-surface2/70 p-4 border border-border/60">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
+          {note.legacy ? 'Referensi catatan lama' : 'Catatan Pertemuan Berikutnya'}
+        </p>
+        {plan.mainNote && <p className="whitespace-pre-wrap text-sm leading-relaxed text-text1 italic">"{plan.mainNote}"</p>}
+        {plan.reminder && <p className="mt-3 whitespace-pre-wrap text-[13px] font-semibold text-amber flex gap-2"><span className="shrink-0">📌</span> <span>{plan.reminder}</span></p>}
+      </div>
+    )}
+    <button className="primary-button w-full text-sm min-h-[48px] rounded-xl font-bold shadow-sm active:scale-[0.98] transition-transform" disabled={date > dateKey()} onClick={onRecord}>
+      Tandai Selesai & Catat Hasil
+    </button>
   </section>;
 }
 
