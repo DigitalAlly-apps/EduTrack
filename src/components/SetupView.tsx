@@ -434,7 +434,7 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
     return (
       <div className="bg-surface2 border border-primary-border rounded-lg p-3 mb-[6px] animate-in fade-in slide-in-from-top-1">
         <label className="block text-xs font-bold text-primary uppercase tracking-wider mb-2">Edit Item</label>
-        <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 h-10" autoFocus />
+        <input value={val} onChange={e => setVal(e.target.value)} className="form-input-style mb-2 min-h-[44px]" autoFocus />
         {extraEditField && extraEditField(extraVal, setExtraVal)}
         <div className="flex gap-2">
           <button onClick={() => { onSave(item.id, val, extraVal); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-md text-[13px] font-bold">Simpan</button>
@@ -452,7 +452,7 @@ function EditableItem({ item, onSave, onDelete, extraEditField }: any) {
           <div className={`text-xs mt-[4px] font-medium ${item.metaColor || 'text-text2'}`}>{item.meta}</div>
         </div>
         <div className="flex gap-[6px] items-center flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="app-icon-button w-9 h-9 hover:text-primary" aria-label="Edit item"><Pencil className="h-4 w-4" /></button>
+          <button onClick={() => setEditing(true)} className="app-icon-button w-11 h-11 hover:text-primary" aria-label="Edit item"><Pencil className="h-4 w-4" /></button>
           <button onClick={() => setDelSheet(true)} className="w-11 h-11 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus item"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
@@ -570,8 +570,8 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
         </div>
 
         <div className="flex gap-2">
-          <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style h-9 flex-1 text-xs" placeholder="Hal. mulai" />
-          <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style h-9 flex-1 text-xs" placeholder="Hal. akhir" />
+          <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style min-h-[44px] flex-1 text-xs" placeholder="Hal. mulai" />
+          <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style min-h-[44px] flex-1 text-xs" placeholder="Hal. akhir" />
         </div>
         <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[60px] resize-none text-xs" placeholder="Catatan opsional..." />
 
@@ -736,10 +736,10 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
       <div className="app-section-title mt-6 mb-2">Daftar Kelas</div>
       {data.classes.map(c => (
         <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: c.level ? `Level: ${c.level}` : 'Level belum diisi', extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
-          <input value={v.level || ''} onChange={e => setV({ ...v, level: e.target.value })} className="form-input-style mb-2 h-10" placeholder="Level/jenjang opsional" />
+          <input value={v.level || ''} onChange={e => setV({ ...v, level: e.target.value })} className="form-input-style mb-2 min-h-[44px]" placeholder="Level/jenjang opsional" />
         )} />
       ))}
-      {!data.classes.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada kelas</div>}
+      {!data.classes.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada kelas</div>}
     </div>
   );
 }
@@ -844,7 +844,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
             {showAdvancedAdd && (
               <div className="mt-2 p-3 bg-surface2 border border-border2 rounded-xl">
                 <label className="block text-xs text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
-                <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs h-[38px]" />
+                <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs min-h-[44px]" />
               </div>
             )}
           </div>
@@ -880,14 +880,14 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               {!v.semesterId && (
                 <div>
                   <label className="block text-xs text-text3 mb-1">Tanggal ujian manual (fallback)</label>
-                  <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs h-[38px]" />
+                  <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs min-h-[44px]" />
                 </div>
               )}
             </div>
           )} />
         );
       })}
-      {!data.subjects.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada mapel</div>}
+      {!data.subjects.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada mapel</div>}
 
       {/* Bulk update tanggal ujian per jenjang — fitur lanjutan */}
       {data.subjects.length > 0 && (
@@ -900,7 +900,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
                <option value="SMP/MTs">SMP / MTs</option>
                <option value="SMA/MA">SMA / MA</option>
              </select>
-             <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} className="form-input-style flex-1 text-xs h-[38px]" />
+             <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} className="form-input-style flex-1 text-xs min-h-[44px]" />
           </div>
           <button onClick={applyBulkExamDate} className="w-full mt-2 py-2 rounded-lg bg-surface2 text-text2 border border-border2 text-[12px] font-bold hover:bg-surface3 transition-colors">Terapkan ke Semua</button>
         </div>
@@ -1071,7 +1071,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
       </div>
 
       <div className="app-card-soft p-4 mb-4 space-y-3">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <FormField label="Mata Pelajaran" className="mb-0">
             <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary text-xs">
               <option value="">Pilih mapel...</option>
@@ -1140,7 +1140,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
               <div className="text-[11px] font-extrabold text-foreground flex justify-between">
                 <span>Semester 1 (Ganjil)</span>
@@ -1494,7 +1494,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
               })()}
             </SortableContext>
           </DndContext>
-          {!mats.length && <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada materi</div>}
+          {!mats.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada materi</div>}
         </>
       )}
       {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
@@ -1563,7 +1563,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
           <div className="grid grid-cols-7 gap-1.5 mb-3">
             {DAYS_SHORT.map((d, i) => (
               <button key={i} onClick={() => toggleDay(i, selectedDays, setSelectedDays)}
-                className={`min-h-[38px] rounded-xl text-xs font-bold border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2 hover:border-border3'}`}>
+                className={`min-min-h-[44px] rounded-xl text-xs font-bold border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2 hover:border-border3'}`}>
                 {d}
               </button>
             ))}
@@ -1584,7 +1584,7 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
         </div>
         
         {schedulesByDay.length === 0 && (
-          <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">Belum ada jadwal</div>
+          <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada jadwal</div>
         )}
 
         <div className="space-y-6">
@@ -1642,8 +1642,8 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
         <div className="text-sm font-bold mb-3">{item.name}</div>
         <div className="grid grid-cols-7 gap-1.5 mb-3">{DAYS_SHORT.map((d, i) => <button key={i} onClick={() => toggleDay(i)} className={`min-h-[34px] rounded-xl text-xs font-bold border ${days.includes(i) ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border2 text-text2'}`}>{d}</button>)}</div>
         <div className="flex gap-2 mb-3">
-          <input type="time" value={st} onChange={e => setSt(e.target.value)} className="form-input-style flex-1 h-9 px-2 text-xs" />
-          <input type="number" value={dr} onChange={e => setDr(parseInt(e.target.value))} className="form-input-style flex-1 h-9 px-2 text-xs" placeholder="Durasi mnt" />
+          <input type="time" value={st} onChange={e => setSt(e.target.value)} className="form-input-style flex-1 min-h-[44px] px-2 text-xs" />
+          <input type="number" value={dr} onChange={e => setDr(parseInt(e.target.value))} className="form-input-style flex-1 min-h-[44px] px-2 text-xs" placeholder="Durasi mnt" />
         </div>
         <div className="flex gap-2">
           <button onClick={() => { onSave(item.id, '', { st, dr, days }); setEditing(false); }} className="flex-1 py-2 bg-primary text-primary-foreground rounded-xl text-[13px] font-bold flex items-center justify-center gap-1.5"><Save className="h-4 w-4" /> Simpan</button>
@@ -1661,7 +1661,7 @@ function ScheduleEditableItem({ item, onSave, onDelete }: any) {
           <div className="text-xs text-text2 mt-[4px] font-medium">{item.meta}</div>
         </div>
         <div className="flex gap-[4px] items-center flex-shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="app-icon-button w-9 h-9" aria-label="Edit jadwal"><Pencil className="h-4 w-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setEditing(true); }} className="app-icon-button w-11 h-11" aria-label="Edit jadwal"><Pencil className="h-4 w-4" /></button>
           <button onClick={(e) => { e.stopPropagation(); setDelSheet(true); }} className="w-11 h-11 rounded-2xl bg-red/10 border border-red/20 text-red grid place-items-center transition-all hover:bg-red/15 active:scale-95" aria-label="Hapus jadwal"><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
@@ -1718,15 +1718,15 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
     <div>
       <div className="app-card-soft p-5 mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-2xl bg-amber/10 border border-amber/20 text-amber grid place-items-center"><Palmtree className="h-5 w-5" /></div>
+          <div className="w-10 min-h-[44px] rounded-2xl bg-amber/10 border border-amber/20 text-amber grid place-items-center"><Palmtree className="h-5 w-5" /></div>
           <div>
             <div className="font-display text-xl font-bold tracking-tight">Tambah Hari Libur</div>
             <div className="text-[12px] text-text2">Tanggal ini dikecualikan dari hitungan sesi.</div>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 h-10 border-border focus:border-primary" min={todayStr} />
-          <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style flex-1 h-10 border-border">
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input-style flex-1 min-h-[44px] border-border focus:border-primary" min={todayStr} />
+          <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style flex-1 min-h-[44px] border-border">
             <option value="">Semua Jenjang</option>
             <option value="SD/MI">SD / MI</option>
             <option value="SMP/MTs">SMP / MTs</option>
@@ -1750,7 +1750,7 @@ function LiburTab({ onRefresh }: { onRefresh: () => void }) {
 
       <div className="app-section-title mb-2">Daftar Libur ({holidays.length})</div>
       {holidays.length === 0 && (
-        <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl">Belum ada hari libur yang diinput</div>
+        <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl">Belum ada hari libur yang diinput</div>
       )}
       {holidays.map((h, i) => {
         const dStr = typeof h === 'string' ? h : h.date;
@@ -1850,7 +1850,7 @@ function DataTab({ onRefresh }: { onRefresh: () => void }) {
         ) : (
           <div className="animate-in fade-in slide-in-from-top-1">
             <p className="text-text2 text-xs mb-3">Tindakan ini tidak bisa dibatalkan. Ketik <strong className="text-red">RESET</strong> konfirmasi.</p>
-            <input value={resetVal} onChange={e => setResetVal(e.target.value)} placeholder="Ketik RESET" className="form-input-style h-10 mb-2 border-red/40 focus:border-red" />
+            <input value={resetVal} onChange={e => setResetVal(e.target.value)} placeholder="Ketik RESET" className="form-input-style min-h-[44px] mb-2 border-red/40 focus:border-red" />
             <button onClick={handleReset} disabled={resetVal !== 'RESET'} className="w-full py-2.5 rounded-2xl bg-red text-white font-bold disabled:opacity-40">Hapus Permanen</button>
             <button onClick={() => { setShowReset(false); setResetVal(''); }} className="w-full py-3 text-text2 text-xs font-semibold mt-1">Batal</button>
           </div>
@@ -1920,7 +1920,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
     <div className="space-y-4 animate-slide-up">
       <div className="app-card p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-2xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber flex-shrink-0"><HeartPulse className="h-5 w-5" /></div>
+          <div className="w-10 min-h-[44px] rounded-2xl bg-amber/10 border border-amber/30 flex items-center justify-center text-amber flex-shrink-0"><HeartPulse className="h-5 w-5" /></div>
           <div>
             <div className="font-display text-[18px] font-bold tracking-tight leading-tight">Pengajuan Izin</div>
             <div className="text-xs text-text2">Atur sesi kelas jika berhalangan hadir.</div>
@@ -1934,7 +1934,7 @@ function LeaveTab({ onRefresh }: { onRefresh: () => void }) {
 
         <div className="mb-4">
           <label className="block text-xs font-semibold tracking-[0.5px] uppercase text-text2 mb-[7px]">Jenis</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               onClick={() => setLeaveType('izin')}
               className={`py-3 rounded-2xl border text-sm font-bold flex flex-col items-center gap-1 transition-all ${leaveType === 'izin' ? 'bg-primary-dim border-primary-border text-primary shadow-sm' : 'bg-surface border-border2 text-text2 hover:border-border3'}`}
@@ -2153,14 +2153,14 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
             className="form-input-style mb-3"
             placeholder="cth: Semester 1 (Ganjil) 2025/2026..."
           />
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             <div>
               <label className="block text-xs text-text2 mb-1 pl-1">Tanggal UTS</label>
               <input
                 type="date"
                 value={utsDate}
                 onChange={e => setUtsDate(e.target.value)}
-                className="form-input-style text-xs h-[38px]"
+                className="form-input-style text-xs min-h-[44px]"
               />
             </div>
             <div>
@@ -2169,7 +2169,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
                 type="date"
                 value={uasDate}
                 onChange={e => setUasDate(e.target.value)}
-                className="form-input-style text-xs h-[38px]"
+                className="form-input-style text-xs min-h-[44px]"
               />
             </div>
           </div>
@@ -2204,14 +2204,14 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
               onSave={(id, newName, extras) => saveItem(id, newName, extras)}
               onDelete={del}
               extraEditField={(v: any, setV: any) => (
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <div>
                     <label className="block text-xs text-text2 mb-1">Tanggal UTS</label>
-                    <input type="date" value={v.utsDate || ''} onChange={e => setV({ ...v, utsDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
+                    <input type="date" value={v.utsDate || ''} onChange={e => setV({ ...v, utsDate: e.target.value })} className="form-input-style text-xs min-h-[44px]" />
                   </div>
                   <div>
                     <label className="block text-xs text-text2 mb-1">Tanggal UAS</label>
-                    <input type="date" value={v.uasDate || ''} onChange={e => setV({ ...v, uasDate: e.target.value })} className="form-input-style text-xs h-[38px]" />
+                    <input type="date" value={v.uasDate || ''} onChange={e => setV({ ...v, uasDate: e.target.value })} className="form-input-style text-xs min-h-[44px]" />
                   </div>
                 </div>
               )}

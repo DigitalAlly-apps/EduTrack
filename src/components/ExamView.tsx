@@ -164,7 +164,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
     return (
       <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-        isActive ? 'bg-amber/10 border-amber/30' : isDone ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
+        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -212,7 +212,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
     return (
       <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-        isActive ? 'bg-amber/10 border-amber/30' : isDone ? 'bg-green-dim/20 border-green-dim' : 'bg-surface2/40 border-border2/60'
+        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -277,7 +277,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const corrSt = item.status;
     return (
       <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
-        corrSt === 'selesai' ? 'bg-green-dim/15 border-green-dim/60' :
+        corrSt === 'selesai' ? 'bg-green-dim/15 border-green/30' :
         corrSt ? 'bg-amber/8 border-amber/25' :
         item.isOverdue ? 'bg-red/5 border-red/25' :
         'bg-surface border-border2'
@@ -383,7 +383,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                 <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mata pelajaran terlebih dahulu di menu Kelola.</div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
                       <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style min-w-0 w-full">
@@ -399,7 +399,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
                       <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />
@@ -411,7 +411,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" aria-label="Jam mulai ujian" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
                     <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" aria-label="Jam selesai ujian" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
                   </div>
@@ -455,7 +455,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       <div className="space-y-3 animate-slide-up pb-20">
         {/* Summary */}
         <div className={`rounded-2xl border p-4 ${
-          pending > 0 ? 'bg-red/5 border-red/25' : 'bg-green-dim/15 border-green-dim/60'
+          pending > 0 ? 'bg-red/5 border-red/25' : 'bg-green-dim/15 border-green/30'
         }`}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
@@ -579,7 +579,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                   Tambahkan kelas dan mapel dulu di tab Setup supaya jadwal bisa disimpan.
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
                   <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-select-style text-xs h-10 w-full">
@@ -595,7 +595,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
                   <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />

@@ -26,30 +26,28 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
   const streak = getTeacherStreak();
 
   return (
-    <div className="flex-shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sticky top-0 z-40 transition-all">
-      <div className="flex items-center justify-between gap-3 border-b border-border pb-3 relative">
+    <div className="flex-shrink-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sticky top-0 z-40 transition-all bg-background/80 backdrop-blur-xl border-b border-border/40">
+      <div className="flex items-center justify-between gap-3 pb-2 relative">
 
         <div className="min-w-0 pr-2 relative z-10">
           <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_16px_hsl(var(--primary))]" />
-            <span className="text-xs text-text3 font-medium">
+            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" />
+            <span className="text-xs text-text3 font-medium uppercase tracking-wider">
               {dateStr}
             </span>
           </div>
           <div className={`font-display font-bold text-foreground leading-none truncate max-w-full ${displayName.length > 15 ? 'text-[18px]' : displayName.length > 10 ? 'text-[21px]' : 'text-2xl'}`}>
             {displayName}
           </div>
-          <div className="text-xs font-semibold text-text2 mt-1 flex flex-wrap items-center gap-1.5">
+          <div className="text-xs font-semibold text-text2 mt-1.5 flex flex-wrap items-center gap-1.5">
             {activeClassCount > 0 ? (
               <>
-                {activeClassCount} Kelas Aktif
+                <span className="bg-surface2 px-2 py-0.5 rounded-full">{activeClassCount} Kelas Aktif</span>
                 {streak > 0 && (
-                  <>
-                    <span className="opacity-30">•</span>
-                    <span className="flex items-center gap-0.5 text-amber">
-                      {streak} hari konsisten
-                    </span>
-                  </>
+                  <span className="flex items-center gap-1 text-amber bg-amber/10 px-2 py-0.5 rounded-full">
+                    <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber"></span></span>
+                    {streak} hari
+                  </span>
                 )}
               </>
             ) : 'Guru Pengampu'}
@@ -59,22 +57,22 @@ export default function Header({ onToggleTheme, theme, syncStatus = 'idle', user
         <div className="flex shrink-0 items-center gap-1.5 relative z-10">
           <button
             onClick={onOpenSync}
-            className={`app-icon-button h-11 w-11 flex items-center justify-center shadow-sm transition-all ${
-              syncStatus === 'connected' ? 'border-green/40 bg-green/10 text-green' : ''
+            className={`app-icon-button h-10 w-10 flex items-center justify-center shadow-sm transition-all active:scale-[0.92] ${
+              syncStatus === 'connected' ? 'border-green/40 bg-green/10 text-green' : 'bg-surface2/50 text-text2 hover:text-foreground'
             }`}
             aria-label="Sinkronisasi antar perangkat"
             title={user ? `Sinkronisasi aktif (${user.email})` : 'Sinkronisasi antar perangkat'}
           >
-            {syncStatus === 'syncing' ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : syncStatus === 'connected' ? <Cloud aria-hidden="true" className="h-4 w-4" /> : syncStatus === 'offline' ? <CloudOff aria-hidden="true" className="h-4 w-4" /> : <Cloud aria-hidden="true" className="h-4 w-4" />}
+            {syncStatus === 'syncing' ? <LoaderCircle aria-hidden="true" className="h-[18px] w-[18px] animate-spin" /> : syncStatus === 'connected' ? <Cloud aria-hidden="true" className="h-[18px] w-[18px]" /> : syncStatus === 'offline' ? <CloudOff aria-hidden="true" className="h-[18px] w-[18px]" /> : <Cloud aria-hidden="true" className="h-[18px] w-[18px]" />}
           </button>
 
           <button
             onClick={onToggleTheme}
-            className="app-icon-button h-11 w-11 flex items-center justify-center"
+            className="app-icon-button h-10 w-10 flex items-center justify-center shadow-sm transition-all active:scale-[0.92] bg-surface2/50 text-text2 hover:text-foreground"
             aria-label={theme === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'}
             title={theme === 'dark' ? 'Aktifkan tema terang' : 'Aktifkan tema gelap'}
           >
-            {theme === 'dark' ? <Sun aria-hidden="true" className="h-4 w-4" /> : <Moon aria-hidden="true" className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun aria-hidden="true" className="h-[18px] w-[18px]" /> : <Moon aria-hidden="true" className="h-[18px] w-[18px]" />}
           </button>
         </div>
       </div>

@@ -1404,7 +1404,7 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
 
             {/* Card */}
             <div className="flex-1 min-w-0 mb-4">
-              <div className={`group bg-surface/40 backdrop-blur-md border rounded-3xl p-3 pr-[60px] flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md overflow-hidden ${
+              <div className={`group bg-surface/40 backdrop-blur-md border rounded-3xl p-3 pr-16 flex flex-col justify-center transition-all duration-300 min-h-[72px] relative shadow-sm hover:shadow-md overflow-hidden ${
                 state === 'active' ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/10' :
                 state === 'done' 
                    ? (item.skipped 
@@ -1567,20 +1567,20 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                           else openNoteEditor(item);
                         }}
                         aria-label={`${expandedNoteId === item.id ? 'Tutup' : 'Edit'} catatan ${item.className} ${item.subjectName}`}
-                        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                          item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green'
+                        className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                          item.note ? 'bg-green/10 border-green/20 text-green shadow-inner' : 'bg-surface2/50 border-border/40 text-text3 hover:border-green/40 hover:text-green hover:shadow-sm'
                         }`}
                       >
-                        <FilePenLine aria-hidden="true" className="h-4 w-4" />
+                        <FilePenLine aria-hidden="true" className="h-5 w-5" />
                       </button>
                     )
                   ) : (
                     <button
                       onClick={() => handleTLDone(item.id)}
                       aria-label={`Tandai sesi ${item.className} ${item.subjectName} selesai`}
-                      className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-white text-sm font-bold flex items-center justify-center shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      className="w-11 h-11 rounded-2xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground flex items-center justify-center shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
-                      <span>✓</span>
+                      <Check aria-hidden="true" className="h-6 w-6 stroke-[3]" />
                     </button>
                   )}
                 </div>

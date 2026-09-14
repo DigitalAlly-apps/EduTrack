@@ -94,8 +94,8 @@ export default function ProgressView() {
               key={item.id}
               onClick={() => setTab(item.id)}
               aria-pressed={active}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:bg-surface2/50 hover:text-foreground'
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                active ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25' : 'text-text3 hover:bg-surface2/50 hover:text-foreground'
               }`}
             >
               <Icon className="h-3.5 w-3.5" /> {item.label}
@@ -231,26 +231,26 @@ function ProgressTab({
 
       {/* Kondisi yang harus diputuskan guru ditampilkan sebelum detail mapel. */}
       {subjects.length > 0 && (
-        <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-surface/80 p-2 shadow-xs" aria-label="Ringkasan kondisi mata pelajaran">
-          <div className="flex items-center gap-2 rounded-xl border border-green/20 bg-green/10 px-2.5 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-green flex-shrink-0" />
+        <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-surface/60 backdrop-blur-md p-2 shadow-sm" aria-label="Ringkasan kondisi mata pelajaran">
+          <div className="flex items-center gap-2 rounded-xl border border-green/20 bg-green/10 px-2.5 py-2 shadow-sm border-b-[3px] border-b-green/40">
+            <span className="h-2.5 w-2.5 rounded-full bg-green flex-shrink-0 shadow-[0_0_8px_hsl(var(--green))]" />
             <div className="min-w-0">
-              <span className="block text-xs font-black text-green leading-tight">{onTrackCount} Mapel</span>
-              <span className="block text-xs font-medium text-text3 leading-snug">Aman</span>
+              <span className="block text-[13px] font-black text-green leading-tight">{onTrackCount} Mapel</span>
+              <span className="block text-[11px] font-bold text-green/70 leading-snug uppercase tracking-wider">Aman</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-amber/20 bg-amber/10 px-2.5 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber flex-shrink-0" />
+          <div className="flex items-center gap-2 rounded-xl border border-amber/20 bg-amber/10 px-2.5 py-2 shadow-sm border-b-[3px] border-b-amber/40">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber flex-shrink-0 shadow-[0_0_8px_hsl(var(--amber))]" />
             <div className="min-w-0">
-              <span className="block text-xs font-black text-amber leading-tight">{tightCount} Mapel</span>
-              <span className="block text-xs font-medium text-text3 leading-snug">Mepet</span>
+              <span className="block text-[13px] font-black text-amber leading-tight">{tightCount} Mapel</span>
+              <span className="block text-[11px] font-bold text-amber/70 leading-snug uppercase tracking-wider">Mepet</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-red/20 bg-red/10 px-2.5 py-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-red flex-shrink-0" />
+          <div className="flex items-center gap-2 rounded-xl border border-red/20 bg-red/10 px-2.5 py-2 shadow-sm border-b-[3px] border-b-red/40">
+            <span className="h-2.5 w-2.5 rounded-full bg-red flex-shrink-0 shadow-[0_0_8px_hsl(var(--red))]" />
             <div className="min-w-0">
-              <span className="block text-xs font-black text-red leading-tight">{behindCount} Mapel</span>
-              <span className="block text-xs font-medium text-text3 leading-snug">Kurang Sesi</span>
+              <span className="block text-[13px] font-black text-red leading-tight">{behindCount} Mapel</span>
+              <span className="block text-[11px] font-bold text-red/70 leading-snug uppercase tracking-wider">Kurang Sesi</span>
             </div>
           </div>
         </section>

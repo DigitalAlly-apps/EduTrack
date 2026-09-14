@@ -29,7 +29,7 @@ export default function BottomNav({ currentView, onViewChange }: BottomNavProps)
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-1 px-1.5 rounded-2xl text-[12px] font-bold tracking-tight transition-all duration-300 min-h-[54px] justify-center relative ${
+              className={`flex-1 flex flex-col items-center gap-1 py-1 px-1.5 rounded-2xl text-[12px] font-bold tracking-tight transition-all duration-300 min-h-[54px] justify-center relative active:scale-[0.97] ${
                 isActive ? 'text-primary-foreground' : 'text-text2 hover:text-foreground hover:bg-surface2/60'
               }`}
               aria-current={isActive ? 'page' : undefined}
