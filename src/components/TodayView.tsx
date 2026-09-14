@@ -1477,14 +1477,17 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   {!item.done && (
                     <div className="text-xs text-text3 mt-1 leading-snug space-y-0.5">
                       {itemPageLabel && (
-                        <div className="text-text2 font-medium flex items-center gap-1.5 break-words">
-                          <FileText aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 mt-1.5 rounded bg-secondary/60 text-secondary-foreground/90 text-[11px] font-semibold tracking-wider uppercase w-fit break-words">
+                          <FileText aria-hidden="true" className="w-3 h-3 flex-shrink-0 opacity-70" />
                           <span>{teachingPosition?.sessionIndex && teachingPosition.sessionIndex > 1 ? 'Lanjut' : 'Mulai'} {itemPageLabel}</span>
                         </div>
                       )}
                       {itemMaterial?.note && (
-                        <div className="text-text3/80 italic mt-1 line-clamp-3 break-words">
-                          {itemMaterial.note}
+                        <div className="mt-2.5 bg-surface2/60 rounded-lg p-3 relative overflow-hidden group">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-border/80 group-hover:bg-primary/50 transition-colors" />
+                          <p className="text-text3 text-sm leading-relaxed italic line-clamp-3 break-words relative z-10 pl-1">
+                            "{itemMaterial.note}"
+                          </p>
                         </div>
                       )}
                       {teachingPosition && !teachingPosition.isComplete && (
