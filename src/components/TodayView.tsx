@@ -1476,12 +1476,14 @@ export default function TodayView({ refreshKey, onRefresh }: TodayViewProps) {
                   </div>
                   {!item.done && (
                     <div className="text-xs text-text3 mt-1 leading-snug space-y-0.5">
-                      {(itemPageLabel || itemMaterial?.note) && (
-                        <div className="line-clamp-2">
-                          {[
-                            itemPageLabel ? `📄 ${teachingPosition?.sessionIndex && teachingPosition.sessionIndex > 1 ? 'Lanjut' : 'Mulai'} ${itemPageLabel}` : '',
-                            itemMaterial?.note ? `Catatan: ${itemMaterial.note}` : ''
-                          ].filter(Boolean).join(' • ')}
+                      {itemPageLabel && (
+                        <div className="text-text2 font-medium">
+                          📄 {teachingPosition?.sessionIndex && teachingPosition.sessionIndex > 1 ? 'Lanjut' : 'Mulai'} {itemPageLabel}
+                        </div>
+                      )}
+                      {itemMaterial?.note && (
+                        <div className="text-text3/90 italic border-l-2 border-border/60 pl-2 my-1 line-clamp-3">
+                          {itemMaterial.note}
                         </div>
                       )}
                       {teachingPosition && !teachingPosition.isComplete && (
