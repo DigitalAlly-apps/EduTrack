@@ -79,35 +79,35 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
               const lastPage = getLastPageReached(item.classId, item.subjectId);
               const plan = splitSessionNote(note.text);
               return (
-              <div key={item.id} className="flex flex-col gap-2 p-3 hover:bg-surface2/50 transition-colors">
-                <div className="flex items-start justify-between gap-2">
+              <div key={item.id} className="flex flex-col gap-2.5 p-3 sm:p-4 hover:bg-surface2/50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-primary mb-0.5 tabular-nums">{item.startTime}–{item.endTime}</p>
-                    <p className="text-sm font-bold text-foreground leading-snug">{item.className} · {item.subjectName}</p>
-                    <p className="text-[13px] text-text2 mt-0.5 font-medium">{item.active ? '🔴 Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Menunggu dicatat' : 'Terjadwal'}</p>
+                    <p className="text-xs font-black uppercase tracking-wider text-primary mb-1 tabular-nums">{item.startTime}–{item.endTime}</p>
+                    <p className="text-base font-bold text-foreground leading-snug">{item.className} <span className="text-text3 mx-1 font-normal">•</span> {item.subjectName}</p>
+                    <p className="text-sm text-text2 mt-1 font-semibold">{item.active ? '🔴 Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Menunggu dicatat' : 'Terjadwal'}</p>
                   </div>
-                  <button className="primary-button shrink-0 text-xs px-3 min-h-[44px] shadow-sm active:scale-95 transition-all" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
+                  <button className="primary-button shrink-0 text-sm px-4 min-h-[44px] shadow-sm active:scale-95 transition-all" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
                 </div>
                 
-                <div className="mt-0.5 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <BookOpen size={16} className="mt-0.5 shrink-0 text-text3" aria-hidden="true" />
+                <div className="mt-1 space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <BookOpen size={18} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
                     <div className="text-sm">
-                      <p className="font-semibold text-foreground/90">{position.material?.name || 'Materi belum diatur / sudah selesai'}</p>
+                      <p className="font-bold text-foreground">{position.material?.name || 'Materi belum diatur / sudah selesai'}</p>
                       {(position.material || lastPage) && (
-                        <p className="text-text2 text-xs flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="text-text2 text-xs mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                           {position.material && <span>Sesi {position.sessionIndex}/{position.totalSessionsInMaterial}</span>}
                           {position.material && lastPage && <span className="opacity-30">•</span>}
-                          {lastPage && <span className="font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Mulai hal. {getNextStartPage(lastPage).nextPage}</span>}
+                          {lastPage && <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">Mulai hal. {getNextStartPage(lastPage).nextPage}</span>}
                         </p>
                       )}
                     </div>
                   </div>
                   
                   {note.text && (
-                    <div className="bg-surface2/60 rounded-xl px-3 py-2 border border-border/50 border-l-2 border-l-primary/60">
-                      {plan.mainNote && <p className="text-[13px] italic text-foreground/80 leading-relaxed">"{plan.mainNote}"</p>}
-                      {plan.reminder && <p className="text-xs text-amber font-semibold mt-1 flex items-center gap-1.5"><span className="text-[10px]">📌</span> {plan.reminder}</p>}
+                    <div className="bg-surface/80 rounded-xl px-4 py-3 border border-border/80 border-l-2 border-l-primary/60 shadow-sm">
+                      {plan.mainNote && <p className="text-sm italic text-foreground leading-relaxed font-medium">"{plan.mainNote}"</p>}
+                      {plan.reminder && <p className="text-xs text-amber font-bold mt-2 flex items-center gap-2"><span className="text-xs">📌</span> {plan.reminder}</p>}
                     </div>
                   )}
                 </div>
@@ -192,36 +192,36 @@ function FocusSession({ item, date, onRecord }: { item: TodayScheduleItem; date:
   const note = getNextMeetingNote(item.classId, item.subjectId);
   const lastPage = getLastPageReached(item.classId, item.subjectId);
   const plan = splitSessionNote(note.text);
-  return <section className="work-panel daily-focus-hero space-y-3 p-4 sm:p-5 border-primary/40 bg-primary/5 shadow-sm hover:shadow-md transition-all" aria-labelledby="focus-class">
+  return <section className="work-panel daily-focus-hero space-y-4 p-4 sm:p-5 border-primary/40 bg-primary/5 shadow-sm hover:shadow-md transition-all" aria-labelledby="focus-class">
     <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
-      <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-full uppercase tracking-widest text-[10px]">
+      <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest text-[11px]">
         {item.active ? <><span className="w-2 h-2 rounded-full bg-primary animate-pulse" /> Sedang Berlangsung</> : 'Berikutnya / belum dicatat'}
       </span>
-      <span className="tabular-nums text-text2 bg-surface2/80 px-2 py-0.5 rounded-full text-xs border border-border/50">{item.startTime}–{item.endTime}</span>
+      <span className="tabular-nums text-text2 bg-surface/80 px-2.5 py-1 rounded-full text-xs border border-border/50">{item.startTime}–{item.endTime}</span>
     </div>
-    <h2 id="focus-class" className="text-xl font-black tracking-tight text-foreground">{item.className} <span className="opacity-40 font-normal">·</span> {item.subjectName}</h2>
-    <div className="bg-surface/60 rounded-2xl p-3 sm:p-4 border border-border/60">
-      <p className="flex items-start gap-2.5 text-sm sm:text-base font-semibold text-foreground/90">
-        <BookOpen size={18} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+    <h2 id="focus-class" className="text-2xl font-black tracking-tight text-foreground">{item.className} <span className="text-text3 mx-1 font-normal">•</span> {item.subjectName}</h2>
+    <div className="bg-surface/80 rounded-2xl p-4 border border-border/60">
+      <p className="flex items-start gap-3 text-base font-bold text-foreground">
+        <BookOpen size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
         {position.material?.name || 'Materi belum diatur / sudah selesai'}
       </p>
       {(position.material || lastPage) && (
-        <div className="mt-2 ml-7 flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-text2 font-medium">
-          {position.material && <span className="bg-surface2 px-2 py-1 rounded-md border border-border/50">Sesi {position.sessionIndex} dari {position.totalSessionsInMaterial}</span>}
-          {lastPage && <span className="text-primary bg-primary/10 px-2 py-1 rounded-md font-bold">Lanjut hal. {getNextStartPage(lastPage).nextPage}</span>}
+        <div className="mt-2.5 ml-8 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-text2 font-medium">
+          {position.material && <span className="bg-surface2 px-2.5 py-1 rounded-md border border-border/50">Sesi {position.sessionIndex} dari {position.totalSessionsInMaterial}</span>}
+          {lastPage && <span className="text-primary bg-primary/10 px-2.5 py-1 rounded-md font-bold">Lanjut hal. {getNextStartPage(lastPage).nextPage}</span>}
         </div>
       )}
     </div>
     {note.text && (
-      <div className="rounded-2xl bg-surface/80 p-3 sm:p-4 border border-border/80 shadow-sm">
-        <p className="mb-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5 opacity-70">
+      <div className="rounded-2xl bg-surface/90 p-4 border border-border/80 shadow-sm border-l-2 border-l-primary">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text2 flex items-center gap-1.5">
           {note.legacy ? 'Referensi catatan lama' : 'Catatan Pertemuan Berikutnya'}
         </p>
-        {plan.mainNote && <p className="whitespace-pre-wrap text-[13px] sm:text-sm leading-relaxed text-foreground font-medium">"{plan.mainNote}"</p>}
-        {plan.reminder && <p className="mt-2.5 whitespace-pre-wrap text-[13px] font-bold text-amber flex gap-2"><span className="shrink-0">📌</span> <span>{plan.reminder}</span></p>}
+        {plan.mainNote && <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground font-medium">"{plan.mainNote}"</p>}
+        {plan.reminder && <p className="mt-3 whitespace-pre-wrap text-sm font-bold text-amber flex gap-2.5 items-start"><span className="shrink-0 text-base">📌</span> <span className="mt-0.5">{plan.reminder}</span></p>}
       </div>
     )}
-    <button className="primary-button w-full text-sm min-h-[44px] rounded-xl font-bold shadow-sm active:scale-[0.98] transition-transform" disabled={date > dateKey()} onClick={onRecord}>
+    <button className="primary-button w-full text-base min-h-[48px] rounded-xl font-bold shadow-sm active:scale-[0.98] transition-transform" disabled={date > dateKey()} onClick={onRecord}>
       Tandai Selesai & Catat Hasil
     </button>
   </section>;
