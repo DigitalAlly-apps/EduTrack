@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowRight, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, Timer, Clock, Zap, Pin } from 'lucide-react';
 import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle, formatTaskDeadline, isAutoPaceTask, shouldShowTaskInInbox, timeToMin, currentMin } from '@/lib/data';
 import { getMissingTeachingSessions } from '@/lib/dataPublic';
 import { getExamDayMode, getExamSchedules, getProctorSessions } from '@/lib/examData';
@@ -52,7 +52,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
       <div className="min-w-0 space-y-5">
         {getExamDayMode() && <div className="rounded-xl bg-primary/10 p-4 text-sm">Fokus ujian aktif. Jadwal mengajar tetap bisa dicatat. <button className="font-semibold text-primary underline" onClick={() => navigateTo({ view: 'exam' })}>Buka ujian</button></div>}
 
-        {focus ? <FocusSession item={focus} date={date} onRecord={() => setSelected(focus)} /> : <section className="work-panel space-y-3">
+        {focus ? <FocusSession item={focus} date={date} onRecord={() => setSelected(focus)} onRefresh={onRefresh} /> : <section className="work-panel space-y-3">
           <CalendarDays className="text-primary" aria-hidden="true" />
           <h2 className="text-xl font-semibold">{completed.length ? 'Agenda mengajar sudah tercatat' : 'Tidak ada jadwal mengajar'}</h2>
           <p className="text-text2">{completed.length ? 'Hasilnya sudah masuk ke progres kelas.' : 'Pilih tanggal lain atau lengkapi jadwal mengajar.'}</p>
@@ -72,7 +72,9 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-black uppercase tracking-wider text-primary mb-1 tabular-nums">{item.startTime}–{item.endTime}</p>
                     <p className="text-base font-bold text-foreground leading-snug">{item.className} <span className="text-text3 mx-1 font-normal">•</span> {item.subjectName}</p>
-                    <p className="text-sm text-text2 mt-1 font-semibold">{item.active ? '🔴 Sedang berlangsung' : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Menunggu dicatat' : 'Terjadwal'}</p>
+                    <div className="text-sm text-text2 mt-1 font-semibold flex items-center">
+                      {item.active ? <span className="inline-flex items-center gap-1.5 text-primary"><span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> Sedang berlangsung</span> : date < clock || (date === clock && timeToMin(item.endTime) <= currentMin()) ? 'Menunggu dicatat' : 'Terjadwal'}
+                    </div>
                   </div>
                   <button className="primary-button shrink-0 text-sm px-4 min-h-[44px] shadow-sm active:scale-95 transition-all" disabled={date > clock} onClick={() => setSelected(item)}>Catat hasil</button>
                 </div>
@@ -95,7 +97,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
                   {note.text && (
                     <div className="bg-surface/80 rounded-xl px-4 py-3 border border-border/80 border-l-2 border-l-primary/60 shadow-sm">
                       {plan.mainNote && <p className="text-sm italic text-foreground leading-relaxed font-medium">"{plan.mainNote}"</p>}
-                      {plan.reminder && <p className="text-xs text-amber font-bold mt-2 flex items-center gap-2"><span className="text-xs">📌</span> {plan.reminder}</p>}
+                      {plan.reminder && <p className="text-xs text-amber font-bold mt-2 flex items-start gap-2"><Pin size={14} className="shrink-0 mt-0.5" /> <span>{plan.reminder}</span></p>}
                     </div>
                   )}
                 </div>
@@ -188,44 +190,108 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
   </div>;
 }
 
-function FocusSession({ item, date, onRecord }: { item: TodayScheduleItem; date: string; onRecord: () => void }) {
+function LiveActiveSession({ 
+  startTime, 
+  endTime, 
+  onRefresh,
+  children 
+}: { 
+  startTime: string, 
+  endTime: string, 
+  onRefresh: () => void,
+  children: (diffSec: number, isOvertime: boolean) => JSX.Element 
+}) {
+  const [nowMs, setNowMs] = useState(Date.now());
+  
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const now = new Date(nowMs);
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  
+  const endSec = timeToMin(endTime) * 60;
+  const diffSec = Math.max(0, endSec - nowSec);
+  const isOvertime = diffSec === 0;
+
+  useEffect(() => {
+    if (isOvertime) {
+      const timer = setTimeout(() => onRefresh(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOvertime, onRefresh]);
+
+  return <>{children(diffSec, isOvertime)}</>;
+}
+
+function FocusSession({ item, date, onRecord, onRefresh }: { item: TodayScheduleItem; date: string; onRecord: () => void; onRefresh: () => void }) {
   const position = getTeachingPosition(item.classId, item.subjectId);
   const note = getNextMeetingNote(item.classId, item.subjectId);
   const lastPage = getLastPageReached(item.classId, item.subjectId);
   const plan = splitSessionNote(note.text);
-  return <section className="work-panel daily-focus-hero space-y-4 p-4 sm:p-5 border-primary/40 bg-primary/5 shadow-sm hover:shadow-md transition-all" aria-labelledby="focus-class">
-    <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
-      <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest text-[11px]">
-        {item.active ? <><span className="w-2 h-2 rounded-full bg-primary animate-pulse" /> Sedang Berlangsung</> : 'Berikutnya / belum dicatat'}
-      </span>
-      <span className="tabular-nums text-text2 bg-surface/80 px-2.5 py-1 rounded-full text-xs border border-border/50">{item.startTime}–{item.endTime}</span>
-    </div>
-    <h2 id="focus-class" className="text-2xl font-black tracking-tight text-foreground">{item.className} <span className="text-text3 mx-1 font-normal">•</span> {item.subjectName}</h2>
-    <div className="bg-surface/80 rounded-2xl p-4 border border-border/60">
-      <p className="flex items-start gap-3 text-base font-bold text-foreground">
-        <BookOpen size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-        {position.material?.name || 'Materi belum diatur / sudah selesai'}
-      </p>
-      {(position.material || lastPage) && (
-        <div className="mt-2.5 ml-8 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-text2 font-medium">
-          {position.material && <span className="bg-surface2 px-2.5 py-1 rounded-md border border-border/50">Sesi {position.sessionIndex} dari {position.totalSessionsInMaterial}</span>}
-          {lastPage && <span className="text-primary bg-primary/10 px-2.5 py-1 rounded-md font-bold">Lanjut hal. {getNextStartPage(lastPage).nextPage}</span>}
+
+  const renderContent = (diffSec: number | null, isOvertime: boolean | null) => (
+    <section className={`work-panel daily-focus-hero space-y-4 p-4 sm:p-5 transition-all shadow-sm ${isOvertime ? 'bg-red/5 border-red/30 ring-1 ring-red/20' : 'border-primary/40 bg-primary/5 hover:shadow-md'}`} aria-labelledby="focus-class">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full uppercase tracking-widest text-[11px] ${isOvertime ? 'bg-red/10 text-red' : item.active ? 'bg-primary/10 text-primary' : 'bg-surface2 text-text3'}`}>
+          {item.active ? (
+            isOvertime ? (
+              <><Zap className="w-3 h-3" /> Waktu Habis</>
+            ) : (
+              <><span className="w-2 h-2 rounded-full bg-primary animate-pulse" /> Sedang Berlangsung</>
+            )
+          ) : (
+            'Berikutnya / belum dicatat'
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          {item.active && diffSec !== null && (
+            <span className={`tabular-nums px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1.5 border ${isOvertime ? 'text-red bg-red/10 border-red/20' : 'text-primary bg-primary/10 border-primary/20'}`}>
+              {isOvertime ? <Clock className="w-3.5 h-3.5" /> : <Timer className="w-3.5 h-3.5" />}
+              {isOvertime ? '0m' : diffSec < 60 ? `${diffSec} detik` : `${Math.floor(diffSec / 60)} menit`}
+            </span>
+          )}
+          <span className="tabular-nums text-text2 bg-surface/80 px-2.5 py-1 rounded-full text-xs border border-border/50">{item.startTime}–{item.endTime}</span>
+        </div>
+      </div>
+      <h2 id="focus-class" className="text-2xl font-black tracking-tight text-foreground">{item.className} <span className="text-text3 mx-1 font-normal">•</span> {item.subjectName}</h2>
+      <div className="bg-surface/80 rounded-2xl p-4 border border-border/60">
+        <p className="flex items-start gap-3 text-base font-bold text-foreground">
+          <BookOpen size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+          {position.material?.name || 'Materi belum diatur / sudah selesai'}
+        </p>
+        {(position.material || lastPage) && (
+          <div className="mt-2.5 ml-8 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-text2 font-medium">
+            {position.material && <span className="bg-surface2 px-2.5 py-1 rounded-md border border-border/50">Sesi {position.sessionIndex} dari {position.totalSessionsInMaterial}</span>}
+            {lastPage && <span className="text-primary bg-primary/10 px-2.5 py-1 rounded-md font-bold">Lanjut hal. {getNextStartPage(lastPage).nextPage}</span>}
+          </div>
+        )}
+      </div>
+      {note.text && (
+        <div className="rounded-2xl bg-surface/90 p-4 border border-border/80 shadow-sm border-l-2 border-l-primary">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text2 flex items-center gap-1.5">
+            {note.legacy ? 'Referensi catatan lama' : 'Catatan Pertemuan Berikutnya'}
+          </p>
+          {plan.mainNote && <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground font-medium">"{plan.mainNote}"</p>}
+          {plan.reminder && <p className="mt-3 whitespace-pre-wrap text-sm font-bold text-amber flex gap-2.5 items-start"><Pin size={16} className="shrink-0 mt-0.5" /> <span className="mt-0.5">{plan.reminder}</span></p>}
         </div>
       )}
-    </div>
-    {note.text && (
-      <div className="rounded-2xl bg-surface/90 p-4 border border-border/80 shadow-sm border-l-2 border-l-primary">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-text2 flex items-center gap-1.5">
-          {note.legacy ? 'Referensi catatan lama' : 'Catatan Pertemuan Berikutnya'}
-        </p>
-        {plan.mainNote && <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground font-medium">"{plan.mainNote}"</p>}
-        {plan.reminder && <p className="mt-3 whitespace-pre-wrap text-sm font-bold text-amber flex gap-2.5 items-start"><span className="shrink-0 text-base">📌</span> <span className="mt-0.5">{plan.reminder}</span></p>}
-      </div>
-    )}
-    <button className="primary-button w-full text-base min-h-[48px] rounded-xl font-bold shadow-sm active:scale-[0.98] transition-transform" disabled={date > dateKey()} onClick={onRecord}>
-      Tandai Selesai & Catat Hasil
-    </button>
-  </section>;
+      <button className={`w-full text-base min-h-[48px] rounded-xl font-bold shadow-sm active:scale-[0.98] transition-transform ${isOvertime ? 'bg-red text-white hover:bg-red/90' : 'primary-button'}`} disabled={date > dateKey()} onClick={onRecord}>
+        {isOvertime ? 'Selesai (Kelebihan Waktu)' : 'Tandai Selesai & Catat Hasil'}
+      </button>
+    </section>
+  );
+
+  if (item.active && date === dateKey()) {
+    return (
+      <LiveActiveSession startTime={item.startTime} endTime={item.endTime} onRefresh={onRefresh}>
+        {(diffSec, isOvertime) => renderContent(diffSec, isOvertime)}
+      </LiveActiveSession>
+    );
+  }
+
+  return renderContent(null, null);
 }
 
 function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleItem; date: string; onClose: () => void; onSaved: () => void }) {
