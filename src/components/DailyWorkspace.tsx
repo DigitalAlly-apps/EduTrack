@@ -51,24 +51,12 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0 space-y-5">
         {getExamDayMode() && <div className="rounded-xl bg-primary/10 p-4 text-sm">Fokus ujian aktif. Jadwal mengajar tetap bisa dicatat. <button className="font-semibold text-primary underline" onClick={() => navigateTo({ view: 'exam' })}>Buka ujian</button></div>}
+
         {focus ? <FocusSession item={focus} date={date} onRecord={() => setSelected(focus)} /> : <section className="work-panel space-y-3">
           <CalendarDays className="text-primary" aria-hidden="true" />
           <h2 className="text-xl font-semibold">{completed.length ? 'Agenda mengajar sudah tercatat' : 'Tidak ada jadwal mengajar'}</h2>
           <p className="text-text2">{completed.length ? 'Hasilnya sudah masuk ke progres kelas.' : 'Pilih tanggal lain atau lengkapi jadwal mengajar.'}</p>
           <button className="quiet-button" onClick={() => navigateTo({ view: 'setup', section: 'schedules' })}>Atur jadwal</button>
-        </section>}
-        {!!missing.length && <section className="work-panel space-y-3" aria-labelledby="missing-kbm">
-          <h2 id="missing-kbm" className="text-lg font-semibold">KBM kemarin belum tercatat</h2>
-          {missing.map(item => <div key={item.schedule.id} className="border-t border-border pt-3">
-            <p className="font-semibold">{item.className} · {item.subjectName}</p><p className="text-sm text-text2">{item.date} · {item.schedule.startTime}</p>
-            <div className="mt-2 flex flex-wrap gap-2"><button className="quiet-button" onClick={() => {
-              const schedule = getTodaySchedules(item.date, true).find(s => s.id === item.schedule.id);
-              if (schedule) { changeDate(item.date); setSelected(schedule); }
-            }}>Catat KBM kemarin</button><button className="quiet-button" onClick={() => {
-              try { skipSessionForDate(item.schedule.id, item.date); onRefresh(); }
-              catch { toast({ title: 'Belum tersimpan. Coba lagi.', variant: 'destructive' }); }
-            }}>Tidak terlaksana</button></div>
-          </div>)}
         </section>}
         <section aria-labelledby="daily-agenda">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 id="daily-agenda" className="text-lg font-semibold">Agenda mengajar</h2><span className="text-sm text-text2">{completed.length}/{items.length} tercatat</span></div>
@@ -125,6 +113,19 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
             </div>
           </details>
         </section>
+        {!!missing.length && <section className="work-panel space-y-3" aria-labelledby="missing-kbm">
+          <h2 id="missing-kbm" className="text-lg font-semibold">KBM kemarin belum tercatat</h2>
+          {missing.map(item => <div key={item.schedule.id} className="border-t border-border pt-3">
+            <p className="font-semibold">{item.className} · {item.subjectName}</p><p className="text-sm text-text2">{item.date} · {item.schedule.startTime}</p>
+            <div className="mt-2 flex flex-wrap gap-2"><button className="quiet-button" onClick={() => {
+              const schedule = getTodaySchedules(item.date, true).find(s => s.id === item.schedule.id);
+              if (schedule) { changeDate(item.date); setSelected(schedule); }
+            }}>Catat KBM kemarin</button><button className="quiet-button" onClick={() => {
+              try { skipSessionForDate(item.schedule.id, item.date); onRefresh(); }
+              catch { toast({ title: 'Belum tersimpan. Coba lagi.', variant: 'destructive' }); }
+            }}>Tidak terlaksana</button></div>
+          </div>)}
+        </section>}
         <section className="work-panel space-y-3" aria-labelledby="task-inbox">
           <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="task-inbox" className="text-lg font-semibold">Inbox Tugas ({pendingTasks.length})</h2><button className="quiet-button" disabled={!data.classes.length || !data.subjects.length} onClick={() => { setActionError(''); setTaskDraft({ classId: focus?.classId || data.classes[0]?.id || '', subjectId: focus?.subjectId || data.subjects[0]?.id || '', title: '' }); }}>Tambah Tugas</button></div>
           {pendingTasks.map(task => <div key={task.id} className="flex items-start gap-3 border-t border-border pt-3">
@@ -232,25 +233,35 @@ function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleIt
   const draftKey = `edutrack_record_v1:${date}:${item.id}`;
   const [draft, setDraft] = useState(() => {
     const plan = splitSessionNote(date === dateKey() ? getNextMeetingNote(item.classId, item.subjectId).text : '');
-    const fallback = { outcome: 'taught', materialId: getTeachingPosition(item.classId, item.subjectId).material?.id || '', completed: false, note: '', nextNote: plan.mainNote, supportingNote: plan.reminder, page: '' };
+    const initialMaterialId = getTeachingPosition(item.classId, item.subjectId).material?.id || '';
+    const fallback = { outcome: 'taught', materials: [{ id: initialMaterialId, completed: false }], note: '', nextNote: plan.mainNote, supportingNote: plan.reminder, page: '' };
     try {
       const saved = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (!saved || typeof saved.note !== 'string' || typeof saved.nextNote !== 'string' || typeof saved.page !== 'string' || typeof saved.materialId !== 'string' || typeof saved.completed !== 'boolean' || !['taught', 'skipped'].includes(saved.outcome)) return fallback;
+      if (!saved || typeof saved.note !== 'string' || typeof saved.nextNote !== 'string' || typeof saved.page !== 'string' || !['taught', 'skipped'].includes(saved.outcome)) return fallback;
       const savedPlan = splitSessionNote(saved.nextNote);
-      return { ...fallback, ...saved, nextNote: savedPlan.mainNote, supportingNote: typeof saved.supportingNote === 'string' ? saved.supportingNote : savedPlan.reminder };
+      
+      let materials = saved.materials;
+      if (!Array.isArray(materials)) {
+        if (typeof saved.materialId === 'string') {
+          materials = [{ id: saved.materialId, completed: !!saved.completed }];
+        } else {
+          materials = fallback.materials;
+        }
+      }
+      return { ...fallback, ...saved, materials, nextNote: savedPlan.mainNote, supportingNote: typeof saved.supportingNote === 'string' ? saved.supportingNote : savedPlan.reminder };
     } catch { return fallback; }
   });
   const [error, setError] = useState('');
   const saving = useRef(false);
   const [draftFailed, setDraftFailed] = useState(false);
   useEffect(() => { try { localStorage.setItem(draftKey, JSON.stringify(draft)); setDraftFailed(false); } catch { setDraftFailed(true); } }, [draft, draftKey]);
-  const update = (field: keyof typeof draft, value: string | boolean) => setDraft(previous => ({ ...previous, [field]: value }));
+  const update = (field: keyof typeof draft, value: any) => setDraft(previous => ({ ...previous, [field]: value }));
   const save = (event: React.FormEvent) => {
     event.preventDefault(); if (saving.current) return; saving.current = true;
     try {
       const plan = composeSessionNote(draft.nextNote, draft.supportingNote);
-      // Preserve a pre-stabilization draft's event note instead of silently replacing it.
-      const ok = recordTeachingSession(item.id, date, draft.materialId || null, draft.completed, draft.note.trim() || plan, draft.outcome === 'taught' ? draft.page : undefined, plan, draft.outcome === 'skipped');
+      const materialsToPass = draft.outcome === 'skipped' ? [] : draft.materials;
+      const ok = recordTeachingSession(item.id, date, materialsToPass, false, draft.note.trim() || plan, draft.outcome === 'taught' ? draft.page : undefined, plan, draft.outcome === 'skipped');
       if (!ok) { setError('Sesi sudah tercatat atau jadwal berubah. Tutup formulir dan periksa agenda.'); return; }
       try { localStorage.removeItem(draftKey); } catch { /* Session has already been saved. */ }
       toast({ title: 'Tersimpan di perangkat', description: 'Agenda dan progres kelas diperbarui.' }); onSaved();
@@ -261,15 +272,47 @@ function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleIt
     <DialogTitle>Catat hasil</DialogTitle><DialogDescription>{item.className} · {item.subjectName} · {date}</DialogDescription>
     <form onSubmit={save} className="space-y-4">
       <label className="block">Hasil pertemuan<select className="workspace-input mt-1" value={draft.outcome} onChange={e => update('outcome', e.target.value)}><option value="taught">Sudah mengajar</option><option value="skipped">Tidak terlaksana</option></select></label>
-      {draft.outcome === 'taught' && <><label className="block">Materi<select className="workspace-input mt-1" value={draft.materialId} onChange={e => update('materialId', e.target.value)}><option value="">Tanpa materi terpilih</option>{getMaterials(item.subjectId, item.classId).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
-      <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={draft.completed} onChange={e => update('completed', e.target.checked)} />Bab ini selesai</label>
-      </>}
+      {draft.outcome === 'taught' && (
+        <div className="space-y-4 rounded-xl border border-border p-4">
+          <p className="font-semibold text-sm">Materi yang diajarkan</p>
+          {draft.materials.map((mat: { id: string; completed: boolean }, index: number) => (
+            <div key={index} className="space-y-2 border-b border-border/50 pb-4 last:border-0 last:pb-0">
+              <select className="workspace-input" value={mat.id} onChange={e => {
+                const newMats = [...draft.materials];
+                newMats[index].id = e.target.value;
+                update('materials', newMats);
+              }}>
+                <option value="">Tanpa materi terpilih</option>
+                {getMaterials(item.subjectId, item.classId).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+              <div className="flex items-center justify-between">
+                <label className="flex min-h-[44px] items-center gap-3">
+                  <input type="checkbox" checked={mat.completed} onChange={e => {
+                    const newMats = [...draft.materials];
+                    newMats[index].completed = e.target.checked;
+                    update('materials', newMats);
+                  }} />
+                  Bab ini selesai
+                </label>
+                {draft.materials.length > 1 && (
+                  <button type="button" className="text-sm font-medium text-red-500 underline min-h-[44px] px-2" onClick={() => {
+                    update('materials', draft.materials.filter((_, i) => i !== index));
+                  }}>Hapus</button>
+                )}
+              </div>
+            </div>
+          ))}
+          <button type="button" className="quiet-button w-full border border-dashed border-border2 text-sm" onClick={() => {
+            update('materials', [...draft.materials, { id: '', completed: false }]);
+          }}>+ Tambah materi lain</button>
+        </div>
+      )}
       <label className="block">Materi selanjutnya <span className="text-sm text-text2">(opsional)</span><textarea className="workspace-input mt-1" rows={2} value={draft.nextNote} onChange={e => update('nextNote', e.target.value)} /></label>
-      {draft.outcome === 'taught' && <label className="block">Pertemuan selanjutnya hal. <span className="text-sm text-text2">(opsional)</span><input className="workspace-input mt-1" value={draft.page} onChange={e => update('page', e.target.value)} />{draft.page && <span className="mt-1 block text-sm text-text2">Mulai hal. {getNextStartPage(draft.page).nextPage}</span>}</label>}
+      {draft.outcome === 'taught' && <label className="block">Pertemuan selanjutnya hal. <span className="text-sm text-text2">(opsional)</span><input type="number" className="workspace-input mt-1 max-w-[120px]" value={draft.page} onChange={e => update('page', e.target.value)} />{draft.page && <span className="mt-1 block text-sm text-text2">Mulai hal. {getNextStartPage(draft.page).nextPage}</span>}</label>}
       <label className="block">Informasi selain materi <span className="text-sm text-text2">(opsional)</span><textarea className="workspace-input mt-1" rows={2} value={draft.supportingNote} onChange={e => update('supportingNote', e.target.value)} /></label>
       {draft.note && <p className="whitespace-pre-wrap text-sm text-text2">Catatan draft lama tetap disimpan: {draft.note}</p>}
       <p className="text-sm text-text2">{draftFailed ? 'Draft belum bisa disimpan di perangkat. Tetap buka formulir ini sampai berhasil menyimpan.' : 'Isian disimpan sebagai draft jika formulir ditutup.'}</p>
-      {error && <p role="alert" className="text-red">{error}</p>}
+      {error && <p role="alert" className="text-red-500 font-medium">{error}</p>}
       <div className="flex gap-3"><button type="button" className="quiet-button" onClick={onClose}>Tutup</button><button className="primary-button flex-1" type="submit">Simpan</button></div>
     </form>
   </DialogContent></Dialog>;

@@ -784,37 +784,87 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
 }
 
 
-export function recordTeachingSession(scheduleId: string, sessionDate: string, materialId?: string | null, materialCompleted = false, note?: string, lastPageReached?: string, nextMeetingNote?: string, skipped = false) {
+export function recordTeachingSession(
+  scheduleId: string, 
+  sessionDate: string, 
+  materialId?: string | null | { id: string | null; completed: boolean }[], 
+  materialCompleted = false, 
+  note?: string, 
+  lastPageReached?: string, 
+  nextMeetingNote?: string, 
+  skipped = false
+) {
   const data = getData();
   const sched = data.schedules.find(s => s.id === scheduleId);
   if (!sched) return false;
   if (sessionDate > dateKey()) return false;
-  if (data.sessions.some(s => s.scheduleId === scheduleId && s.date === sessionDate)) return false;
-  const hasNewerMeeting = data.sessions.some(s => s.classId === sched.classId && s.subjectId === sched.subjectId && s.materialId !== 'SKIPPED' && s.date > sessionDate);
   
+  // Prevent double submissions: if we already have a session for this schedule and date BEFORE we start, abort.
+  const existingCount = data.sessions.filter(s => s.scheduleId === scheduleId && s.date === sessionDate).length;
+  if (existingCount > 0) return false;
+
+  const hasNewerMeeting = data.sessions.some(s => s.classId === sched.classId && s.subjectId === sched.subjectId && s.materialId !== 'SKIPPED' && s.date > sessionDate);
   const prog = data.progress.find(p => p.classId === sched.classId && p.subjectId === sched.subjectId);
   const mats = getMaterialsFromData(data, sched.subjectId, sched.classId);
   const position = getTeachingPosition(sched.classId, sched.subjectId, data);
-  // `null` is an explicit "tanpa materi" choice from the recording form;
-  // keep the legacy undefined behavior for markDone callers.
-  const material = materialId === null ? undefined : (mats.find(m => m.id === materialId) ?? position.material);
   
-  const session: import('./types').Session = { id: genId(), scheduleId, classId: sched.classId, subjectId: sched.subjectId, date: sessionDate, materialId: skipped ? 'SKIPPED' : material?.id || null, materialCompleted: !skipped && materialCompleted, completedAt: now().toISOString(), note };
-  if (lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
-  data.sessions.push(session);
-  
-  const nextProg = prog ?? { id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 0, lastSession: null };
-  if (!skipped) {
-    nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
-    nextProg.lastSession = sessionDate;
+  // Normalize the materials to an array
+  let materialsToRecord: { id: string | null; completed: boolean }[] = [];
+  if (Array.isArray(materialId)) {
+    materialsToRecord = materialId;
+  } else {
+    materialsToRecord = [{ id: (materialId ?? undefined) || null, completed: materialCompleted }];
   }
-  if (!hasNewerMeeting && nextMeetingNote !== undefined) nextProg.nextMeetingNote = nextMeetingNote.trim();
-  if (!skipped && materialCompleted && material) {
-    nextProg.completedMaterialIds = [...new Set([...(nextProg.completedMaterialIds ?? []), material.id])];
+
+  // Ensure there is at least one entry if empty
+  if (materialsToRecord.length === 0) {
+    materialsToRecord = [{ id: null, completed: false }];
   }
+
+  let nextProg = prog ?? { id: genId(), classId: sched.classId, subjectId: sched.subjectId, materialsDone: 0, lastSession: null };
+
+  materialsToRecord.forEach((matItem, index) => {
+    // `null` is an explicit "tanpa materi" choice
+    const mat = matItem.id === null ? undefined : (mats.find(m => m.id === matItem.id) ?? position.material);
+    
+    // Only attach notes to the first session record to avoid duplicating text in the UI
+    const isFirst = index === 0;
+    
+    const session: import('./types').Session = { 
+      id: genId(), 
+      scheduleId, 
+      classId: sched.classId, 
+      subjectId: sched.subjectId, 
+      date: sessionDate, 
+      materialId: skipped ? 'SKIPPED' : mat?.id || null, 
+      materialCompleted: !skipped && matItem.completed, 
+      completedAt: now().toISOString(), 
+      note: isFirst ? note : undefined 
+    };
+    
+    if (isFirst && lastPageReached?.trim()) session.lastPageReached = lastPageReached.trim();
+    
+    data.sessions.push(session);
+
+    if (!skipped) {
+      // Each recorded material increments the sessions count (or materials done) by 1
+      nextProg.materialsDone = Math.min((nextProg.materialsDone ?? 0) + 1, getTotalSessionsNeeded(mats));
+      nextProg.lastSession = sessionDate;
+    }
+    
+    if (isFirst && !hasNewerMeeting && nextMeetingNote !== undefined) {
+      nextProg.nextMeetingNote = nextMeetingNote.trim();
+    }
+    
+    if (!skipped && matItem.completed && mat) {
+      nextProg.completedMaterialIds = [...new Set([...(nextProg.completedMaterialIds ?? []), mat.id])];
+    }
+  });
+
   if (!prog) {
     data.progress.push(nextProg);
   }
+  
   saveData(data);
   return true;
 }

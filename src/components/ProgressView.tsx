@@ -888,7 +888,7 @@ function EditRecordedSessionSheet({
           <span><strong className="text-foreground">Bab selesai pada pertemuan ini</strong><span className="mt-0.5 block text-xs text-text3">Posisi materi akan lanjut ke bab berikutnya.</span></span>
         </label>
         <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
-        <input id="edit-history-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
+        <input type="number" id="edit-history-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3 max-w-[120px]" placeholder="Contoh: 25" />
         <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-note">Materi selanjutnya / catatan tersimpan <span className="normal-case">(opsional)</span></label>
         <textarea id="edit-history-note" value={note} onChange={event => setNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" placeholder="Catatan pertemuan..." />
         <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="edit-history-supporting-note">Informasi selain materi <span className="normal-case">(opsional)</span></label>
@@ -1020,7 +1020,7 @@ function RetroactiveSessionSheet({
             <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-supporting-note">Informasi selain materi <span className="normal-case">(opsional)</span></label>
             <textarea id="retroactive-supporting-note" value={supportingNote} onChange={event => setSupportingNote(event.target.value)} className="form-input-style mb-3 min-h-[76px] resize-none" />
             <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-text3" htmlFor="retroactive-page">Halaman pertemuan berikutnya <span className="normal-case">(opsional)</span></label>
-            <input id="retroactive-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3" placeholder="Contoh: 25" />
+            <input type="number" id="retroactive-page" value={lastPageReached} onChange={event => setLastPageReached(event.target.value)} className="form-input-style mb-3 max-w-[120px]" placeholder="Contoh: 25" />
           </>
         )}
         {message && <p className="mb-3 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12px] text-red" role="alert">{message}</p>}
