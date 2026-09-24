@@ -17,7 +17,12 @@ import {
   type DistributionSuggestion,
   type SyllabusOverview,
 } from '@/lib/syllabusEngine';
-import { addExamSchedule, deleteExamSchedule, fmtDate } from '@/lib/examData';
+import {
+  addExamSchedule, deleteExamSchedule, fmtDate,
+  getExamDayMode, setExamDayMode,
+  getExamReminderSettings, updateExamReminderSetting, type ExamReminderSettingKey,
+  resetAllExamData
+} from '@/lib/examData';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
@@ -25,17 +30,16 @@ import { AlertTriangle, Award, Bell, BookMarked, BookOpen, CalendarDays, CheckCi
 
 interface SetupViewProps {
   onRefresh: () => void;
-  onOpenExamSettings: () => void;
   onOpenInfo: () => void;
 }
 
-export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }: SetupViewProps) {
+export default function SetupView({ onRefresh, onOpenInfo }: SetupViewProps) {
   const data = getData();
   const showGettingStarted = !data.classes.length || !data.subjects.length || !data.schedules.length || !data.materials.length;
   // Default to classes if first time, otherwise show menu
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get('section') as SetupTab;
-  const tab = ['classes', 'subjects', 'schedules', 'materials', 'semesters', 'holidays', 'leave', 'data'].includes(requestedTab) ? requestedTab : null;
+  const tab = ['classes', 'subjects', 'schedules', 'materials', 'semesters', 'holidays', 'leave', 'data', 'exam_settings'].includes(requestedTab) ? requestedTab : null;
   const [, forceUpdate] = useState(0);
   const setTab = (t: SetupTab | null) => { setParams(previous => { const next = new URLSearchParams(previous); if (t) next.set('section', t); else next.delete('section'); return next; }); };
   // Expose setTab globally so child tabs can navigate (e.g. "→ Buat Semester Sekarang")
@@ -297,7 +301,7 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
                   );
                 })}
                 <button
-                  onClick={onOpenExamSettings}
+                  onClick={() => setTab('exam_settings')}
                   className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-surface2 active:bg-surface3 border-t border-border/50"
                 >
                   <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-2xl bg-surface2 border border-border2 flex items-center justify-center text-text2 flex-shrink-0 shadow-inner"><Bell className="h-5 w-5" /></div><div><div className="text-[14px] font-bold text-foreground leading-tight">Pengaturan Ujian</div><div className="text-[12px] text-text3 mt-0.5">Mode ujian dan pengingat</div></div></div>
@@ -338,6 +342,7 @@ export default function SetupView({ onRefresh, onOpenExamSettings, onOpenInfo }:
           {tab === 'data' && <DataTab onRefresh={refresh} />}
           {tab === 'leave' && <LeaveTab onRefresh={refresh} />}
           {tab === 'semesters' && <SemestersTab onRefresh={refresh} />}
+          {tab === 'exam_settings' && <ExamSettingsTab onRefresh={refresh} />}
           {['classes', 'subjects', 'schedules'].includes(tab) && <button className="primary-button mt-6" onClick={() => setTab(tab === 'classes' ? 'subjects' : tab === 'subjects' ? 'schedules' : 'materials')}>Lanjut ke {tab === 'classes' ? 'mata pelajaran' : tab === 'subjects' ? 'jadwal' : 'materi'}</button>}
         </div>
       )}
@@ -2388,6 +2393,171 @@ function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ExamSettingsTab({ onRefresh }: { onRefresh: () => void }) {
+  const { toast } = useToast();
+  const [examMode, setExamMode] = useState(getExamDayMode());
+  const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const handleToggleExamMode = () => {
+    if (!examMode && !window.confirm('Aktifkan mode fokus ujian? Halaman Hari Ini akan menampilkan agenda ujian terlebih dahulu, tetapi jadwal KBM tetap bisa dibuka dan dicatat.')) return;
+    const next = !examMode;
+    setExamDayMode(next);
+    setExamMode(next);
+    onRefresh();
+    toast({ title: next ? '📋 Mode Ujian Aktif' : '📚 Mode KBM Normal' });
+  };
+
+  const handleToggleReminder = (key: ExamReminderSettingKey) => {
+    setReminderSettings(updateExamReminderSetting(key, !reminderSettings[key]));
+    onRefresh();
+  };
+
+  const handleResetExamData = () => {
+    resetAllExamData();
+    setShowResetConfirm(false);
+    onRefresh();
+    toast({ title: '🗑️ Semua data ujian dihapus' });
+  };
+
+  const ReminderToggle = ({ settingKey, title, desc }: { settingKey: ExamReminderSettingKey; title: string; desc: string }) => {
+    const active = reminderSettings[settingKey];
+    const disabled = settingKey !== 'enabled' && !reminderSettings.enabled;
+    return (
+      <button
+        onClick={() => handleToggleReminder(settingKey)}
+        disabled={disabled}
+        className={`w-full flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all ${
+          disabled ? 'bg-surface2/20 border-border/40 opacity-50' : active ? 'bg-primary/10 border-primary-border text-foreground' : 'bg-surface2/50 border-border2 text-text2 hover:border-border3'
+        }`}
+      >
+        <div className="min-w-0">
+          <div className="text-[12px] font-bold leading-tight">{title}</div>
+          <div className="text-xs text-text3 mt-0.5 leading-snug">{desc}</div>
+        </div>
+        <span className={`w-10 h-6 rounded-full border flex-shrink-0 relative transition-all ${active && !disabled ? 'bg-primary border-primary' : 'bg-surface border-border2'}`}>
+          <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all ${active && !disabled ? 'left-[18px]' : 'left-0.5'}`} />
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-slide-up">
+      <div className="space-y-3">
+        {/* Hero Toggle */}
+        <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 ${
+          examMode ? 'bg-amber/10 border-amber/30 shadow-[0_0_30px_hsl(40_80%_60%/0.08)]' : 'bg-surface/60 border-border2'
+        }`}>
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Mode Ujian Hari Ini</div>
+                <div className={`text-xl font-bold mb-1 ${examMode ? 'text-amber' : 'text-foreground'}`}>
+                  {examMode ? '📋 Fokus Ujian Aktif' : '📚 KBM Normal'}
+                </div>
+                <div className="text-[12px] text-text2 leading-snug">
+                  {examMode
+                    ? 'Agenda ujian diprioritaskan. Jadwal KBM tetap dapat dibuka dari tab Hari Ini.'
+                    : 'Aktifkan saat hari ujian untuk memprioritaskan agenda ujian tanpa menghilangkan akses ke KBM.'}
+                </div>
+              </div>
+              <button
+                onClick={handleToggleExamMode}
+                aria-label="Toggle mode ujian"
+                className={`relative flex-shrink-0 w-14 h-7 rounded-full border-2 transition-all duration-300 ${
+                  examMode ? 'bg-amber border-amber/60' : 'bg-surface2 border-border2'
+                }`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full shadow-sm transition-all duration-300 ${
+                  examMode ? 'left-[30px] bg-white' : 'left-0.5 bg-text3'
+                }`} />
+              </button>
+            </div>
+            {examMode && (
+              <div className="mt-4 bg-amber/10 border border-amber/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                <span className="text-amber">⚡</span>
+                <span className="text-xs text-amber font-medium">Mode ini aktif sampai dinonaktifkan secara manual.</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Reminders */}
+        <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-2">
+          <div className="mb-2">
+            <div className="text-xs font-black uppercase tracking-widest text-primary">Pengingat</div>
+            <div className="text-[12px] text-text3 mt-1 leading-snug">
+              Hanya untuk jadwal ujian dan ngawas hari ini serta besok. Butuh izin notifikasi aktif.
+            </div>
+          </div>
+          <ReminderToggle settingKey="enabled" title="Aktifkan Reminder" desc="Master switch untuk semua pengingat ujian dan ngawas." />
+          <ReminderToggle settingKey="dayBefore" title="H-1 Sore" desc="Ingatkan ujian besok sekitar pukul 18.00." />
+          <ReminderToggle settingKey="fiveHoursBefore" title="5 Jam Sebelum" desc="Pengingat awal untuk siap-siap sebelum sesi ujian." />
+          <ReminderToggle settingKey="oneHourBefore" title="1 Jam Sebelum" desc="Pengingat dekat sebelum ujian dimulai." />
+          <ReminderToggle settingKey="atStart" title="Saat Mulai" desc="Pengingat tepat saat jadwal ujian masuk waktu mulai." />
+          <ReminderToggle settingKey="proctorThirtyMinutes" title="Ngawas 30 Menit" desc="Ingatkan jadwal ngawas 30 menit sebelumnya." />
+        </div>
+      </div>
+
+      {/* ── Section: Reset Data Ujian ── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5 px-1">
+          <span className="text-base">🗑️</span>
+          <span className="text-xs font-black uppercase tracking-widest text-red">Reset Data</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-red/20 to-transparent" />
+        </div>
+
+        {!showResetConfirm ? (
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-red/20 bg-red/5 hover:bg-red/10 transition-all text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-red/10 border border-red/20 grid place-items-center flex-shrink-0">
+              <Trash2 className="h-4 w-4 text-red" />
+            </div>
+            <div>
+              <div className="text-[13px] font-bold text-red">Reset Semua Data Ujian</div>
+              <div className="text-xs text-text3 mt-0.5">Hapus jadwal ujian, ngawas, koreksi, dan mode ujian</div>
+            </div>
+          </button>
+        ) : (
+          <div className="rounded-2xl border-2 border-red/30 bg-red/5 p-4 space-y-3 animate-slide-up">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-bold text-red">Yakin reset semua data ujian?</div>
+                <div className="text-xs text-text2 mt-1 leading-relaxed">
+                  Ini akan menghapus:<br />
+                  • Semua jadwal ujian mapel<br />
+                  • Semua sesi ngawas<br />
+                  • Semua status koreksi<br />
+                  • Mode ujian & pengaturan reminder
+                </div>
+                <div className="text-xs text-red/80 font-semibold mt-2">⚠️ Aksi ini tidak bisa dibatalkan.</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border2 bg-surface text-sm font-bold text-text2 hover:bg-surface2 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleResetExamData}
+                className="flex-1 py-2.5 rounded-xl bg-red text-white text-sm font-bold hover:brightness-110 transition-all active:scale-[0.97]"
+              >
+                Ya, Reset
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History } from 'lucide-react';
 
-type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
+type ExamTab = 'agenda' | 'koreksi' | 'riwayat';
 
 interface ExamViewProps { refreshKey: number; onRefresh: () => void; initialTab: ExamTab; }
 
@@ -23,36 +23,16 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
   const section = params.get('section');
-  const tab: ExamTab = section === 'koreksi' || section === 'riwayat' || section === 'settings' || section === 'agenda' ? section : initialTab;
+  const tab: ExamTab = section === 'koreksi' || section === 'riwayat' || section === 'agenda' ? section : initialTab;
   const setTab = (nextTab: ExamTab) => setParams(previous => { const next = new URLSearchParams(previous); next.set('section', nextTab); return next; });
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [examFormOpen, setExamFormOpen] = useState(false);
-  const [proctorFormOpen, setProctorFormOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPastExam, setShowPastExam] = useState(false);
-  const [examMode, setExamMode] = useState(getExamDayMode());
-  const [reminderSettings, setReminderSettings] = useState(getExamReminderSettings());
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  
+  const examMode = getExamDayMode();
 
-
-  // Form: jadwal ujian mapel sendiri
-  const [eDate, setEDate] = useState(dateKey());
-  const [eClassId, setEClassId] = useState('');
-  const [eSubjectId, setESubjectId] = useState('');
-  const [eType, setEType] = useState<'UTS' | 'UAS' | 'Umum'>('UTS');
-  const [eStart, setEStart] = useState('');
-  const [eEnd, setEEnd] = useState('');
-  const [eLocation, setELocation] = useState('');
-  const [eNote, setENote] = useState('');
-
-  // Form: ngawas
-  const [nDate, setNDate] = useState(dateKey());
-  const [nStart, setNStart] = useState('');
-  const [nEnd, setNEnd] = useState('');
-  const [nSubject, setNSubject] = useState('');
-  const [nLocation, setNLocation] = useState('');
-  const [nNote, setNNote] = useState('');
 
   useEffect(() => {
     const id = setInterval(() => onRefresh(), 60_000);
@@ -64,8 +44,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const examSchedules = getExamSchedules();
   const past = allSubjects.filter(s => s.daysLeft < 0);
   const correctionStats = getCorrectionStats();
-  const allProctor = examSchedules.filter(s => s.subjectId === 'proctor_only' || (s.supervisorId && s.supervisorId !== data.teacherName)).sort((a, b) => b.date.localeCompare(a.date));
-  const pastProctor = allProctor.filter(s => s.date !== dateKey());
 
   const todayStr = dateKey();
   const todayExamSchedules = examSchedules.filter(s => s.date === todayStr);
@@ -79,19 +57,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     onRefresh();
   };
 
-  const handleToggleExamMode = () => {
-    if (!examMode && !window.confirm('Aktifkan mode fokus ujian? Halaman Hari Ini akan menampilkan agenda ujian terlebih dahulu, tetapi jadwal KBM tetap bisa dibuka dan dicatat.')) return;
-    const next = !examMode;
-    setExamDayMode(next);
-    setExamMode(next);
-    onRefresh();
-    toast({ title: next ? '📋 Mode Ujian Aktif' : '📚 Mode KBM Normal' });
-  };
 
-  const handleToggleReminder = (key: ExamReminderSettingKey) => {
-    setReminderSettings(updateExamReminderSetting(key, !reminderSettings[key]));
-    onRefresh();
-  };
 
   const handleAddExam = () => {
     if (!eClassId || !eSubjectId || !eDate || !eStart || !eEnd) {
@@ -125,82 +91,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     toast({ title: 'Jadwal ujian dihapus' });
   };
 
-  const handleAddProctor = () => {
-    if (!nStart || !nEnd || !nSubject.trim()) {
-      toast({ title: 'Lengkapi jam mulai, selesai, dan nama mapel' }); return;
-    }
-    if (timeToMin(nEnd) <= timeToMin(nStart)) {
-      toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
-    }
-    addExamSchedule({
-      date: nDate, startTime: nStart, endTime: nEnd,
-      classId: data.classes[0]?.id || 'unknown_class',
-      subjectId: 'proctor_only',
-      subjectName: nSubject.trim(),
-      location: nLocation.trim() || undefined,
-      note: nNote.trim() || undefined,
-      examType: 'Umum',
-      supervisorId: data.teacherName || 'Pengawas'
-    });
-    setNStart(''); setNEnd(''); setNSubject(''); setNLocation(''); setNNote('');
-    onRefresh();
-    toast({ title: '✓ Sesi ngawas ditambahkan' });
-  };
-
-  const handleDeleteProctor = (id: string) => {
-    deleteExamSchedule(id);
-    onRefresh();
-    toast({ title: 'Sesi ngawas dihapus' });
-  };
-
-  const handleResetExamData = () => {
-    resetAllExamData();
-    setShowResetConfirm(false);
-    setExamMode(false);
-    setReminderSettings(getExamReminderSettings());
-    onRefresh();
-    toast({ title: '🗑️ Semua data ujian berhasil direset' });
-  };
-
-  // ─── Card components ─────────────────────────────────────────────────────
-  const ProctorCard = ({ s, showDelete = true }: { s: any; showDelete?: boolean }) => {
-    const today = dateKey();
-    const curMin = currentMin();
-    const startMin = timeToMin(s.startTime);
-    const endMin = timeToMin(s.endTime);
-    const isToday = s.date === today;
-    const isActive = isToday && curMin >= startMin && curMin < endMin;
-    const isDone = isToday && curMin >= endMin;
-
-    return (
-      <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
-      }`}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
-          </div>
-          <div className="text-sm font-bold">{s.subjectName}</div>
-          <div className="text-xs text-text2">
-            {!isToday && <span className="mr-1">{fmtDate(s.date)} ·</span>}
-            {fmt(s.startTime)} – {fmt(s.endTime)}
-            {s.location && ` · ${s.location}`}
-          </div>
-          {s.note && <div className="text-xs text-text3 mt-0.5 italic">{s.note}</div>}
-        </div>
-        {showDelete && (
-          <button
-            onClick={() => handleDeleteProctor(s.id)}
-            className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
-            aria-label="Hapus sesi ngawas"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-    );
-  };
 
   const ExamScheduleCard = ({ s }: { s: ReturnType<typeof getExamSchedules>[number] }) => {
     const cls = data.classes.find(c => c.id === s.classId);
@@ -224,7 +114,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{e.customClassName || cls?.name || '?'}</span>
+            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
             {examTypeBadge}
             {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
             {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
@@ -337,27 +227,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     );
   };
 
-  const ReminderToggle = ({ settingKey, title, desc }: { settingKey: ExamReminderSettingKey; title: string; desc: string }) => {
-    const active = reminderSettings[settingKey];
-    const disabled = settingKey !== 'enabled' && !reminderSettings.enabled;
-    return (
-      <button
-        onClick={() => handleToggleReminder(settingKey)}
-        disabled={disabled}
-        className={`w-full flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all ${
-          disabled ? 'bg-surface2/20 border-border/40 opacity-50' : active ? 'bg-primary/10 border-primary-border text-foreground' : 'bg-surface2/50 border-border2 text-text2 hover:border-border3'
-        }`}
-      >
-        <div className="min-w-0">
-          <div className="text-[12px] font-bold leading-tight">{title}</div>
-          <div className="text-xs text-text3 mt-0.5 leading-snug">{desc}</div>
-        </div>
-        <span className={`w-10 h-6 rounded-full border flex-shrink-0 relative transition-all ${active && !disabled ? 'bg-primary border-primary' : 'bg-surface border-border2'}`}>
-          <span className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all ${active && !disabled ? 'left-[18px]' : 'left-0.5'}`} />
-        </span>
-      </button>
-    );
-  };
 
   // ─── (Agenda 2 Hari dipindah ke TodayView) ──────────────────────────────
   // renderToday removed — agenda hari ini & besok kini tampil di tab Hari Ini
@@ -710,271 +579,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     );
   };
 
-  // ─── Tab: Kelola — Section Ngawas ─────────────────────────────────────────
-  const renderManageProctor = () => {
-    const todayStr = dateKey();
-    const futureProctor = allProctor.filter(s => s.date > todayStr)
-      .sort((a, b) => a.date.localeCompare(b.date) || timeToMin(a.startTime) - timeToMin(b.startTime));
-    const uniqueProctorDays = new Set(allProctor.map(s => s.date)).size;
-    const totalDuration = allProctor.reduce((acc, s) => acc + Math.max(0, timeToMin(s.endTime) - timeToMin(s.startTime)), 0);
-    const totalHours = Math.floor(totalDuration / 60);
-    const totalMins = totalDuration % 60;
-
-    return (
-    <div className="space-y-4 animate-slide-up">
-
-      {/* Stats */}
-      {allProctor.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
-            <div className="text-lg font-black leading-none">{allProctor.length}</div>
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Sesi</div>
-          </div>
-          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
-            <div className="text-lg font-black leading-none">{uniqueProctorDays}</div>
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Hari</div>
-          </div>
-          <div className="bg-surface border border-border2 rounded-2xl p-3 text-center">
-            <div className="text-lg font-black leading-none tabular-nums">
-              {totalHours > 0 ? `${totalHours}j` : `${totalMins}m`}
-            </div>
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mt-1">Total</div>
-          </div>
-        </div>
-      )}
-
-      {/* Form (collapsible) */}
-      <div className="bg-surface/60 border border-border2 rounded-3xl overflow-hidden">
-        <button
-          onClick={() => setProctorFormOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface2/30 transition-colors"
-        >
-          <div className="flex items-center gap-2.5 text-left">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary flex-shrink-0">
-              <Plus className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-[13px] font-bold leading-tight">Tambah Sesi Ngawas</div>
-              <div className="text-xs text-text3 mt-0.5">Mapel di luar yang kamu ajar</div>
-            </div>
-          </div>
-          <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${proctorFormOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {proctorFormOpen && (
-          <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border2/60">
-            <div>
-              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal</label>
-              <input type="date" aria-label="Tanggal mengawas" value={nDate} onChange={e => setNDate(e.target.value)} className="form-input-style min-w-0 w-full" />
-            </div>
-
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Mulai <span className="text-red">*</span></label>
-                <input type="time" aria-label="Jam mulai mengawas" value={nStart} onChange={e => setNStart(e.target.value)} className="form-input-style min-w-0 w-full" />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Jam Selesai <span className="text-red">*</span></label>
-                <input type="time" aria-label="Jam selesai mengawas" value={nEnd} onChange={e => setNEnd(e.target.value)} className="form-input-style min-w-0 w-full" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel yang Diawasi <span className="text-red">*</span></label>
-              <input aria-label="Mata pelajaran yang diawasi" value={nSubject} onChange={e => setNSubject(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddProctor()}
-                placeholder="cth: Bahasa Indonesia, Matematika..." className="form-input-style min-w-0 w-full" />
-            </div>
-
-            <div>
-              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Ruangan <span className="text-text3 font-normal">(opsional)</span></label>
-              <input aria-label="Ruangan mengawas" value={nLocation} onChange={e => setNLocation(e.target.value)} placeholder="cth: R. 12, Lab IPA..." className="form-input-style min-w-0 w-full" />
-            </div>
-
-            <div>
-              <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Catatan <span className="text-text3 font-normal">(opsional)</span></label>
-              <input aria-label="Catatan mengawas" value={nNote} onChange={e => setNNote(e.target.value)} placeholder="cth: Gantikan Bu Ani, dll." className="form-input-style min-w-0 w-full" />
-            </div>
-
-            <button onClick={handleAddProctor} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold transition-all active:scale-[0.98] hover:brightness-105">
-              ＋ Simpan Sesi Ngawas
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Upcoming proctor */}
-      {futureProctor.length > 0 && (
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-text3 px-1 mb-1.5">Akan Datang ({futureProctor.length})</div>
-          <div className="space-y-2">{futureProctor.map(s => <ProctorCard key={s.id} s={s} />)}</div>
-        </div>
-      )}
-
-      {allProctor.length === 0 && (
-        <div className="bg-surface border border-border2 rounded-2xl p-6 text-center text-sm text-text3">
-          Belum ada sesi ngawas. Tambah lewat form di atas.
-        </div>
-      )}
-
-      {/* History */}
-      {pastProctor.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface border border-border2 rounded-2xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
-          >
-            <span>📁 Riwayat Ngawas ({pastProctor.length})</span>
-            <ChevronDown className={`h-3.5 w-3.5 text-text3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
-          </button>
-          {showHistory && (
-            <div className="space-y-2 mt-2">
-              {pastProctor.slice(0, 20).map(s => <ProctorCard key={s.id} s={s} />)}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-    );
-  };
-
-  // ─── Tab: Kelola — Section Mode & Reminder ────────────────────────────────
-  const renderManageMode = () => (
-    <div className="space-y-3">
-      {/* Hero Toggle */}
-      <div className={`relative rounded-3xl overflow-hidden border transition-all duration-500 ${
-        examMode ? 'bg-amber/10 border-amber/30 shadow-[0_0_30px_hsl(40_80%_60%/0.08)]' : 'bg-surface/60 border-border2'
-      }`}>
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="text-xs font-black uppercase tracking-widest text-text3 mb-1">Mode Ujian Hari Ini</div>
-              <div className={`text-xl font-bold mb-1 ${examMode ? 'text-amber' : 'text-foreground'}`}>
-                {examMode ? '📋 Fokus Ujian Aktif' : '📚 KBM Normal'}
-              </div>
-              <div className="text-[12px] text-text2 leading-snug">
-                {examMode
-                  ? 'Agenda ujian diprioritaskan. Jadwal KBM tetap dapat dibuka dari tab Hari Ini.'
-                  : 'Aktifkan saat hari ujian untuk memprioritaskan agenda ujian tanpa menghilangkan akses ke KBM.'}
-              </div>
-            </div>
-            <button
-              onClick={handleToggleExamMode}
-              aria-label="Toggle mode ujian"
-              className={`relative flex-shrink-0 w-14 h-7 rounded-full border-2 transition-all duration-300 ${
-                examMode ? 'bg-amber border-amber/60' : 'bg-surface2 border-border2'
-              }`}
-            >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full shadow-sm transition-all duration-300 ${
-                examMode ? 'left-[30px] bg-white' : 'left-0.5 bg-text3'
-              }`} />
-            </button>
-          </div>
-          {examMode && (
-            <div className="mt-4 bg-amber/10 border border-amber/20 rounded-xl px-3 py-2 flex items-center gap-2">
-              <span className="text-amber">⚡</span>
-              <span className="text-xs text-amber font-medium">Mode ini aktif sampai dinonaktifkan secara manual.</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Reminders */}
-      <div className="bg-surface/60 border border-border2 rounded-3xl p-4 space-y-2">
-        <div className="mb-2">
-          <div className="text-xs font-black uppercase tracking-widest text-primary">Pengingat</div>
-          <div className="text-[12px] text-text3 mt-1 leading-snug">
-            Hanya untuk jadwal ujian dan ngawas hari ini serta besok. Butuh izin notifikasi aktif.
-          </div>
-        </div>
-        <ReminderToggle settingKey="enabled" title="Aktifkan Reminder" desc="Master switch untuk semua pengingat ujian dan ngawas." />
-        <ReminderToggle settingKey="dayBefore" title="H-1 Sore" desc="Ingatkan ujian besok sekitar pukul 18.00." />
-        <ReminderToggle settingKey="fiveHoursBefore" title="5 Jam Sebelum" desc="Pengingat awal untuk siap-siap sebelum sesi ujian." />
-        <ReminderToggle settingKey="oneHourBefore" title="1 Jam Sebelum" desc="Pengingat dekat sebelum ujian dimulai." />
-        <ReminderToggle settingKey="atStart" title="Saat Mulai" desc="Pengingat tepat saat jadwal ujian masuk waktu mulai." />
-        <ReminderToggle settingKey="proctorThirtyMinutes" title="Ngawas 30 Menit" desc="Ingatkan jadwal ngawas 30 menit sebelumnya." />
-      </div>
-    </div>
-  );
-
-  // ─── Tab: Pengaturan ─────────────────────────────────────────────────────
-  const renderManage = () => (
-    <div className="space-y-6 animate-slide-up">
-      {/* ── Section: Ngawas ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="text-base">👁</span>
-          <span className="text-xs font-black uppercase tracking-widest text-primary">Ngawas</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-        </div>
-        {renderManageProctor()}
-      </div>
-
-      {/* ── Section: Pengaturan ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="text-base">⚙️</span>
-          <span className="text-xs font-black uppercase tracking-widest text-primary">Pengaturan</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-        </div>
-        {renderManageMode()}
-      </div>
-
-      {/* ── Section: Reset Data Ujian ── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="text-base">🗑️</span>
-          <span className="text-xs font-black uppercase tracking-widest text-red">Reset Data</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-red/20 to-transparent" />
-        </div>
-
-        {!showResetConfirm ? (
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-red/20 bg-red/5 hover:bg-red/10 transition-all text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-red/10 border border-red/20 grid place-items-center flex-shrink-0">
-              <Trash2 className="h-4 w-4 text-red" />
-            </div>
-            <div>
-              <div className="text-[13px] font-bold text-red">Reset Semua Data Ujian</div>
-              <div className="text-xs text-text3 mt-0.5">Hapus jadwal ujian, ngawas, koreksi, dan mode ujian</div>
-            </div>
-          </button>
-        ) : (
-          <div className="rounded-2xl border-2 border-red/30 bg-red/5 p-4 space-y-3 animate-slide-up">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="text-sm font-bold text-red">Yakin reset semua data ujian?</div>
-                <div className="text-xs text-text2 mt-1 leading-relaxed">
-                  Ini akan menghapus:<br />
-                  • Semua jadwal ujian mapel<br />
-                  • Semua sesi ngawas<br />
-                  • Semua status koreksi<br />
-                  • Mode ujian & pengaturan reminder
-                </div>
-                <div className="text-xs text-red/80 font-semibold mt-2">⚠️ Aksi ini tidak bisa dibatalkan.</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border2 bg-surface text-sm font-bold text-text2 hover:bg-surface2 transition-all"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleResetExamData}
-                className="flex-1 py-2.5 rounded-xl bg-red text-white text-sm font-bold hover:brightness-110 transition-all active:scale-[0.97]"
-              >
-                Ya, Reset
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   // ─── Main shell ───────────────────────────────────────────────────────────
   const tabItems: { id: ExamTab; label: string; icon: ElementType; badge?: number }[] = [
@@ -1028,7 +632,6 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       {tab === 'agenda' && renderAgenda()}
       {tab === 'koreksi' && renderKoreksi()}
       {tab === 'riwayat' && renderHistory()}
-      {tab === 'settings' && renderManage()}
     </div>
   );
 }

@@ -143,7 +143,7 @@ export interface Insight {
   text: string;
 }
 export type ViewType = 'today' | 'progress' | 'setup' | 'info' | 'exam';
-export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave' | 'semesters';
+export type SetupTab = 'classes' | 'subjects' | 'materials' | 'schedules' | 'holidays' | 'data' | 'leave' | 'semesters' | 'exam_settings';
 
 export type PaceSuggestionType = 'add_sessions' | 'merge_sessions' | 'trim_materials' | 'no_issue';
 export interface PaceSuggestion {
