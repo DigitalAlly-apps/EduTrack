@@ -683,27 +683,28 @@ function SortableMaterialItem({ id, item, onSave, onDelete }: any) {
 
 function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
-  const [level, setLevel] = useState('');
   const [bulkNames, setBulkNames] = useState('');
-  const [bulkLevel, setBulkLevel] = useState('SD/MI');
+  const [activeLevel, setActiveLevel] = useState<'SD/MI' | 'SMP/MTs' | 'SMA/MA'>('SMP/MTs');
+  const [inputMode, setInputMode] = useState<'one' | 'bulk'>('bulk');
   const { toast } = useToast();
   const data = getData();
+  const LEVELS = ['SD/MI', 'SMP/MTs', 'SMA/MA'] as const;
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama kelas' });
-    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue', level: level.trim() || undefined }));
-    setName(''); setLevel(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
+    updateData(d => d.classes.push({ id: genId(), name: name.trim(), color: 'blue', level: activeLevel }));
+    setName(''); toast({ title: 'Kelas ditambahkan' }); onRefresh();
   };
   const addBulk = () => {
     const names = [...new Set(bulkNames.split('\n').map(v => v.trim()).filter(Boolean))];
     if (!names.length) return toast({ title: 'Isi minimal satu kelas' });
-    const existing = new Set(data.classes.filter(c => (c.level || '') === bulkLevel).map(c => c.name.toLowerCase()));
+    const existing = new Set(data.classes.filter(c => c.level === activeLevel).map(c => c.name.toLowerCase()));
     const added = names.filter(item => !existing.has(item.toLowerCase()));
-    updateData(d => added.forEach(item => d.classes.push({ id: genId(), name: item, color: 'blue', level: bulkLevel })));
+    updateData(d => added.forEach(item => d.classes.push({ id: genId(), name: item, color: 'blue', level: activeLevel })));
     setBulkNames(''); toast({ title: `${added.length} kelas ditambahkan${names.length - added.length ? ` · ${names.length - added.length} duplikat dilewati` : ''}` }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras?: { level?: string }) => {
-    if(!newName.trim()) return;
+    if (!newName.trim()) return;
     updateData(d => { const c = d.classes.find(x => x.id === id); if (c) { c.name = newName.trim(); c.level = extras?.level?.trim() || undefined; } });
     toast({ title: 'Kelas diperbarui' }); onRefresh();
   };
@@ -718,29 +719,96 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
     toast({ title: 'Kelas dihapus' }); onRefresh();
   };
 
+  const grouped = LEVELS.map(lv => ({
+    level: lv,
+    short: lv.split('/')[0],
+    classes: data.classes.filter(c => c.level === lv),
+  }));
+  const ungrouped = data.classes.filter(c => !c.level || !LEVELS.includes(c.level as any));
+
   return (
-    <div>
-      <div className="app-card-soft p-4 mb-6">
-        <FormField label="Tambah Banyak Kelas">
-          <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style mb-2"><option value="SD/MI">SD / MI</option><option value="SMP/MTs">SMP / MTs</option><option value="SMA/MA">SMA / MA</option></select>
-          <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)} className="form-input-style min-h-[104px] mb-2 resize-none" placeholder={'Satu kelas per baris\nContoh:\n4A\n4B\n5A'} />
-          <button onClick={addBulk} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px] w-full">＋ Tambah Semua Kelas</button>
-        </FormField>
-        <details className="mt-4"><summary className="cursor-pointer text-xs font-bold text-text2">Tambah satu kelas</summary>
-          <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-            className="form-input-style my-2" placeholder="cth: 4A, 10B, XI IPA 2..." />
-          <input value={level} onChange={e => setLevel(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
-            className="form-input-style mb-3" placeholder="Level/jenjang opsional, cth: 10, SD/MI, SMP/MTs" />
-          <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Kelas</button>
-        </details>
+    <div className="space-y-4">
+      <div className="app-card-soft p-4 space-y-4">
+        {/* Level Picker */}
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text2 mb-2">Jenjang</div>
+          <div className="flex gap-2">
+            {LEVELS.map(lv => (
+              <button key={lv} onClick={() => setActiveLevel(lv)}
+                className={`flex-1 py-2.5 min-h-[44px] rounded-xl text-sm font-bold transition-all ${activeLevel === lv ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface2 text-text2 hover:bg-surface3'}`}>
+                {lv.split('/')[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Mode Toggle */}
+        <div>
+          <div className="flex p-1 bg-surface2 rounded-xl mb-3">
+            <button onClick={() => setInputMode('one')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${inputMode === 'one' ? 'bg-background shadow text-foreground' : 'text-text2'}`}>Satu Kelas</button>
+            <button onClick={() => setInputMode('bulk')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${inputMode === 'bulk' ? 'bg-background shadow text-foreground' : 'text-text2'}`}>Banyak Sekaligus</button>
+          </div>
+          {inputMode === 'one' ? (
+            <div className="flex gap-2">
+              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
+                className="form-input-style flex-1" placeholder={`cth: ${activeLevel === 'SD/MI' ? '4A, 5B' : activeLevel === 'SMP/MTs' ? 'VII A, VIII B' : 'X IPA 1, XI IPS 2'}`} />
+              <button onClick={add} className="btn-primary-style px-4 min-h-[44px] whitespace-nowrap">＋ Tambah</button>
+            </div>
+          ) : (
+            <div>
+              <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)}
+                className="form-input-style min-h-[120px] mb-2 resize-none w-full"
+                placeholder={`Satu kelas per baris untuk ${activeLevel.split('/')[0]}:\n${activeLevel === 'SD/MI' ? '4A\n4B\n5A\n5B' : activeLevel === 'SMP/MTs' ? 'VII A\nVII B\nVIII A' : 'X IPA 1\nX IPS 1\nXI IPA 2'}`} />
+              <button onClick={addBulk} className="btn-primary-style w-full min-h-[44px] font-bold">＋ Tambah Semua Kelas {activeLevel.split('/')[0]}</button>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="app-section-title mt-6 mb-2">Daftar Kelas</div>
-      {data.classes.map(c => (
-        <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: c.level ? `Level: ${c.level}` : 'Level belum diisi', extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
-          <input value={v.level || ''} onChange={e => setV({ ...v, level: e.target.value })} className="form-input-style mb-2 min-h-[44px]" placeholder="Level/jenjang opsional" />
-        )} />
-      ))}
-      {!data.classes.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada kelas</div>}
+
+      {/* Classes List grouped by level */}
+      <div className="space-y-5">
+        {grouped.map(({ level: lv, short, classes }) => classes.length > 0 && (
+          <div key={lv}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">{short}</span>
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-xs text-text3 font-medium">{classes.length} kelas</span>
+            </div>
+            {classes.map(c => (
+              <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: lv, extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del}
+                extraEditField={(v: any, setV: any) => (
+                  <div className="flex gap-2 mb-2">
+                    {LEVELS.map(l => (
+                      <button key={l} type="button" onClick={() => setV({ ...v, level: l })} className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${v.level === l ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2'}`}>{l.split('/')[0]}</button>
+                    ))}
+                  </div>
+                )} />
+            ))}
+          </div>
+        ))}
+        {ungrouped.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] font-black uppercase tracking-widest text-text3 bg-surface2 border border-border px-2 py-0.5 rounded-md">Umum</span>
+              <div className="flex-1 h-px bg-border/50" />
+            </div>
+            {ungrouped.map(c => (
+              <EditableItem key={c.id} item={{ id: c.id, name: c.name, meta: 'Jenjang belum ditentukan', extraVal: { level: c.level || '' }, deleteWarning: 'Menghapus kelas akan menghapus semua jadwal dan progres terkait.' }} onSave={saveItem} onDelete={del}
+                extraEditField={(v: any, setV: any) => (
+                  <div className="flex gap-2 mb-2">
+                    {LEVELS.map(l => (
+                      <button key={l} type="button" onClick={() => setV({ ...v, level: l })} className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${v.level === l ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2'}`}>{l.split('/')[0]}</button>
+                    ))}
+                  </div>
+                )} />
+            ))}
+          </div>
+        )}
+        {data.classes.length === 0 && (
+          <div className="text-text3 font-medium text-[13px] text-center py-10 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl">
+            Belum ada kelas. Pilih jenjang dan tambahkan di atas.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -748,21 +816,31 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
 
 function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
-  
-  const [level, setLevel] = useState('');
+  const [activeLevel, setActiveLevel] = useState<'SD/MI' | 'SMP/MTs' | 'SMA/MA'>('SMP/MTs');
   const [semesterId, setSemesterId] = useState('');
+  const [inputMode, setInputMode] = useState<'one' | 'bulk'>('bulk');
+  const [bulkNames, setBulkNames] = useState('');
+  const [filterLevel, setFilterLevel] = useState<string>('all');
   const { toast } = useToast();
   const data = getData();
   const semesters = getSemesters();
+  const LEVELS = ['SD/MI', 'SMP/MTs', 'SMA/MA'] as const;
 
-  const [bulkLevel, setBulkLevel] = useState('SD/MI');
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama mapel' });
-    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: null, semesterId: semesterId || null }));
-    setName(''); setLevel(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
+    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level: activeLevel, examDate: null, semesterId: semesterId || null }));
+    setName(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
+  };
+  const addBulk = () => {
+    const names = [...new Set(bulkNames.split('\n').map(v => v.trim()).filter(Boolean))];
+    if (!names.length) return toast({ title: 'Isi minimal satu mapel' });
+    const existing = new Set(data.subjects.filter(s => s.level === activeLevel).map(s => s.name.toLowerCase()));
+    const added = names.filter(item => !existing.has(item.toLowerCase()));
+    updateData(d => added.forEach(item => d.subjects.push({ id: genId(), name: item, level: activeLevel, examDate: null, semesterId: null })));
+    setBulkNames(''); toast({ title: `${added.length} mapel ditambahkan${names.length - added.length ? ` · ${names.length - added.length} duplikat dilewati` : ''}` }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras: any) => {
-    if(!newName.trim()) return;
+    if (!newName.trim()) return;
     updateSubject(id, newName, extras.level, extras.examDate, extras.semesterId); toast({ title: 'Mapel diperbarui' }); onRefresh();
   };
   const del = (id: string) => {
@@ -777,88 +855,104 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
     toast({ title: 'Mapel dihapus' }); onRefresh();
   };
 
-  const [bulkNames, setBulkNames] = useState('');
-  const [bulkAddLevel, setBulkAddLevel] = useState('SD/MI');
-  const addBulkSubjects = () => {
-    const names = [...new Set(bulkNames.split('\n').map(v => v.trim()).filter(Boolean))];
-    if (!names.length) return toast({ title: 'Isi minimal satu mapel' });
-    const existing = new Set(data.subjects.filter(s => (s.level || '') === bulkAddLevel).map(s => s.name.toLowerCase()));
-    const added = names.filter(item => !existing.has(item.toLowerCase()));
-    updateData(d => added.forEach(item => d.subjects.push({ id: genId(), name: item, level: bulkAddLevel, examDate: null, semesterId: null })));
-    setBulkNames(''); toast({ title: `${added.length} mapel ditambahkan${names.length - added.length ? ` · ${names.length - added.length} duplikat dilewati` : ''}` }); onRefresh();
-  };
+  const filteredSubjects = filterLevel === 'all' ? data.subjects : data.subjects.filter(s => s.level === filterLevel);
 
   return (
-    <div>
-      {/* Banner: belum ada semester */}
+    <div className="space-y-4">
       {semesters.length === 0 && (
-        <div className="app-card-soft p-3 mb-4 border border-amber/30 bg-amber/5">
+        <div className="app-card-soft p-3 border border-amber/30 bg-amber/5">
           <p className="text-[12px] text-amber flex items-start gap-2">
             <span className="mt-0.5">⚠️</span>
-            <span>Belum ada semester. Buat semester dulu agar mapel bisa dihubungkan ke UTS/UAS.<br />
-              <button onClick={() => { (document as any).__eduSetTab?.('semesters'); }} className="mt-1 inline-block font-bold underline underline-offset-2">→ Buat Semester Sekarang</button>
+            <span>Belum ada semester. Buat semester dulu agar mapel bisa dihubungkan ke UTS/UAS.{' '}
+              <button onClick={() => { (document as any).__eduSetTab?.('semesters'); }} className="font-bold underline underline-offset-2">→ Buat Sekarang</button>
             </span>
           </p>
         </div>
       )}
 
-      <div className="app-card-soft p-4 mb-4">
-        <FormField label="Tambah Banyak Mata Pelajaran" className="mb-0">
-          <select value={bulkAddLevel} onChange={e => setBulkAddLevel(e.target.value)} className="form-select-style mb-2"><option value="SD/MI">SD / MI</option><option value="SMP/MTs">SMP / MTs</option><option value="SMA/MA">SMA / MA</option></select>
-          <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)} className="form-input-style min-h-[104px] mb-2 resize-none" placeholder={'Satu mapel per baris\nContoh:\nFiqih\nBahasa Arab\nMatematika'} />
-          <button onClick={addBulkSubjects} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px] w-full mb-3">＋ Tambah Semua Mapel</button>
-          <details><summary className="cursor-pointer text-xs font-bold text-text2">Tambah satu mapel + pengaturan lanjutan</summary><div className="mt-3">
-          <input value={name} onChange={e => setName(e.target.value)} className="form-input-style mb-3" placeholder="Nama Mapel..." />
-          <div className="flex gap-2 mb-3">
-            <div className="flex-1">
-              <label className="block text-xs text-text2 mb-1 pl-1">Jenjang</label>
-              <select value={level} onChange={e => setLevel(e.target.value)} className="form-select-style text-xs">
-                <option value="">Umum / Tidak Spesifik</option>
-                <option value="SD/MI">SD / MI</option>
-                <option value="SMP/MTs">SMP / MTs</option>
-                <option value="SMA/MA">SMA / MA</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-text2 mb-1 pl-1">Hubungkan ke Semester</label>
-              <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="form-select-style text-xs">
-                <option value="">Pilih semester...</option>
-                {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
+      {/* Add Form */}
+      <div className="app-card-soft p-4 space-y-4">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-text2 mb-2">Jenjang Mapel</div>
+          <div className="flex gap-2">
+            {LEVELS.map(lv => (
+              <button key={lv} onClick={() => setActiveLevel(lv)}
+                className={`flex-1 py-2.5 min-h-[44px] rounded-xl text-sm font-bold transition-all ${activeLevel === lv ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface2 text-text2 hover:bg-surface3'}`}>
+                {lv.split('/')[0]}
+              </button>
+            ))}
           </div>
-          <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Mapel</button>
-          </div></details>
-        </FormField>
+        </div>
+        <div>
+          <div className="flex p-1 bg-surface2 rounded-xl mb-3">
+            <button onClick={() => setInputMode('one')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${inputMode === 'one' ? 'bg-background shadow text-foreground' : 'text-text2'}`}>Satu Mapel</button>
+            <button onClick={() => setInputMode('bulk')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${inputMode === 'bulk' ? 'bg-background shadow text-foreground' : 'text-text2'}`}>Banyak Sekaligus</button>
+          </div>
+          {inputMode === 'one' ? (
+            <div className="space-y-2">
+              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
+                className="form-input-style w-full" placeholder="Nama Mapel..." />
+              {semesters.length > 0 && (
+                <select value={semesterId} onChange={e => setSemesterId(e.target.value)} className="form-select-style w-full text-xs">
+                  <option value="">Hubungkan ke Semester (opsional)</option>
+                  {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
+              <button onClick={add} className="btn-primary-style w-full min-h-[44px]">＋ Tambah Mapel {activeLevel.split('/')[0]}</button>
+            </div>
+          ) : (
+            <div>
+              <textarea value={bulkNames} onChange={e => setBulkNames(e.target.value)}
+                className="form-input-style min-h-[120px] mb-2 resize-none w-full"
+                placeholder={'Satu mapel per baris:\nFiqih\nBahasa Arab\nMatematika\nIPA'} />
+              <button onClick={addBulk} className="btn-primary-style w-full min-h-[44px] font-bold">＋ Tambah Semua Mapel {activeLevel.split('/')[0]}</button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="app-section-title mt-2 mb-2">Daftar Mapel ({data.subjects.length})</div>
-      {data.subjects.map(s => {
-        const jenjangLabel = s.level ? `[${s.level}] ` : '';
-        const sem = semesters.find(x => x.id === s.semesterId);
-        const phase = sem ? getCurrentExamPhase(sem) : null;
-        const semLabel = sem ? `📅 ${sem.name}${phase ? ` · ${phase} aktif` : ''}` : '⚠️ Belum ada semester';
-        const semColor = sem ? '' : 'text-amber';
-        return (
-          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
-            <div className="space-y-2 mb-2">
-              <div className="flex gap-2">
-                <select value={v.level} onChange={e=>setV({...v, level: e.target.value})} className="form-select-style flex-1 text-xs">
-                  <option value="">Umum</option>
-                  <option value="SD/MI">SD / MI</option>
-                  <option value="SMP/MTs">SMP / MTs</option>
-                  <option value="SMA/MA">SMA / MA</option>
-                </select>
-                <select value={v.semesterId||''} onChange={e=>setV({...v, semesterId: e.target.value})} className="form-select-style flex-1 text-xs">
-                  <option value="">Tanpa Semester</option>
-                  {semesters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                </select>
-              </div>
-            </div>
-          )} />
-        );
-      })}
-      {!data.subjects.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada mapel</div>}
+      {/* Filter + List */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-bold">Daftar Mapel <span className="text-text3 font-normal text-xs">({filteredSubjects.length})</span></div>
+          <div className="flex gap-1">
+            {(['all', ...LEVELS] as const).map(lv => (
+              <button key={lv} onClick={() => setFilterLevel(lv)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${filterLevel === lv ? 'bg-primary text-primary-foreground' : 'bg-surface2 text-text2 hover:bg-surface3'}`}>
+                {lv === 'all' ? 'Semua' : lv.split('/')[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+        {filteredSubjects.map(s => {
+          const sem = semesters.find(x => x.id === s.semesterId);
+          const phase = sem ? getCurrentExamPhase(sem) : null;
+          const jenjangLabel = s.level ? `[${s.level.split('/')[0]}] ` : '';
+          const semLabel = sem ? `📅 ${sem.name}${phase ? ` · ${phase}` : ''}` : '⚠️ Belum ada semester';
+          const semColor = sem ? '' : 'text-amber';
+          return (
+            <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del}
+              extraEditField={(v: any, setV: any) => (
+                <div className="space-y-2 mb-2">
+                  <div className="flex gap-2">
+                    {LEVELS.map(l => (
+                      <button key={l} type="button" onClick={() => setV({ ...v, level: l })} className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${v.level === l ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2'}`}>{l.split('/')[0]}</button>
+                    ))}
+                  </div>
+                  <select value={v.semesterId || ''} onChange={e => setV({ ...v, semesterId: e.target.value })} className="form-select-style w-full text-xs">
+                    <option value="">Tanpa Semester</option>
+                    {semesters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  </select>
+                </div>
+              )} />
+          );
+        })}
+        {filteredSubjects.length === 0 && (
+          <div className="text-text3 font-medium text-[13px] text-center py-10 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl">
+            {filterLevel === 'all' ? 'Belum ada mapel. Tambahkan mapel di atas.' : `Belum ada mapel ${filterLevel.split('/')[0]}.`}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1541,6 +1635,759 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
             </div>
           ))
         )}
+      </div>
+    </div>
+  );
+}
+function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
+  const [params] = useSearchParams();
+  const [subId, setSubId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
+  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
+  const [name, setName] = useState('');
+  const [sessions, setSessions] = useState(1);
+  const [pageStart, setPageStart] = useState('');
+  const [pageEnd, setPageEnd] = useState('');
+  const [note, setNote] = useState('');
+  const [singleSemesterNum, setSingleSemesterNum] = useState<1 | 2>(1);
+  const [singleExamPeriod, setSingleExamPeriod] = useState<'UTS' | 'UAS' | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkSessions, setBulkSessions] = useState(1);
+  const [rangeFrom, setRangeFrom] = useState('1');
+  const [rangeTo, setRangeTo] = useState('');
+  const [rangePeriod, setRangePeriod] = useState<'UTS' | 'UAS' | null>('UTS');
+  const { toast } = useToast();
+  const data = getData();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  // Kelas yang punya jadwal mapel ini — fallback ke semua kelas jika belum ada jadwal
+  const classesWithSchedule = subId
+    ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
+    : [];
+  const classesForSubject = subId
+    ? (classesWithSchedule.length > 0 ? classesWithSchedule : data.classes)
+    : [];
+  const hasNoSchedule = subId && classesWithSchedule.length === 0 && data.classes.length > 0;
+
+  const add = () => {
+    if (!subId) return toast({ title: 'Pilih mapel dulu' });
+    if (!classId) return toast({ title: 'Pilih kelas dulu' });
+    if (bulkMode) {
+      if(!bulkText.trim()) return toast({ title: 'Masukkan materi' });
+      bulkAddMaterials(subId, parseMaterialDraftLines(bulkText, bulkSessions), bulkSessions, undefined, classId);
+      setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
+    } else {
+      if(!name.trim()) return toast({ title: 'Isi nama materi' });
+      bulkAddMaterials(
+        subId,
+        [{ name, sessions, pageStart, pageEnd, note, examPeriod: singleExamPeriod, semesterNum: singleSemesterNum }],
+        sessions,
+        undefined,
+        classId,
+        singleExamPeriod,
+        singleSemesterNum
+      );
+      setName(''); setPageStart(''); setPageEnd(''); setNote('');
+      const examLabel = singleExamPeriod ? ` (${singleExamPeriod})` : '';
+      toast({ title: `✓ Materi ditambahkan ke Semester ${singleSemesterNum}${examLabel}` });
+      onRefresh();
+    }
+  };
+
+  const saveItem = (id: string, newName: string, newSessions?: number, details?: { pageStart?: string; pageEnd?: string; note?: string }, examPeriod?: 'UTS' | 'UAS' | null) => {
+    if(newName.trim()) updateMaterial(id, newName, newSessions, details, examPeriod !== undefined ? examPeriod : undefined); toast({ title: 'Tersimpan' }); onRefresh();
+  };
+  const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
+
+  const applyRange = () => {
+    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10) || mats.length;
+    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
+    const actualTo = Math.min(to, mats.length);
+    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
+    // Convert 1-based UI index to order values (which may not be contiguous after reorder)
+    const targetMats = mats.slice(from - 1, actualTo);
+    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
+    const minOrder = Math.min(...targetMats.map(m => m.order));
+    const maxOrder = Math.max(...targetMats.map(m => m.order));
+    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod);
+    const label = rangePeriod ?? '—';
+    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${label}` });
+    onRefresh();
+  };
+
+  const [autoDistModalOpen, setAutoDistModalOpen] = useState(false);
+  const [autoDistSuggestions, setAutoDistSuggestions] = useState<DistributionSuggestion[]>([]);
+  const [semesterFilter, setSemesterFilter] = useState<'all' | '1' | '2'>('all');
+  const [rangeSemester, setRangeSemester] = useState<1 | 2 | null>(null);
+
+  // Ambil materi untuk kelas ini
+  const mats = (() => {
+    if (!subId || !classId) return [];
+    return getMaterials(subId, classId);
+  })();
+
+  const syllabusOverview = subId && classId ? getSyllabusOverview(subId, classId) : null;
+
+  const handleAutoDistribute = () => {
+    if (!subId || !classId) return;
+    if (!mats.length) {
+      toast({ title: 'Masukkan materi terlebih dahulu' });
+      return;
+    }
+    const suggestions = suggestExamPeriodDistribution(mats);
+    setAutoDistSuggestions(suggestions);
+    setAutoDistModalOpen(true);
+  };
+
+  const handleConfirmAutoDistribute = () => {
+    applyExamPeriodDistribution(autoDistSuggestions);
+    setAutoDistModalOpen(false);
+    toast({ title: `✓ ${autoDistSuggestions.length} materi berhasil dibagi untuk Semester 1 & 2 (UTS/UAS)` });
+    onRefresh();
+  };
+
+  const applyRangeWithSemester = () => {
+    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10) || mats.length;
+    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
+    const actualTo = Math.min(to, mats.length);
+    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
+    const targetMats = mats.slice(from - 1, actualTo);
+    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
+    const minOrder = Math.min(...targetMats.map(m => m.order));
+    const maxOrder = Math.max(...targetMats.map(m => m.order));
+    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod, rangeSemester);
+    const examLabel = rangePeriod ?? '—';
+    const semLabel = rangeSemester ? `Smt ${rangeSemester}` : '';
+    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${semLabel} ${examLabel}`.trim() });
+    onRefresh();
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      const oldIndex = mats.findIndex(x => x.id === active.id);
+      const newIndex = mats.findIndex(x => x.id === over.id);
+      const reordered = arrayMove(mats, oldIndex, newIndex);
+      updateData(d => {
+        reordered.forEach((matItem, idx) => {
+          const m = d.materials.find(x => x.id === matItem.id);
+          if (m) m.order = idx + 1;
+        });
+      });
+      onRefresh();
+    }
+  };
+
+  const selectedSubject = data.subjects.find(s => s.id === subId);
+  const selectedSemesters = getSemesters();
+  const subjectSemester = selectedSubject?.semesterId
+    ? selectedSemesters.find(s => s.id === selectedSubject.semesterId) ?? null
+    : null;
+
+  return (
+    <div>
+      {/* Konteks penjelasan examPeriod */}
+      <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
+        <p className="text-xs text-text2 leading-relaxed">
+          <Info className="h-4 w-4 text-primary inline mr-1" />
+          <span className="font-bold text-foreground">Cara kerja Materi & Ujian:</span><br />
+          Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Anda dapat memasukkan bab untuk <span className="font-bold text-emerald-400">Semester 1 & 2</span> sekaligus dan menandai bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span>.
+        </p>
+      </div>
+
+      <div className="app-card-soft p-4 mb-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <FormField label="Mata Pelajaran" className="mb-0">
+            <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary text-xs">
+              <option value="">Pilih mapel...</option>
+              {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Kelas" className="mb-0">
+            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} disabled={!subId || classesForSubject.length === 0} className="form-select-style border-primary text-xs disabled:opacity-50">
+              <option value="">{!subId ? '← Pilih mapel dulu' : classesForSubject.length === 0 ? 'Belum ada kelas' : 'Pilih kelas...'}</option>
+              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}{classesWithSchedule.find(x => x.id === c.id) ? '' : ' (perlu jadwal)'}</option>)}
+            </select>
+          </FormField>
+        </div>
+
+        {/* Info panel setelah mapel & kelas dipilih */}
+        {subId && classId && (
+          <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-xs text-text2 space-y-0.5">
+            <div className="font-bold text-foreground text-[12px] flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-primary" />
+              <span>{selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}</span>
+            </div>
+            {subjectSemester ? (
+              <div>Semester: <span className="font-medium text-foreground">{subjectSemester.name}</span>
+                {subjectSemester.utsDate && <span className="ml-2 text-blue-400">UTS: {subjectSemester.utsDate}</span>}
+                {subjectSemester.uasDate && <span className="ml-2 text-purple-400">UAS: {subjectSemester.uasDate}</span>}
+              </div>
+            ) : (
+              <div className="text-amber flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>Mapel ini belum dihubungkan ke semester. <button onClick={() => (document as any).__eduSetTab?.('semesters')} className="underline font-semibold">Atur di Semester →</button></span>
+              </div>
+            )}
+            {hasNoSchedule && (
+              <div className="text-amber flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>Belum ada jadwal untuk mapel ini — materi tersimpan tapi belum aktif. <button onClick={() => (document as any).__eduSetTab?.('schedules')} className="underline font-semibold">Buat Jadwal →</button></span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Ringkasan Silabus & Auto-Distribusi Cerdas 4-Kuadran */}
+      {syllabusOverview && syllabusOverview.totalMaterials > 0 && (
+        <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-bold text-foreground">Silabus Cerdas Smt 1 & 2</span>
+              {syllabusOverview.untaggedMaterials > 0 ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber border border-amber-500/30">
+                  {syllabusOverview.untaggedMaterials} belum di-tag
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  ✓ Terorganisir
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleAutoDistribute}
+              className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
+            >
+              <SlidersHorizontal className="h-3 w-3" />
+              <span>Bagi Smt 1 & 2</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
+              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
+                <span>Semester 1 (Ganjil)</span>
+                <span className="text-text3">{syllabusOverview.smt1Materials} Bab</span>
+              </div>
+              <div className="flex gap-1 text-[10px] font-bold">
+                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt1UtsMaterials}</span>
+                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt1UasMaterials}</span>
+              </div>
+            </div>
+            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
+              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
+                <span>Semester 2 (Genap)</span>
+                <span className="text-text3">{syllabusOverview.smt2Materials} Bab</span>
+              </div>
+              <div className="flex gap-1 text-[10px] font-bold">
+                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt2UtsMaterials}</span>
+                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt2UasMaterials}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog untuk Konfirmasi Auto-Distribusi 4 Kuadran */}
+      {autoDistModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">Saran Pembagian Semester 1 & 2</h3>
+              </div>
+              <button onClick={() => setAutoDistModalOpen(false)} className="text-text3 hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-text2 leading-relaxed">
+              EduTrack membagi bab secara seimbang ke <strong>Semester 1</strong> dan <strong>Semester 2</strong>, serta membaginya ke <strong>UTS</strong> dan <strong>UAS</strong>:
+            </p>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {autoDistSuggestions.map((s, idx) => (
+                <div key={s.materialId} className="flex items-center justify-between p-2.5 rounded-xl bg-surface2 border border-border2 text-xs">
+                  <div className="flex items-center gap-2 truncate pr-2">
+                    <span className="font-mono text-text3 font-bold">#{idx + 1}</span>
+                    <span className="font-semibold text-foreground truncate">{s.materialName}</span>
+                    <span className="text-[11px] text-text3">({s.sessions}×)</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Smt {s.suggestedSemester}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                      s.suggestedPeriod === 'UTS' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                    }`}>
+                      {s.suggestedPeriod}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <button
+                onClick={() => setAutoDistModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmAutoDistribute}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all"
+              >
+                Terapkan Pembagian
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {subId && classId && (
+        <div className="app-card-soft p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[12px] font-bold text-foreground">Tambah Materi ({classesForSubject.find(c => c.id === classId)?.name})</span>
+            <button onClick={() => setBulkMode(!bulkMode)} className="text-xs font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
+          </div>
+          {bulkMode ? (
+            <>
+              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | UTS\nBab 2 - Geometri | 3x | hal 13-28 | UTS\nBab 3 - Statistik | 2x | hal 29-40 | UAS\n\nTips: Tambahkan | UTS atau | UAS di akhir baris untuk langsung mengikat materi ke ujian."} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <button key={n} onClick={() => setBulkSessions(n)}
+                      className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
+                        bulkSessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
+                      }`}>{n}×</button>
+                  ))}
+                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={bulkSessions || ''}
+                      onChange={e => setBulkSessions(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} className="form-input-style mb-2" placeholder="cth: Bab 1 — Persamaan Linear" />
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <button key={n} onClick={() => setSessions(n)}
+                      className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
+                        sessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
+                      }`}>{n}×</button>
+                  ))}
+                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
+                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={sessions || ''}
+                      onChange={e => setSessions(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* 4-Quadrant Semester & Exam Tagging Chips */}
+              <div className="mb-3 space-y-1.5">
+                <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block">Target Semester & Ujian:</label>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UTS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 1 && singleExamPeriod === 'UTS'
+                        ? 'badge-smt1-uts border-blue-500 ring-2 ring-blue-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>Smt 1 UTS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UAS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 1 && singleExamPeriod === 'UAS'
+                        ? 'badge-smt1-uas border-violet-500 ring-2 ring-violet-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>Smt 1 UAS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UTS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 2 && singleExamPeriod === 'UTS'
+                        ? 'badge-smt2-uts border-indigo-500 ring-2 ring-indigo-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>Smt 2 UTS</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UAS'); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                      singleSemesterNum === 2 && singleExamPeriod === 'UAS'
+                        ? 'badge-smt2-uas border-fuchsia-500 ring-2 ring-fuchsia-500/30'
+                        : 'bg-surface border-border text-text3 hover:border-border3'
+                    }`}
+                  >
+                    <span>Smt 2 UAS</span>
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[11px] pt-0.5">
+                  <span className="text-text3">Tag terpilih: <strong className="text-foreground font-semibold">Semester {singleSemesterNum} {singleExamPeriod ? `(${singleExamPeriod})` : '— Tanpa Ujian'}</strong></span>
+                  {singleExamPeriod !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setSingleExamPeriod(null)}
+                      className="text-text3 hover:text-foreground underline"
+                    >
+                      Reset tag
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progressive Disclosure for optional details */}
+              <details className="group border border-border/50 rounded-xl p-2.5 bg-surface2/30 mb-3">
+                <summary className="text-xs font-bold text-text2 cursor-pointer flex items-center justify-between select-none">
+                  <span>＋ Halaman & Catatan <span className="font-normal text-text3">(opsional)</span></span>
+                  <span className="text-text3 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="pt-2.5 space-y-2">
+                  <div className="flex gap-2">
+                    <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. mulai (cth: 1)" />
+                    <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. akhir (cth: 15)" />
+                  </div>
+                  <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[60px] resize-none text-xs" placeholder="Catatan opsional (cth: banyak latihan soal, ulang konsep dasar)" />
+                </div>
+              </details>
+            </>
+          )}
+          <button onClick={add} className="btn-primary-style bg-primary text-primary-foreground min-h-[44px] w-full font-bold text-sm shadow-sm hover:brightness-105 active:scale-[0.99] transition-all">＋ {bulkMode ? 'Tambah Semua Bab' : 'Tambah Bab Materi'}</button>
+        </div>
+      )}
+
+      {subId && classId && (
+        <>
+          <div className="mt-5 mb-2 flex justify-between items-center">
+            <span className="app-section-title px-0">Daftar Materi ({mats.length})</span>
+            {mats.length > 1 && <span className="text-xs text-text2">Tahan &amp; geser untuk urutkan</span>}
+          </div>
+
+          {mats.length > 0 && (
+            <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40 space-y-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-primary">Set Rentang Bab ke Semester & Ujian</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-text2">Bab</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={mats.length}
+                  value={rangeFrom}
+                  onChange={e => setRangeFrom(e.target.value)}
+                  className="form-input-style w-14 text-center h-8 text-xs p-1"
+                />
+                <span className="text-xs text-text2">s/d</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={mats.length}
+                  value={rangeTo}
+                  placeholder={String(mats.length)}
+                  onChange={e => setRangeTo(e.target.value)}
+                  className="form-input-style w-14 text-center h-8 text-xs p-1"
+                />
+                <div className="flex gap-1 ml-auto flex-wrap">
+                  {([1, 2, null] as const).map(s => (
+                    <button
+                      key={`sem-${s ?? 'none'}`}
+                      onClick={() => setRangeSemester(s)}
+                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
+                        rangeSemester === s
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                          : 'bg-surface border-border text-text3 hover:border-border3'
+                      }`}
+                    >
+                      {s ? `Smt ${s}` : 'Smt —'}
+                    </button>
+                  ))}
+                  {(['UTS', 'UAS', null] as const).map(p => (
+                    <button
+                      key={`exam-${p ?? 'none'}`}
+                      onClick={() => setRangePeriod(p)}
+                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
+                        rangePeriod === p
+                          ? p === 'UTS'
+                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                            : p === 'UAS'
+                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                            : 'bg-surface2 border-border3 text-text2'
+                          : 'bg-surface border-border text-text3 hover:border-border3'
+                      }`}
+                    >
+                      {p ?? 'Ujian —'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={applyRangeWithSemester}
+                  className="w-full mt-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold transition-all hover:brightness-105 active:scale-95"
+                >
+                  Terapkan ke Rentang Bab
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filter Tab Semester 1 vs Semester 2 */}
+          {mats.length > 0 && (
+            <div className="flex items-center gap-1 mb-3 bg-surface2 p-1 rounded-xl border border-border/50 text-xs font-bold">
+              <button
+                onClick={() => setSemesterFilter('all')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semua Bab ({mats.length})
+              </button>
+              <button
+                onClick={() => { setSemesterFilter('1'); setSingleSemesterNum(1); }}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '1' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semester 1 ({mats.filter(m => (m.semesterNum ?? 1) === 1).length})
+              </button>
+              <button
+                onClick={() => { setSemesterFilter('2'); setSingleSemesterNum(2); }}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '2' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
+              >
+                Semester 2 ({mats.filter(m => m.semesterNum === 2).length})
+              </button>
+            </div>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={mats.map(m=>m.id)} strategy={verticalListSortingStrategy}>
+              {(() => {
+                const teachingPos = classId && subId ? getTeachingPosition(classId, subId, data) : null;
+                const completedIds = new Set(teachingPos?.completedMaterialIds ?? []);
+                let runningTotal = 0;
+
+                const displayMats = mats.filter(m => {
+                  if (semesterFilter === '1') return (m.semesterNum ?? 1) === 1;
+                  if (semesterFilter === '2') return m.semesterNum === 2;
+                  return true;
+                });
+
+                return displayMats.map((m, i) => {
+                  const sessions = m.sessions ?? 1;
+                  const isFinished = completedIds.has(m.id) || (teachingPos && teachingPos.totalSessionsDone >= runningTotal + sessions);
+                  const isCurrent = teachingPos && teachingPos.material?.id === m.id;
+                  const sessionIndex = teachingPos?.sessionIndex || 1;
+                  runningTotal += sessions;
+
+                  let progressStatus = null;
+                  if (isFinished) {
+                    progressStatus = { type: 'finished', label: '✓ Selesai' };
+                  } else if (isCurrent) {
+                    progressStatus = { type: 'current', label: `▶ Sesi ${sessionIndex}/${sessions}` };
+                  }
+
+                  const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
+                  const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${m.order}`;
+                  return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta, progressStatus }} onSave={saveItem} onDelete={del} />;
+                });
+              })()}
+            </SortableContext>
+          </DndContext>
+          {!mats.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada materi</div>}
+        </>
+      )}
+      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
+      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih kelas di atas</div>}
+    </div>
+  );
+}
+
+function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
+  const [params] = useSearchParams();
+  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
+  const [subjectId, setSubjectId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
+  const [startTime, setStartTime] = useState('07:30');
+  const [duration, setDuration] = useState('45');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const { toast } = useToast();
+  const data = getData();
+  const selectedClass = data.classes.find(c => c.id === classId);
+  const compatibleSubjects = data.subjects.filter(s => !selectedClass?.level || !s.level || s.level === selectedClass.level);
+
+  const toggleDay = (d: number) => setSelectedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+
+  const add = () => {
+    if (!classId || !subjectId || !startTime || !selectedDays.length) return toast({ title: 'Lengkapi semua field' });
+    if (checkOverlap(classId, selectedDays, startTime, parseInt(duration) || 45)) return toast({ title: 'Waktu bentrok dengan jadwal lain' });
+    updateData(d => {
+      d.schedules.push({ id: genId(), classId, subjectId, days: [...selectedDays], startTime, duration: parseInt(duration) || 45 });
+      if (!d.progress.find(p => p.classId === classId && p.subjectId === subjectId)) d.progress.push({ id: genId(), classId, subjectId, materialsDone: 0, lastSession: null });
+    });
+    setSelectedDays([]); toast({ title: 'Jadwal ditambahkan' }); onRefresh();
+  };
+
+  const saveItem = (id: string, _: string, extras: any) => {
+    updateSchedule(id, extras.days, extras.st, extras.dr); toast({ title: 'Jadwal diperbarui' }); onRefresh();
+  };
+  const del = (id: string) => {
+    updateData(d => { d.schedules = d.schedules.filter(s => String(s.id) !== String(id)); });
+    toast({ title: 'Jadwal dihapus' }); onRefresh();
+  };
+
+  // Mini-grid: which days have schedules
+  const dayHasSchedule = DAYS_SHORT.map((_, i) => data.schedules.some(s => s.days.includes(i)));
+
+  // Group by day for display
+  const schedulesByDay = [0,1,2,3,4,5,6].map(day => ({
+    day, schedules: data.schedules.filter(s => s.days.includes(day))
+  })).filter(g => g.schedules.length > 0);
+
+  return (
+    <div className="space-y-5">
+      {/* Mini-grid visual */}
+      {data.schedules.length > 0 && (
+        <div className="app-card-soft p-3">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-text3 mb-2">Distribusi Hari Mengajar</div>
+          <div className="grid grid-cols-7 gap-1">
+            {DAYS_SHORT.map((d, i) => (
+              <div key={i} className={
+                `flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all ${dayHasSchedule[i] ? 'bg-primary/15 border border-primary/30' : 'bg-surface2/50 border border-transparent'}`
+              }>
+                <span className={`text-[10px] font-bold ${dayHasSchedule[i] ? 'text-primary' : 'text-text3'}`}>{d}</span>
+                <div className={`w-2 h-2 rounded-full ${dayHasSchedule[i] ? 'bg-primary' : 'bg-border'}`} />
+                <span className={`text-[9px] font-bold ${dayHasSchedule[i] ? 'text-primary' : 'text-text3 opacity-0'}`}>
+                  {data.schedules.filter(s => s.days.includes(i)).length || ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Form */}
+      <div className="app-card-soft p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          <div className="text-sm font-bold">Tambah Jadwal Mingguan</div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select value={classId} onChange={e => { setClassId(e.target.value); setSubjectId(''); }} className="form-select-style text-xs">
+            <option value="">1. Pilih Kelas...</option>
+            {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.level ? ` (${c.level.split('/')[0]})` : ''}</option>)}
+          </select>
+          <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style text-xs" disabled={!classId}>
+            <option value="">2. Pilih Mapel...</option>
+            {compatibleSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+
+        {/* Day Selector */}
+        <div>
+          <div className="text-xs font-bold text-text2 uppercase tracking-wide mb-2">3. Hari Mengajar</div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {DAYS_SHORT.map((d, i) => (
+              <button key={i} onClick={() => toggleDay(i)}
+                className={`py-3 rounded-xl text-xs font-bold border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2 hover:border-primary/50'}`}>
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Time & Duration */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="text-xs font-bold text-text2 uppercase tracking-wide mb-1.5">4. Jam Mulai</div>
+            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style w-full" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-text2 uppercase tracking-wide mb-1.5">Durasi (menit)</div>
+            <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style w-full" min={15} max={180} />
+          </div>
+        </div>
+
+        {/* Summary */}
+        {(classId && subjectId && selectedDays.length > 0) && (
+          <div className="rounded-xl bg-surface2/70 border border-border2 px-3 py-2 text-xs text-text2 animate-in fade-in">
+            <span className="font-bold text-foreground">{data.classes.find(c => c.id === classId)?.name}</span>
+            {' · '}<span className="font-bold text-foreground">{data.subjects.find(s => s.id === subjectId)?.name}</span>
+            {' · '}{selectedDays.map(d => DAYS_SHORT[d]).join(', ')}
+            {' · '}{startTime} · {duration} mnt
+          </div>
+        )}
+
+        <button onClick={add} className="btn-primary-style w-full min-h-[44px] font-bold flex items-center justify-center gap-2">
+          <CalendarDays className="h-4 w-4" /> Simpan Jadwal
+        </button>
+      </div>
+
+      {/* Schedule List grouped by day */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-bold">Jadwal Tersimpan</div>
+          <span className="text-xs text-text3">{data.schedules.length} slot</span>
+        </div>
+
+        {schedulesByDay.length === 0 && (
+          <div className="text-text3 font-medium text-[13px] text-center py-10 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl">
+            Belum ada jadwal. Tambahkan di atas.
+          </div>
+        )}
+
+        <div className="space-y-5">
+          {schedulesByDay.map(({ day, schedules }) => (
+            <div key={day}>
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-[12px] font-bold text-foreground capitalize">{DAYS_ID[day]}</span>
+                <div className="flex-1 h-px bg-border/40" />
+                <span className="text-[11px] text-text3">{schedules.length} mapel</span>
+              </div>
+              <div className="space-y-2 pl-3 border-l-2 border-border/40">
+                {schedules.sort((a, b) => a.startTime.localeCompare(b.startTime)).map(s => {
+                  const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
+                  const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
+                  return (
+                    <ScheduleEditableItem key={s.id}
+                      item={{ id: s.id, name: `${cls.name} — ${sub.name}`, meta: `${fmt(s.startTime)} · ${s.duration} mnt`, st: s.startTime, dr: s.duration, days: s.days }}
+                      onSave={saveItem} onDelete={del} />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
