@@ -85,7 +85,10 @@ Materi milik kelas lain tidak boleh menjadi fallback.
 Realisasi KBM menyimpan tanggal, kelas, mapel, material, note, halaman terakhir, dan `materialCompleted` bila bab benar-benar selesai pada sesi itu.
 
 ### Semester/Ujian
-`Semester` memegang batas UTS/UAS. `Subject.examDate` bersifat deprecated; implementasi baru sebaiknya menggunakan semester/exam schedule.
+`Semester` hanya memegang batas timeline (startDate/endDate). Jadwal ujian (UTS/UAS/Umum) dan jadwal pengawasan (Proctoring) kini tersentralisasi penuh di `examSchedules`.
+- Field `Subject.examDate` dan legacy `ProctorSession` telah digantikan secara fungsional. 
+- `ExamSchedule` mendukung input bebas untuk mapel dan kelas di luar kewajiban mengajar utama guru (melalui `customClassName` dan `subjectName` atau ID khusus). Ini mengakomodasi skenario di mana guru ditugaskan mengawas kelas/mapel yang tidak dia ajar.
+- Status ujian (Mendatang, Berlangsung, Selesai) dihitung secara dinamis dan real-time berdasarkan tanggal dan jam sekarang melalui fungsi `getExamStatus()` di `examData.ts`, bukan disimpan statis di objek.
 
 ## 5. Progress: desain hybrid saat ini
 

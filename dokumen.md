@@ -42,7 +42,7 @@ Kalender Progress mempertahankan legend **Selesai, Sebagian, Terlewat, Libur**. 
 - `Progress.materialsDone` = jumlah **sesi** yang telah ditempuh, bukan jumlah bab.
 - `Progress.completedMaterialIds` = bab yang sengaja ditutup lebih cepat.
 - `Session.materialCompleted` = penanda bahwa bab benar-benar selesai pada sesi tersebut.
-- `Semester` menyimpan batas UTS/UAS; `Subject.examDate` bersifat deprecated.
+- `Semester` hanya menyimpan rentang tanggal. Jadwal spesifik UTS/UAS dan Pengawasan (Proctoring) tersentralisasi penuh di `ExamSchedule` (mendukung mapel/kelas kustom jika guru ditugaskan mengawas di luar mapel yang diajar). `Subject.examDate` dan `ProctorSession` legacy sudah diganti/dimigrasi secara otomatis.
 
 Materi diselesaikan dengan prioritas: override khusus rombel → shared level → legacy global. Override kelas lain tidak boleh bocor menjadi fallback.
 
