@@ -97,17 +97,23 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     if (!eClassId || !eSubjectId || !eDate || !eStart || !eEnd) {
       toast({ title: 'Lengkapi kelas, mapel, tanggal, dan jam ujian' }); return;
     }
+    if (eSubjectId === 'proctor_only' && !nSubject.trim()) {
+      toast({ title: 'Masukkan nama mapel yang diawasi' }); return;
+    }
     if (timeToMin(eEnd) <= timeToMin(eStart)) {
       toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
     }
     addExamSchedule({
       classId: eClassId, subjectId: eSubjectId, date: eDate,
       startTime: eStart, endTime: eEnd,
+      subjectName: eSubjectId === 'proctor_only' ? nSubject.trim() : undefined,
       location: eLocation.trim() || undefined,
       note: eNote.trim() || undefined,
       examType: eType,
+      supervisorId: eSubjectId === 'proctor_only' ? (data.teacherName || 'Pengawas') : undefined
     });
     setEStart(''); setEEnd(''); setELocation(''); setENote('');
+    if (eSubjectId === 'proctor_only') setNSubject('');
     setExamFormOpen(false);
     onRefresh();
     toast({ title: '✓ Jadwal ujian ditambahkan' });
@@ -406,7 +412,11 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                       <select aria-label="Mata pelajaran ujian" value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style min-w-0 w-full">
                         <option value="">Pilih mapel</option>
                         {data.subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                        <option value="proctor_only">+ Mapel Lain (Ngawas)</option>
                       </select>
+                      {eSubjectId === 'proctor_only' && (
+                        <input aria-label="Nama mapel lain" value={nSubject} onChange={e => setNSubject(e.target.value)} placeholder="Ketik nama mapel (cth: Biologi)" className="form-input-style min-w-0 w-full mt-2 animate-in fade-in" />
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
