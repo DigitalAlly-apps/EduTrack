@@ -756,12 +756,10 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   const semesters = getSemesters();
 
   const [bulkLevel, setBulkLevel] = useState('SD/MI');
-  const [bulkDate, setBulkDate] = useState('');
-
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama mapel' });
     updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: null, semesterId: semesterId || null }));
-    setName(''); setLevel(''); setExamDate(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
+    setName(''); setLevel(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras: any) => {
     if(!newName.trim()) return;
@@ -779,14 +777,6 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
     toast({ title: 'Mapel dihapus' }); onRefresh();
   };
 
-  const applyBulkExamDate = () => {
-    if (!bulkLevel) return toast({ title: 'Pilih jenjang terlebih dahulu' });
-    if (!bulkDate) return toast({ title: 'Masukkan tanggal ujian' });
-    bulkUpdateExamDateByLevel(bulkLevel, bulkDate);
-    setBulkDate(''); toast({ title: `Tanggal ujian untuk ${bulkLevel} disimpan` }); onRefresh();
-  };
-
-  const [showAdvancedAdd, setShowAdvancedAdd] = useState(false);
   const [bulkNames, setBulkNames] = useState('');
   const [bulkAddLevel, setBulkAddLevel] = useState('SD/MI');
   const addBulkSubjects = () => {
@@ -837,18 +827,6 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               </select>
             </div>
           </div>
-          {/* Advanced: tanggal ujian fallback (hanya jika tidak pakai semester) */}
-          <div className="mb-3">
-            <button onClick={() => setShowAdvancedAdd(v => !v)} className="text-xs text-text3 hover:text-text2 flex items-center gap-1 transition-colors">
-              <span>{showAdvancedAdd ? '▾' : '▸'}</span> Atur tanggal ujian manual (lanjutan)
-            </button>
-            {showAdvancedAdd && (
-              <div className="mt-2 p-3 bg-surface2 border border-border2 rounded-xl">
-                <label className="block text-xs text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
-                
-              </div>
-            )}
-          </div>
           <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">＋ Tambah Mapel</button>
           </div></details>
         </FormField>
@@ -859,12 +837,10 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
         const jenjangLabel = s.level ? `[${s.level}] ` : '';
         const sem = semesters.find(x => x.id === s.semesterId);
         const phase = sem ? getCurrentExamPhase(sem) : null;
-        const semLabel = sem
-          ? `📅 ${sem.name}${phase ? ` · ${phase} aktif` : ''}`
-          : (s.examDate ? `📌 Ujian: ${s.examDate}` : '⚠️ Belum ada semester');
+        const semLabel = sem ? `📅 ${sem.name}${phase ? ` · ${phase} aktif` : ''}` : '⚠️ Belum ada semester';
         const semColor = sem ? '' : 'text-amber';
         return (
-          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', examDate: s.examDate || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
+          <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
             <div className="space-y-2 mb-2">
               <div className="flex gap-2">
                 <select value={v.level} onChange={e=>setV({...v, level: e.target.value})} className="form-select-style flex-1 text-xs">
@@ -878,752 +854,11 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
                   {semesters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
-              {!v.semesterId && (
-                <div>
-                  <label className="block text-xs text-text3 mb-1">Tanggal ujian manual (fallback)</label>
-                  
-                </div>
-              )}
             </div>
           )} />
         );
       })}
       {!data.subjects.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada mapel</div>}
-
-      {/* Bulk update tanggal ujian per jenjang — fitur lanjutan */}
-      {data.subjects.length > 0 && (
-        <div className="app-card-soft p-4 mt-5 border border-border/60">
-          <label className="block text-xs font-bold tracking-[0.7px] uppercase text-text2 mb-1">Bulk: Set Tanggal Ujian per Jenjang</label>
-          <p className="text-xs text-text3 mb-2">Override tanggal ujian untuk semua mapel di jenjang yang sama sekaligus.</p>
-          <div className="flex gap-2">
-             <select value={bulkLevel} onChange={e => setBulkLevel(e.target.value)} className="form-select-style flex-1 text-xs">
-               <option value="SD/MI">SD / MI</option>
-               <option value="SMP/MTs">SMP / MTs</option>
-               <option value="SMA/MA">SMA / MA</option>
-             </select>
-             <input type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} className="form-input-style flex-1 text-xs min-h-[44px]" />
-          </div>
-          <button onClick={applyBulkExamDate} className="w-full mt-2 py-2 rounded-lg bg-surface2 text-text2 border border-border2 text-[12px] font-bold hover:bg-surface3 transition-colors">Terapkan ke Semua</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
-  const [params] = useSearchParams();
-  const [subId, setSubId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
-  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
-  const [name, setName] = useState('');
-  const [sessions, setSessions] = useState(1);
-  const [pageStart, setPageStart] = useState('');
-  const [pageEnd, setPageEnd] = useState('');
-  const [note, setNote] = useState('');
-  const [singleSemesterNum, setSingleSemesterNum] = useState<1 | 2>(1);
-  const [singleExamPeriod, setSingleExamPeriod] = useState<'UTS' | 'UAS' | null>(null);
-  const [bulkMode, setBulkMode] = useState(false);
-  const [bulkText, setBulkText] = useState('');
-  const [bulkSessions, setBulkSessions] = useState(1);
-  const [rangeFrom, setRangeFrom] = useState('1');
-  const [rangeTo, setRangeTo] = useState('');
-  const [rangePeriod, setRangePeriod] = useState<'UTS' | 'UAS' | null>('UTS');
-  const { toast } = useToast();
-  const data = getData();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-
-  // Kelas yang punya jadwal mapel ini — fallback ke semua kelas jika belum ada jadwal
-  const classesWithSchedule = subId
-    ? data.classes.filter(c => data.schedules.some(s => s.classId === c.id && s.subjectId === subId))
-    : [];
-  const classesForSubject = subId
-    ? (classesWithSchedule.length > 0 ? classesWithSchedule : data.classes)
-    : [];
-  const hasNoSchedule = subId && classesWithSchedule.length === 0 && data.classes.length > 0;
-
-  const add = () => {
-    if (!subId) return toast({ title: 'Pilih mapel dulu' });
-    if (!classId) return toast({ title: 'Pilih kelas dulu' });
-    if (bulkMode) {
-      if(!bulkText.trim()) return toast({ title: 'Masukkan materi' });
-      bulkAddMaterials(subId, parseMaterialDraftLines(bulkText, bulkSessions), bulkSessions, undefined, classId);
-      setBulkText(''); setBulkMode(false); toast({ title: 'Materi ditambahkan' }); onRefresh();
-    } else {
-      if(!name.trim()) return toast({ title: 'Isi nama materi' });
-      bulkAddMaterials(
-        subId,
-        [{ name, sessions, pageStart, pageEnd, note, examPeriod: singleExamPeriod, semesterNum: singleSemesterNum }],
-        sessions,
-        undefined,
-        classId,
-        singleExamPeriod,
-        singleSemesterNum
-      );
-      setName(''); setPageStart(''); setPageEnd(''); setNote('');
-      const examLabel = singleExamPeriod ? ` (${singleExamPeriod})` : '';
-      toast({ title: `✓ Materi ditambahkan ke Semester ${singleSemesterNum}${examLabel}` });
-      onRefresh();
-    }
-  };
-
-  const saveItem = (id: string, newName: string, newSessions?: number, details?: { pageStart?: string; pageEnd?: string; note?: string }, examPeriod?: 'UTS' | 'UAS' | null) => {
-    if(newName.trim()) updateMaterial(id, newName, newSessions, details, examPeriod !== undefined ? examPeriod : undefined); toast({ title: 'Tersimpan' }); onRefresh();
-  };
-  const del = (id: string) => { const targetId = String(id); updateData(d => d.materials = d.materials.filter(m => String(m.id) !== targetId)); toast({ title: 'Dihapus' }); onRefresh(); };
-
-  const applyRange = () => {
-    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
-    const from = parseInt(rangeFrom, 10);
-    const to = parseInt(rangeTo, 10) || mats.length;
-    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
-    const actualTo = Math.min(to, mats.length);
-    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
-    // Convert 1-based UI index to order values (which may not be contiguous after reorder)
-    const targetMats = mats.slice(from - 1, actualTo);
-    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
-    const minOrder = Math.min(...targetMats.map(m => m.order));
-    const maxOrder = Math.max(...targetMats.map(m => m.order));
-    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod);
-    const label = rangePeriod ?? '—';
-    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${label}` });
-    onRefresh();
-  };
-
-  const [autoDistModalOpen, setAutoDistModalOpen] = useState(false);
-  const [autoDistSuggestions, setAutoDistSuggestions] = useState<DistributionSuggestion[]>([]);
-  const [semesterFilter, setSemesterFilter] = useState<'all' | '1' | '2'>('all');
-  const [rangeSemester, setRangeSemester] = useState<1 | 2 | null>(null);
-
-  // Ambil materi untuk kelas ini
-  const mats = (() => {
-    if (!subId || !classId) return [];
-    return getMaterials(subId, classId);
-  })();
-
-  const syllabusOverview = subId && classId ? getSyllabusOverview(subId, classId) : null;
-
-  const handleAutoDistribute = () => {
-    if (!subId || !classId) return;
-    if (!mats.length) {
-      toast({ title: 'Masukkan materi terlebih dahulu' });
-      return;
-    }
-    const suggestions = suggestExamPeriodDistribution(mats);
-    setAutoDistSuggestions(suggestions);
-    setAutoDistModalOpen(true);
-  };
-
-  const handleConfirmAutoDistribute = () => {
-    applyExamPeriodDistribution(autoDistSuggestions);
-    setAutoDistModalOpen(false);
-    toast({ title: `✓ ${autoDistSuggestions.length} materi berhasil dibagi untuk Semester 1 & 2 (UTS/UAS)` });
-    onRefresh();
-  };
-
-  const applyRangeWithSemester = () => {
-    if (!subId || !classId) return toast({ title: 'Pilih mapel dan kelas dulu' });
-    const from = parseInt(rangeFrom, 10);
-    const to = parseInt(rangeTo, 10) || mats.length;
-    if (isNaN(from) || from < 1) return toast({ title: 'Nomor bab tidak valid' });
-    const actualTo = Math.min(to, mats.length);
-    if (from > actualTo) return toast({ title: `Bab ${from} melebihi jumlah bab (${mats.length})` });
-    const targetMats = mats.slice(from - 1, actualTo);
-    if (targetMats.length === 0) return toast({ title: 'Tidak ada bab dalam rentang ini' });
-    const minOrder = Math.min(...targetMats.map(m => m.order));
-    const maxOrder = Math.max(...targetMats.map(m => m.order));
-    bulkSetExamPeriodByOrderRange(subId, classId, minOrder, maxOrder, rangePeriod, rangeSemester);
-    const examLabel = rangePeriod ?? '—';
-    const semLabel = rangeSemester ? `Smt ${rangeSemester}` : '';
-    toast({ title: `✓ Bab ${from} s/d ${actualTo} → ${semLabel} ${examLabel}`.trim() });
-    onRefresh();
-  };
-
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      const oldIndex = mats.findIndex(x => x.id === active.id);
-      const newIndex = mats.findIndex(x => x.id === over.id);
-      const reordered = arrayMove(mats, oldIndex, newIndex);
-      updateData(d => {
-        reordered.forEach((matItem, idx) => {
-          const m = d.materials.find(x => x.id === matItem.id);
-          if (m) m.order = idx + 1;
-        });
-      });
-      onRefresh();
-    }
-  };
-
-  const selectedSubject = data.subjects.find(s => s.id === subId);
-  const selectedSemesters = getSemesters();
-  const subjectSemester = selectedSubject?.semesterId
-    ? selectedSemesters.find(s => s.id === selectedSubject.semesterId) ?? null
-    : null;
-
-  return (
-    <div>
-      {/* Konteks penjelasan examPeriod */}
-      <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
-        <p className="text-xs text-text2 leading-relaxed">
-          <Info className="h-4 w-4 text-primary inline mr-1" />
-          <span className="font-bold text-foreground">Cara kerja Materi & Ujian:</span><br />
-          Pilih mapel dan kelas, lalu tambahkan bab-bab materi. Anda dapat memasukkan bab untuk <span className="font-bold text-emerald-400">Semester 1 & 2</span> sekaligus dan menandai bab dengan <span className="font-bold text-blue-400">UTS</span> atau <span className="font-bold text-purple-400">UAS</span>.
-        </p>
-      </div>
-
-      <div className="app-card-soft p-4 mb-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <FormField label="Mata Pelajaran" className="mb-0">
-            <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary text-xs">
-              <option value="">Pilih mapel...</option>
-              {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            <option value="custom_subject">+ Mapel Lainnya</option>
-            </select>
-          </FormField>
-          <FormField label="Kelas" className="mb-0">
-            <select value={classId} onChange={e => { setClassId(e.target.value); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} disabled={!subId || classesForSubject.length === 0} className="form-select-style border-primary text-xs disabled:opacity-50">
-              <option value="">{!subId ? '← Pilih mapel dulu' : classesForSubject.length === 0 ? 'Belum ada kelas' : 'Pilih kelas...'}</option>
-              {classesForSubject.map(c => <option key={c.id} value={c.id}>{c.name}{classesWithSchedule.find(x => x.id === c.id) ? '' : ' (perlu jadwal)'}</option>)}
-            </select>
-          </FormField>
-        </div>
-
-        {/* Info panel setelah mapel & kelas dipilih */}
-        {subId && classId && (
-          <div className="bg-surface2 border border-border2 rounded-xl px-3 py-2.5 text-xs text-text2 space-y-0.5">
-            <div className="font-bold text-foreground text-[12px] flex items-center gap-1.5">
-              <BookOpen className="h-3.5 w-3.5 text-primary" />
-              <span>{selectedSubject?.name} — {classesForSubject.find(c => c.id === classId)?.name}</span>
-            </div>
-            {subjectSemester ? (
-              <div>Semester: <span className="font-medium text-foreground">{subjectSemester.name}</span>
-                {subjectSemester.utsDate && <span className="ml-2 text-blue-400">UTS: {subjectSemester.utsDate}</span>}
-                {subjectSemester.uasDate && <span className="ml-2 text-purple-400">UAS: {subjectSemester.uasDate}</span>}
-              </div>
-            ) : (
-              <div className="text-amber flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>Mapel ini belum dihubungkan ke semester. <button onClick={() => (document as any).__eduSetTab?.('semesters')} className="underline font-semibold">Atur di Semester →</button></span>
-              </div>
-            )}
-            {hasNoSchedule && (
-              <div className="text-amber flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>Belum ada jadwal untuk mapel ini — materi tersimpan tapi belum aktif. <button onClick={() => (document as any).__eduSetTab?.('schedules')} className="underline font-semibold">Buat Jadwal →</button></span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Ringkasan Silabus & Auto-Distribusi Cerdas 4-Kuadran */}
-      {syllabusOverview && syllabusOverview.totalMaterials > 0 && (
-        <div className="app-card p-4 mb-4 bg-gradient-to-r from-primary/10 via-surface2 to-surface border border-primary/20 rounded-2xl shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-bold text-foreground">Silabus Cerdas Smt 1 & 2</span>
-              {syllabusOverview.untaggedMaterials > 0 ? (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber border border-amber-500/30">
-                  {syllabusOverview.untaggedMaterials} belum di-tag
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  ✓ Terorganisir
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleAutoDistribute}
-              className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all flex items-center gap-1"
-            >
-              <SlidersHorizontal className="h-3 w-3" />
-              <span>Bagi Smt 1 & 2</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
-              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
-                <span>Semester 1 (Ganjil)</span>
-                <span className="text-text3">{syllabusOverview.smt1Materials} Bab</span>
-              </div>
-              <div className="flex gap-1 text-[10px] font-bold">
-                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt1UtsMaterials}</span>
-                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt1UasMaterials}</span>
-              </div>
-            </div>
-            <div className="bg-surface border border-border/60 rounded-xl p-2.5 space-y-1">
-              <div className="text-[11px] font-extrabold text-foreground flex justify-between">
-                <span>Semester 2 (Genap)</span>
-                <span className="text-text3">{syllabusOverview.smt2Materials} Bab</span>
-              </div>
-              <div className="flex gap-1 text-[10px] font-bold">
-                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">UTS: {syllabusOverview.smt2UtsMaterials}</span>
-                <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded">UAS: {syllabusOverview.smt2UasMaterials}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Dialog untuk Konfirmasi Auto-Distribusi 4 Kuadran */}
-      {autoDistModalOpen && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-scale-up">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </div>
-                <h3 className="font-bold text-base text-foreground">Saran Pembagian Semester 1 & 2</h3>
-              </div>
-              <button onClick={() => setAutoDistModalOpen(false)} className="text-text3 hover:text-foreground">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-text2 leading-relaxed">
-              EduTrack membagi bab secara seimbang ke <strong>Semester 1</strong> dan <strong>Semester 2</strong>, serta membaginya ke <strong>UTS</strong> dan <strong>UAS</strong>:
-            </p>
-
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {autoDistSuggestions.map((s, idx) => (
-                <div key={s.materialId} className="flex items-center justify-between p-2.5 rounded-xl bg-surface2 border border-border2 text-xs">
-                  <div className="flex items-center gap-2 truncate pr-2">
-                    <span className="font-mono text-text3 font-bold">#{idx + 1}</span>
-                    <span className="font-semibold text-foreground truncate">{s.materialName}</span>
-                    <span className="text-[11px] text-text3">({s.sessions}×)</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      Smt {s.suggestedSemester}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      s.suggestedPeriod === 'UTS' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                    }`}>
-                      {s.suggestedPeriod}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
-              <button
-                onClick={() => setAutoDistModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-text2 hover:bg-surface2 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleConfirmAutoDistribute}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-sm hover:brightness-105 transition-all"
-              >
-                Terapkan Pembagian
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {subId && classId && (
-        <div className="app-card-soft p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[12px] font-bold text-foreground">Tambah Materi ({classesForSubject.find(c => c.id === classId)?.name})</span>
-            <button onClick={() => setBulkMode(!bulkMode)} className="text-xs font-semibold text-primary px-2 py-1 bg-primary-dim rounded-md">{bulkMode ? 'Satu-satu' : 'Tambah Banyak'}</button>
-          </div>
-          {bulkMode ? (
-            <>
-              <textarea value={bulkText} onChange={e => setBulkText(e.target.value)} placeholder={"Bab 1 - Aljabar | 2x | hal 1-12 | UTS\nBab 2 - Geometri | 3x | hal 13-28 | UTS\nBab 3 - Statistik | 2x | hal 29-40 | UAS\n\nTips: Tambahkan | UTS atau | UAS di akhir baris untuk langsung mengikat materi ke ujian."} className="form-input-style min-h-[150px] mb-3 text-[13px] leading-relaxed resize-none font-mono" />
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan per bab:</label>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button key={n} onClick={() => setBulkSessions(n)}
-                      className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
-                        bulkSessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
-                      }`}>{n}×</button>
-                  ))}
-                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
-                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={bulkSessions || ''}
-                      onChange={e => setBulkSessions(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} className="form-input-style mb-2" placeholder="cth: Bab 1 — Persamaan Linear" />
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <label className="text-xs font-bold text-text2 uppercase tracking-wide whitespace-nowrap">Pertemuan:</label>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button key={n} onClick={() => setSessions(n)}
-                      className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${
-                        sessions === n ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2 hover:border-primary'
-                      }`}>{n}×</button>
-                  ))}
-                  <div className="flex items-center gap-1 bg-surface border border-border2 rounded-md px-1.5 h-7 ml-0.5">
-                    <span className="text-xs text-text3 font-bold">Lainnya:</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={sessions || ''}
-                      onChange={e => setSessions(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-10 h-6 bg-transparent text-xs font-bold text-center focus:outline-none text-foreground"
-                    />
-                  </div>
-                </div>
-              </div>
-              {/* 4-Quadrant Semester & Exam Tagging Chips */}
-              <div className="mb-3 space-y-1.5">
-                <label className="text-[11px] font-bold text-text2 uppercase tracking-wide block">Target Semester & Ujian:</label>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                  <button
-                    type="button"
-                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UTS'); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      singleSemesterNum === 1 && singleExamPeriod === 'UTS'
-                        ? 'badge-smt1-uts border-blue-500 ring-2 ring-blue-500/30'
-                        : 'bg-surface border-border text-text3 hover:border-border3'
-                    }`}
-                  >
-                    <span>Smt 1 UTS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSingleSemesterNum(1); setSingleExamPeriod('UAS'); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      singleSemesterNum === 1 && singleExamPeriod === 'UAS'
-                        ? 'badge-smt1-uas border-violet-500 ring-2 ring-violet-500/30'
-                        : 'bg-surface border-border text-text3 hover:border-border3'
-                    }`}
-                  >
-                    <span>Smt 1 UAS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UTS'); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      singleSemesterNum === 2 && singleExamPeriod === 'UTS'
-                        ? 'badge-smt2-uts border-indigo-500 ring-2 ring-indigo-500/30'
-                        : 'bg-surface border-border text-text3 hover:border-border3'
-                    }`}
-                  >
-                    <span>Smt 2 UTS</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSingleSemesterNum(2); setSingleExamPeriod('UAS'); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                      singleSemesterNum === 2 && singleExamPeriod === 'UAS'
-                        ? 'badge-smt2-uas border-fuchsia-500 ring-2 ring-fuchsia-500/30'
-                        : 'bg-surface border-border text-text3 hover:border-border3'
-                    }`}
-                  >
-                    <span>Smt 2 UAS</span>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between text-[11px] pt-0.5">
-                  <span className="text-text3">Tag terpilih: <strong className="text-foreground font-semibold">Semester {singleSemesterNum} {singleExamPeriod ? `(${singleExamPeriod})` : '— Tanpa Ujian'}</strong></span>
-                  {singleExamPeriod !== null && (
-                    <button
-                      type="button"
-                      onClick={() => setSingleExamPeriod(null)}
-                      className="text-text3 hover:text-foreground underline"
-                    >
-                      Reset tag
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Progressive Disclosure for optional details */}
-              <details className="group border border-border/50 rounded-xl p-2.5 bg-surface2/30 mb-3">
-                <summary className="text-xs font-bold text-text2 cursor-pointer flex items-center justify-between select-none">
-                  <span>＋ Halaman & Catatan <span className="font-normal text-text3">(opsional)</span></span>
-                  <span className="text-text3 group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <div className="pt-2.5 space-y-2">
-                  <div className="flex gap-2">
-                    <input value={pageStart} onChange={e => setPageStart(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. mulai (cth: 1)" />
-                    <input value={pageEnd} onChange={e => setPageEnd(e.target.value)} className="form-input-style flex-1 text-xs" placeholder="Hal. akhir (cth: 15)" />
-                  </div>
-                  <textarea value={note} onChange={e => setNote(e.target.value)} className="form-input-style min-h-[60px] resize-none text-xs" placeholder="Catatan opsional (cth: banyak latihan soal, ulang konsep dasar)" />
-                </div>
-              </details>
-            </>
-          )}
-          <button onClick={add} className="btn-primary-style bg-primary text-primary-foreground min-h-[44px] w-full font-bold text-sm shadow-sm hover:brightness-105 active:scale-[0.99] transition-all">＋ {bulkMode ? 'Tambah Semua Bab' : 'Tambah Bab Materi'}</button>
-        </div>
-      )}
-
-      {subId && classId && (
-        <>
-          <div className="mt-5 mb-2 flex justify-between items-center">
-            <span className="app-section-title px-0">Daftar Materi ({mats.length})</span>
-            {mats.length > 1 && <span className="text-xs text-text2">Tahan &amp; geser untuk urutkan</span>}
-          </div>
-
-          {mats.length > 0 && (
-            <div className="app-card-soft p-3 mb-3 border border-border/60 bg-surface2/40 space-y-2">
-              <div className="text-xs font-bold uppercase tracking-wider text-primary">Set Rentang Bab ke Semester & Ujian</div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-text2">Bab</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={mats.length}
-                  value={rangeFrom}
-                  onChange={e => setRangeFrom(e.target.value)}
-                  className="form-input-style w-14 text-center h-8 text-xs p-1"
-                />
-                <span className="text-xs text-text2">s/d</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={mats.length}
-                  value={rangeTo}
-                  placeholder={String(mats.length)}
-                  onChange={e => setRangeTo(e.target.value)}
-                  className="form-input-style w-14 text-center h-8 text-xs p-1"
-                />
-                <div className="flex gap-1 ml-auto flex-wrap">
-                  {([1, 2, null] as const).map(s => (
-                    <button
-                      key={`sem-${s ?? 'none'}`}
-                      onClick={() => setRangeSemester(s)}
-                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
-                        rangeSemester === s
-                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                          : 'bg-surface border-border text-text3 hover:border-border3'
-                      }`}
-                    >
-                      {s ? `Smt ${s}` : 'Smt —'}
-                    </button>
-                  ))}
-                  {(['UTS', 'UAS', null] as const).map(p => (
-                    <button
-                      key={`exam-${p ?? 'none'}`}
-                      onClick={() => setRangePeriod(p)}
-                      className={`px-2 h-8 rounded-md text-xs font-bold border transition-all ${
-                        rangePeriod === p
-                          ? p === 'UTS'
-                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                            : p === 'UAS'
-                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
-                            : 'bg-surface2 border-border3 text-text2'
-                          : 'bg-surface border-border text-text3 hover:border-border3'
-                      }`}
-                    >
-                      {p ?? 'Ujian —'}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={applyRangeWithSemester}
-                  className="w-full mt-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold transition-all hover:brightness-105 active:scale-95"
-                >
-                  Terapkan ke Rentang Bab
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Filter Tab Semester 1 vs Semester 2 */}
-          {mats.length > 0 && (
-            <div className="flex items-center gap-1 mb-3 bg-surface2 p-1 rounded-xl border border-border/50 text-xs font-bold">
-              <button
-                onClick={() => setSemesterFilter('all')}
-                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
-              >
-                Semua Bab ({mats.length})
-              </button>
-              <button
-                onClick={() => { setSemesterFilter('1'); setSingleSemesterNum(1); }}
-                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '1' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
-              >
-                Semester 1 ({mats.filter(m => (m.semesterNum ?? 1) === 1).length})
-              </button>
-              <button
-                onClick={() => { setSemesterFilter('2'); setSingleSemesterNum(2); }}
-                className={`flex-1 py-1.5 rounded-lg transition-all ${semesterFilter === '2' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-text3 hover:text-foreground'}`}
-              >
-                Semester 2 ({mats.filter(m => m.semesterNum === 2).length})
-              </button>
-            </div>
-          )}
-
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={mats.map(m=>m.id)} strategy={verticalListSortingStrategy}>
-              {(() => {
-                const teachingPos = classId && subId ? getTeachingPosition(classId, subId, data) : null;
-                const completedIds = new Set(teachingPos?.completedMaterialIds ?? []);
-                let runningTotal = 0;
-
-                const displayMats = mats.filter(m => {
-                  if (semesterFilter === '1') return (m.semesterNum ?? 1) === 1;
-                  if (semesterFilter === '2') return m.semesterNum === 2;
-                  return true;
-                });
-
-                return displayMats.map((m, i) => {
-                  const sessions = m.sessions ?? 1;
-                  const isFinished = completedIds.has(m.id) || (teachingPos && teachingPos.totalSessionsDone >= runningTotal + sessions);
-                  const isCurrent = teachingPos && teachingPos.material?.id === m.id;
-                  const sessionIndex = teachingPos?.sessionIndex || 1;
-                  runningTotal += sessions;
-
-                  let progressStatus = null;
-                  if (isFinished) {
-                    progressStatus = { type: 'finished', label: '✓ Selesai' };
-                  } else if (isCurrent) {
-                    progressStatus = { type: 'current', label: `▶ Sesi ${sessionIndex}/${sessions}` };
-                  }
-
-                  const pageLabel = m.pageStart && m.pageEnd ? `Hal. ${m.pageStart}-${m.pageEnd}` : m.pageStart ? `Hal. ${m.pageStart}` : '';
-                  const meta = [pageLabel, m.note].filter(Boolean).join(' • ') || `Urutan ke-${m.order}`;
-                  return <SortableMaterialItem key={m.id} id={m.id} item={{ ...m, meta, progressStatus }} onSave={saveItem} onDelete={del} />;
-                });
-              })()}
-            </SortableContext>
-          </DndContext>
-          {!mats.length && <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada materi</div>}
-        </>
-      )}
-      {!subId && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih mapel untuk melihat materi</div>}
-      {subId && !classId && classesForSubject.length > 0 && <div className="text-text3 text-[13px] text-center p-4 bg-surface2 rounded-2xl mt-2 border border-border2">Pilih kelas di atas</div>}
-    </div>
-  );
-}
-
-function SchedulesTab({ onRefresh }: { onRefresh: () => void }) {
-  const [params] = useSearchParams();
-  const [classId, setClassId] = useState(() => getData().classes.find(c => c.id === params.get('classId'))?.id || (getData().classes.length === 1 ? getData().classes[0].id : ''));
-  const [subjectId, setSubjectId] = useState(() => getData().subjects.find(s => s.id === params.get('subjectId'))?.id || (getData().subjects.length === 1 ? getData().subjects[0].id : ''));
-  const [startTime, setStartTime] = useState('08:00');
-  const [duration, setDuration] = useState('45');
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const { toast } = useToast();
-  const data = getData();
-  const selectedClass = data.classes.find(c => c.id === classId);
-  const compatibleSubjects = data.subjects.filter(s => !selectedClass?.level || !s.level || s.level === selectedClass.level);
-
-  const toggleDay = (d: number, stateObj: number[], setter: any) => { setter(stateObj.includes(d) ? stateObj.filter(x => x !== d) : [...stateObj, d]); };
-
-  const add = () => {
-    if (!classId || !subjectId || !startTime || !selectedDays.length) return toast({ title: 'Lengkapi semua field' });
-    if (checkOverlap(classId, selectedDays, startTime, parseInt(duration) || 45)) return toast({ title: 'Waktu bentrok' });
-    updateData(d => {
-      d.schedules.push({ id: genId(), classId, subjectId, days: [...selectedDays], startTime, duration: parseInt(duration) || 45 });
-      if (!d.progress.find(p => p.classId === classId && p.subjectId === subjectId)) d.progress.push({ id: genId(), classId, subjectId, materialsDone: 0, lastSession: null });
-    });
-    setSelectedDays([]); toast({ title: 'Jadwal ditambahkan' }); onRefresh();
-  };
-
-  const saveItem = (id: string, sId: string, extras: any) => {
-    updateSchedule(id, extras.days, extras.st, extras.dr); toast({ title: 'Jadwal diperbarui' }); onRefresh();
-  };
-
-  const del = (id: string) => {
-    const targetId = String(id);
-    updateData(d => {
-      d.schedules = d.schedules.filter(s => String(s.id) !== targetId);
-    });
-    toast({ title: 'Jadwal dihapus' });
-    onRefresh();
-  };
-
-  const dayOrder = [0, 1, 2, 3, 4, 5, 6];
-  const schedulesByDay = dayOrder.map(day => ({
-    day,
-    schedules: data.schedules.filter(s => s.days.includes(day))
-  })).filter(group => group.schedules.length > 0);
-
-  return (
-    <div>
-      <div className="app-card-soft p-5 mb-6 space-y-4">
-        <div>
-          <div className="font-display text-xl font-bold tracking-tight">Tambah Jadwal Mingguan</div>
-          <div className="text-[12px] text-text2 mt-1">Pilih kelas, mapel, hari aktif, dan durasi mengajar.</div>
-        </div>
-        <FormField label="Kelas & Mapel">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-            <select value={classId} onChange={e => { setClassId(e.target.value); setSubjectId(''); }} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih kelas...</option>{data.classes.map(c=><option key={c.id} value={c.id}>{c.name}{c.level ? ` · ${c.level}` : ''}</option>)}</select>
-            <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="form-select-style flex-1 px-3 py-2 text-[13px]"><option value="">Pilih mapel...</option>{compatibleSubjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
-          </div>
-        </FormField>
-        <FormField label="Hari">
-          <div className="grid grid-cols-7 gap-1.5 mb-3">
-            {DAYS_SHORT.map((d, i) => (
-              <button key={i} onClick={() => toggleDay(i, selectedDays, setSelectedDays)}
-                className={`min-min-h-[44px] rounded-xl text-xs font-bold border transition-all ${selectedDays.includes(i) ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-surface border-border text-text2 hover:border-border3'}`}>
-                {d}
-              </button>
-            ))}
-          </div>
-        </FormField>
-        <div className="flex gap-2 mb-3">
-          <FormField label="Jam Mulai" className="flex-1 mb-0"><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" /></FormField>
-          <FormField label="Durasi (mnt)" className="flex-1 mb-0"><input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="form-input-style py-2 border-border focus:border-primary" min={15} max={180} /></FormField>
-        </div>
-        <div className="rounded-xl bg-surface2/70 border border-border2 px-3 py-2 text-xs text-text2">{classId && subjectId ? <><b>{data.classes.find(c => c.id === classId)?.name}</b> · <b>{data.subjects.find(s => s.id === subjectId)?.name}</b> · {selectedDays.length ? selectedDays.map(d => DAYS_SHORT[d]).join(', ') : 'pilih hari'} · {startTime} · {duration} menit</> : 'Pilih kelas dan mapel untuk melihat ringkasan jadwal.'}</div>
-        <button onClick={add} className="btn-primary-style font-medium text-[13px] min-h-[44px] flex items-center justify-center gap-2"><CalendarDays className="h-4 w-4" /> Tambah Jadwal</button>
-      </div>
-
-      <div className="mb-4">
-        <div className="app-section-title mb-3 flex items-center justify-between">
-          <span>Daftar Jadwal Mingguan</span>
-          <span className="text-xs font-medium lowercase opacity-60">({data.schedules.length} total)</span>
-        </div>
-        
-        {schedulesByDay.length === 0 && (
-          <div className="text-text3 font-medium text-[13px] text-center py-8 border-2 border-dashed border-border2 bg-surface2/30 rounded-3xl mt-2">Belum ada jadwal</div>
-        )}
-
-        <div className="space-y-6">
-          {schedulesByDay.map(group => (
-            <div key={group.day} className="animate-slide-up">
-              <div className="flex items-center gap-2 mb-2 px-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[12px] font-bold text-foreground capitalize">{DAYS_ID[group.day]}</span>
-                <div className="flex-1 h-[1px] bg-border/40 ml-1" />
-              </div>
-              <div className="space-y-2">
-                {group.schedules
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                  .map(s => {
-                  const cls = data.classes.find(c => c.id === s.classId) || { name: '?' };
-                  const sub = data.subjects.find(x => x.id === s.subjectId) || { name: '?' };
-                  return (
-                    <ScheduleEditableItem 
-                      key={s.id} 
-                      item={{ 
-                        id: s.id, 
-                        name: `${cls.name} — ${sub.name}`, 
-                        meta: `${fmt(s.startTime)} · ${s.duration} mnt`, 
-                        st: s.startTime, 
-                        dr: s.duration, 
-                        days: s.days 
-                      }} 
-                      onSave={saveItem} 
-                      onDelete={del} 
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -2063,6 +1298,7 @@ function StorageInfo() {
 function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const [examType, setExamType] = useState<'UTS' | 'UAS'>('UTS');
   const [level, setLevel] = useState<'SD/MI' | 'SMP/MTs' | 'SMA/MA' | string>('SMP/MTs');
+  const levelSimple = level.split('/')[0];
   
   const [eClassId, setEClassId] = useState('');
   const [eSubjectId, setESubjectId] = useState('');
@@ -2077,20 +1313,45 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const data = getData();
   const semesters = getSemesters();
 
+  // Autocomplete data for supervisors
+  const usedSupervisors = useMemo(() => {
+    const names = new Set<string>();
+    (data.examSchedules || []).forEach(e => {
+      if (e.supervisorId && e.supervisorId !== data.teacherName) names.add(e.supervisorId);
+    });
+    return Array.from(names);
+  }, [data.examSchedules, data.teacherName]);
+
+  // Preset time templates
+  const applyPreset = (presetId: number) => {
+    if (levelSimple === 'SD') {
+      if (presetId === 1) { setEStartTime('07:30'); setEEndTime('09:00'); }
+      if (presetId === 2) { setEStartTime('09:30'); setEEndTime('11:00'); }
+    } else if (levelSimple === 'SMP') {
+      if (presetId === 1) { setEStartTime('07:30'); setEEndTime('09:30'); }
+      if (presetId === 2) { setEStartTime('10:00'); setEEndTime('12:00'); }
+    } else { // SMA
+      if (presetId === 1) { setEStartTime('07:30'); setEEndTime('09:30'); }
+      if (presetId === 2) { setEStartTime('10:00'); setEEndTime('12:00'); }
+      if (presetId === 3) { setEStartTime('13:00'); setEEndTime('15:00'); }
+    }
+  };
+
   const handleAddExam = () => {
     if (!eClassId || !eSubjectId || !eDate || !eStartTime || !eEndTime || (eClassId === 'custom_class' && !eCustomClassName) || (eSubjectId === 'custom_subject' && !eCustomSubjectName)) {
-      return toast({ title: 'Lengkapi semua form ujian' });
+      return toast({ title: 'Lengkapi form ujian (Kelas, Mapel, Waktu)' });
     }
     const subject = data.subjects.find(s => s.id === eSubjectId);
     const finalSubjectName = eSubjectId === 'custom_subject' ? eCustomSubjectName : subject?.name;
     const finalSubjectId = eSubjectId === 'custom_subject' ? 'custom_' + Date.now() : eSubjectId;
     const finalClassId = eClassId === 'custom_class' ? 'custom_' + Date.now() : eClassId;
     
-    // Check duplication (same class, subject, examType, date)
+    // Check duplication (same class, subject, examType, date, level)
     const duplicate = (data.examSchedules || []).find(e => 
       e.classId === finalClassId && e.subjectId === finalSubjectId && 
       e.examType === examType && 
-      e.date === eDate
+      e.date === eDate &&
+      e.level === level
     );
     if (duplicate) {
       return toast({ title: 'Ujian ini sudah ada di jadwal!' });
@@ -2109,69 +1370,177 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
       supervisorId: eSupervisor || data.teacherName || 'Pengawas'
     });
     
-    setEClassId(''); setESubjectId(''); setECustomSubjectName(''); setECustomClassName(''); setEDate(''); setEStartTime(''); setEEndTime('');
+    setEClassId(''); setESubjectId(''); setECustomSubjectName(''); setECustomClassName(''); 
+    // keep eDate, eStartTime, eEndTime the same to make inputting multiple exams on same day easier
+    setEStartTime(''); setEEndTime(''); // clear time for next exam
     toast({ title: 'Jadwal ujian ditambahkan' });
     onRefresh();
   };
 
   const exams = (data.examSchedules || []).filter(e => e.examType === examType && (e.level === level || (!e.level && level === 'SMP/MTs')));
 
+  // Group exams by date
+  const groupedExams = useMemo(() => {
+    const groups: Record<string, typeof exams> = {};
+    exams.forEach(e => {
+      if (!groups[e.date]) groups[e.date] = [];
+      groups[e.date].push(e);
+    });
+    // sort dates
+    const sortedDates = Object.keys(groups).sort();
+    // sort exams within each date by start time
+    sortedDates.forEach(d => groups[d].sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    return { groups, sortedDates };
+  }, [exams]);
+
   return (
     <div className="space-y-4">
+      {semesters.length === 0 && (
+        <div className="app-card-soft p-3 mb-2 border border-amber/30 bg-amber/5">
+          <p className="text-[12px] text-amber flex items-start gap-2">
+            <span className="mt-0.5">⚠️</span>
+            <span>Anda belum membuat semester. Silakan klik tab Semester &amp; Ujian kembali setelah pengaturan ini.</span>
+          </p>
+        </div>
+      )}
       <div className="flex gap-2">
-        <button onClick={() => setExamType('UTS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm ${examType === 'UTS' ? 'bg-primary text-primary-foreground' : 'bg-surface2 text-text2'}`}>UTS</button>
-        <button onClick={() => setExamType('UAS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm ${examType === 'UAS' ? 'bg-primary text-primary-foreground' : 'bg-surface2 text-text2'}`}>UAS</button>
+        <button onClick={() => setExamType('UTS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm transition-all ${examType === 'UTS' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface2 text-text2'}`}>UTS</button>
+        <button onClick={() => setExamType('UAS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm transition-all ${examType === 'UAS' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface2 text-text2'}`}>UAS</button>
       </div>
       
       <div className="flex gap-2">
         {['SD/MI', 'SMP/MTs', 'SMA/MA'].map(l => (
-          <button key={l} onClick={() => setLevel(l)} className={`px-4 py-2 min-h-[44px] rounded-lg text-sm font-bold flex-1 ${level === l ? 'bg-primary text-primary-foreground' : 'bg-surface3 text-text3'}`}>
+          <button key={l} onClick={() => setLevel(l)} className={`px-4 py-2 min-h-[44px] rounded-lg text-sm font-bold flex-1 transition-all ${level === l ? 'bg-primary text-primary-foreground shadow-md' : 'bg-surface3 text-text3'}`}>
             {l.split('/')[0]}
           </button>
         ))}
       </div>
 
-      <div className="app-card-soft p-3 space-y-3">
-        <div className="text-xs font-bold uppercase text-text3">Tambah Jadwal {examType} {level.split('/')[0]}</div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-xs">
-            <option value="">Pilih Kelas</option>
-            {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            <option value="custom_class">+ Kelas Lainnya</option>
-          </select>
-          <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-xs">
-            <option value="">Pilih Mapel</option>
-            {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+      <div className="app-card-soft p-4 space-y-4 border border-border/50">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase text-primary border-b border-border/50 pb-2">
+          <CalendarDays className="h-4 w-4" />
+          <span>Tambah Jadwal {examType} {levelSimple}</span>
         </div>
-        {eClassId === 'custom_class' && <input value={eCustomClassName} onChange={e => setECustomClassName(e.target.value)} placeholder="Nama Kelas" className="form-input-style text-xs w-full" />}
-        {eSubjectId === 'custom_subject' && <input value={eCustomSubjectName} onChange={e => setECustomSubjectName(e.target.value)} placeholder="Nama Mapel" className="form-input-style text-xs w-full" />}
-        <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-xs w-full" />
-        <div className="grid grid-cols-2 gap-2">
-          <input type="time" value={eStartTime} onChange={e => setEStartTime(e.target.value)} className="form-input-style text-xs" />
-          <input type="time" value={eEndTime} onChange={e => setEEndTime(e.target.value)} className="form-input-style text-xs" />
+        
+        {/* Step 1: Kelas & Mapel */}
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-xs">
+              <option value="">1. Pilih Kelas...</option>
+              {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="custom_class">+ Kelas Lainnya (Pengawas)</option>
+            </select>
+            <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-xs">
+              <option value="">2. Pilih Mapel...</option>
+              {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <option value="custom_subject">+ Mapel Lainnya (Pengawas)</option>
+            </select>
+          </div>
+          {eClassId === 'custom_class' && <input value={eCustomClassName} onChange={e => setECustomClassName(e.target.value)} placeholder="Tulis Nama Kelas Lainnya" className="form-input-style text-xs w-full border-primary/40 bg-primary/5" autoFocus />}
+          {eSubjectId === 'custom_subject' && <input value={eCustomSubjectName} onChange={e => setECustomSubjectName(e.target.value)} placeholder="Tulis Nama Mapel Lainnya" className="form-input-style text-xs w-full border-primary/40 bg-primary/5" autoFocus />}
         </div>
-        <input value={eSupervisor} onChange={e => setESupervisor(e.target.value)} placeholder="Pengawas (kosong = Saya)" className="form-input-style text-xs w-full" />
-        <button onClick={handleAddExam} className="btn-primary-style w-full min-h-[40px] text-xs font-bold">Tambah Ujian</button>
+
+        {/* Step 2: Waktu (Preset per jenjang) */}
+        <div className="space-y-2 pt-2">
+          <label className="text-xs font-semibold text-text2 block">3. Waktu Pelaksanaan</label>
+          <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-xs w-full" />
+          
+          <div className="flex gap-2 mb-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+            <button onClick={() => applyPreset(1)} className="snap-start flex-1 whitespace-nowrap px-3 py-2 bg-surface2 hover:bg-surface3 border border-border2 rounded-lg text-[11px] font-medium text-text2 transition-colors">
+              Sesi 1 ({levelSimple === 'SD' ? '07:30-09:00' : '07:30-09:30'})
+            </button>
+            <button onClick={() => applyPreset(2)} className="snap-start flex-1 whitespace-nowrap px-3 py-2 bg-surface2 hover:bg-surface3 border border-border2 rounded-lg text-[11px] font-medium text-text2 transition-colors">
+              Sesi 2 ({levelSimple === 'SD' ? '09:30-11:00' : '10:00-12:00'})
+            </button>
+            {levelSimple === 'SMA' && (
+              <button onClick={() => applyPreset(3)} className="snap-start flex-1 whitespace-nowrap px-3 py-2 bg-surface2 hover:bg-surface3 border border-border2 rounded-lg text-[11px] font-medium text-text2 transition-colors">
+                Sesi 3 (13:00-15:00)
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-2 items-center">
+            <input type="time" value={eStartTime} onChange={e => setEStartTime(e.target.value)} className="form-input-style text-xs flex-1" />
+            <span className="text-text3 text-xs font-bold">—</span>
+            <input type="time" value={eEndTime} onChange={e => setEEndTime(e.target.value)} className="form-input-style text-xs flex-1" />
+          </div>
+        </div>
+
+        {/* Step 3: Pengawas (opsional) */}
+        <div className="pt-2">
+          <label className="text-xs font-semibold text-text2 block mb-1">4. Nama Pengawas (Opsional)</label>
+          <input 
+            list="supervisors-list"
+            value={eSupervisor} 
+            onChange={e => setESupervisor(e.target.value)} 
+            placeholder={`Kosong = ${data.teacherName || 'Saya'} (Anda yang mengawas)`} 
+            className="form-input-style text-xs w-full" 
+          />
+          <datalist id="supervisors-list">
+            {usedSupervisors.map(sup => <option key={sup} value={sup} />)}
+          </datalist>
+        </div>
+
+        <button onClick={handleAddExam} className="btn-primary-style w-full min-h-[44px] text-xs font-bold mt-2 flex items-center justify-center gap-2">
+          <CheckCircle2 className="h-4 w-4" /> Simpan Jadwal Ujian
+        </button>
       </div>
 
-      <div className="space-y-2 mt-4">
-        <div className="text-sm font-bold text-text3 border-b border-border2 pb-2 mb-3">Jadwal {level.split('/')[0]}</div>
-        {exams.length === 0 ? <p className="text-xs text-text3 text-center">Belum ada ujian {examType} untuk {level.split('/')[0]}</p> : null}
-        {exams.map(e => {
-          const cls = data.classes.find(c => c.id === e.classId);
-          return (
-            <div key={e.id} className="border border-border2 rounded-xl p-3 bg-surface1">
-              <div className="flex justify-between items-start mb-1">
-                <div className="font-bold text-sm">{e.customClassName || cls?.name || '?'}</div>
-                <button onClick={() => { deleteExamSchedule(e.id); onRefresh(); }} className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 -mt-2 text-text3 hover:text-red hover:bg-red/10 rounded-xl transition-colors"><Trash2 className="h-4 w-4" /></button>
+      <div className="space-y-4 mt-6">
+        <div className="text-sm font-bold text-foreground border-b border-border/50 pb-2 flex justify-between items-center">
+          <span>Jadwal Tersimpan ({levelSimple})</span>
+          <span className="text-xs bg-surface2 px-2 py-1 rounded-md text-text2">{exams.length} Ujian</span>
+        </div>
+        
+        {exams.length === 0 ? (
+          <div className="text-xs text-text3 text-center py-8 bg-surface2/30 border border-dashed border-border2 rounded-2xl">
+            Belum ada jadwal ujian {examType} {levelSimple}.
+          </div>
+        ) : (
+          groupedExams.sortedDates.map(dateStr => (
+            <div key={dateStr} className="space-y-2 relative">
+              <div className="sticky top-0 z-10 py-1.5 flex items-center gap-2 bg-background/90 backdrop-blur-sm">
+                <div className="w-1.5 h-4 bg-primary/40 rounded-full"></div>
+                <div className="text-xs font-bold text-text2 uppercase tracking-wide">{fmtDate(dateStr)}</div>
               </div>
-              <div className="text-text2 text-[13px]">{e.subjectName || data.subjects.find(s => s.id === e.subjectId)?.name || e.subjectId}</div>
-              <div className="text-text3 text-xs mt-1">{fmtDate(e.date)} · {e.startTime} - {e.endTime}</div>
-              <div className="text-primary/80 text-xs mt-1 font-medium">Pengawas: {e.supervisorId}</div>
+              <div className="pl-3.5 space-y-2 border-l-2 border-border/40">
+                {groupedExams.groups[dateStr].map(e => {
+                  const cls = data.classes.find(c => c.id === e.classId);
+                  const isCustomMapel = !data.subjects.some(s => s.id === e.subjectId);
+                  
+                  return (
+                    <div key={e.id} className="border border-border2 rounded-xl p-3 bg-surface1 hover:border-primary/30 transition-colors group relative">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div className="font-bold text-[13px] text-foreground flex items-center gap-1.5">
+                          {e.customClassName || cls?.name || '?'}
+                        </div>
+                        <button onClick={() => { deleteExamSchedule(e.id); onRefresh(); }} className="min-w-[32px] min-h-[32px] flex items-center justify-center -mr-2 -mt-2 text-text3 hover:text-red hover:bg-red/10 rounded-lg transition-colors opacity-60 group-hover:opacity-100">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      
+                      <div className="text-text2 text-[12px] font-medium flex flex-wrap items-center gap-1">
+                        <span>{e.subjectName || data.subjects.find(s => s.id === e.subjectId)?.name || e.subjectId}</span>
+                        {isCustomMapel && <span className="px-1.5 py-0.5 rounded-md bg-amber/10 text-amber text-[9px] font-bold uppercase tracking-wider">Pengawasan</span>}
+                      </div>
+                      
+                      <div className="flex justify-between items-end mt-3">
+                        <div className="text-text3 text-[11px] font-mono font-medium bg-surface2/50 px-2 py-1 rounded-md border border-border/30 inline-block">
+                          {e.startTime} - {e.endTime}
+                        </div>
+                        {e.supervisorId && e.supervisorId !== (data.teacherName || 'Pengawas') && (
+                          <div className="text-primary text-[10px] font-bold px-2 py-1 rounded-md bg-primary/5 flex items-center gap-1 truncate max-w-[120px]">
+                            <UserRound className="h-3 w-3" /> {e.supervisorId}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );
