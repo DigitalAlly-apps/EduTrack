@@ -28,10 +28,23 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [examFormOpen, setExamFormOpen] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+
   const [showPastExam, setShowPastExam] = useState(false);
   
   const examMode = getExamDayMode();
+
+  // Form: jadwal ujian mapel sendiri
+  const [eDate, setEDate] = useState(dateKey());
+  const [eClassId, setEClassId] = useState('');
+  const [eSubjectId, setESubjectId] = useState('');
+  const [eType, setEType] = useState<'UTS' | 'UAS' | 'Umum'>('UTS');
+  const [eStart, setEStart] = useState('');
+  const [eEnd, setEEnd] = useState('');
+  const [eLocation, setELocation] = useState('');
+  const [eNote, setENote] = useState('');
+
+  // Form: ngawas (dari tab agenda digabung)
+  const [nSubject, setNSubject] = useState('');
 
 
   useEffect(() => {
