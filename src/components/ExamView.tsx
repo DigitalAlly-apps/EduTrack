@@ -218,7 +218,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
+            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{e.customClassName || cls?.name || '?'}</span>
             {examTypeBadge}
             {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
             {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}

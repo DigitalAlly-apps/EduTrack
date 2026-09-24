@@ -1077,6 +1077,7 @@ function MaterialsTab({ onRefresh }: { onRefresh: () => void }) {
             <select value={subId} onChange={e => { setSubId(e.target.value); setClassId(''); setName(''); setPageStart(''); setPageEnd(''); setNote(''); setBulkText(''); }} className="form-select-style border-primary text-xs">
               <option value="">Pilih mapel...</option>
               {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <option value="custom_subject">+ Mapel Lainnya</option>
             </select>
           </FormField>
           <FormField label="Kelas" className="mb-0">
@@ -2065,6 +2066,8 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   
   const [eClassId, setEClassId] = useState('');
   const [eSubjectId, setESubjectId] = useState('');
+  const [eCustomSubjectName, setECustomSubjectName] = useState('');
+  const [eCustomClassName, setECustomClassName] = useState('');
   const [eDate, setEDate] = useState('');
   const [eStartTime, setEStartTime] = useState('');
   const [eEndTime, setEEndTime] = useState('');
@@ -2075,15 +2078,17 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
   const semesters = getSemesters();
 
   const handleAddExam = () => {
-    if (!eClassId || !eSubjectId || !eDate || !eStartTime || !eEndTime) {
+    if (!eClassId || !eSubjectId || !eDate || !eStartTime || !eEndTime || (eClassId === 'custom_class' && !eCustomClassName) || (eSubjectId === 'custom_subject' && !eCustomSubjectName)) {
       return toast({ title: 'Lengkapi semua form ujian' });
     }
     const subject = data.subjects.find(s => s.id === eSubjectId);
+    const finalSubjectName = eSubjectId === 'custom_subject' ? eCustomSubjectName : subject?.name;
+    const finalSubjectId = eSubjectId === 'custom_subject' ? 'custom_' + Date.now() : eSubjectId;
+    const finalClassId = eClassId === 'custom_class' ? 'custom_' + Date.now() : eClassId;
     
     // Check duplication (same class, subject, examType, date)
     const duplicate = (data.examSchedules || []).find(e => 
-      e.classId === eClassId && 
-      e.subjectId === eSubjectId && 
+      e.classId === finalClassId && e.subjectId === finalSubjectId && 
       e.examType === examType && 
       e.date === eDate
     );
@@ -2092,9 +2097,10 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
     }
 
     addExamSchedule({
-      classId: eClassId,
-      subjectId: eSubjectId,
-      subjectName: subject?.name,
+      classId: finalClassId,
+      subjectId: finalSubjectId,
+      subjectName: finalSubjectName,
+      customClassName: eClassId === 'custom_class' ? eCustomClassName : undefined,
       date: eDate,
       startTime: eStartTime,
       endTime: eEndTime,
@@ -2103,7 +2109,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
       supervisorId: eSupervisor || data.teacherName || 'Pengawas'
     });
     
-    setEClassId(''); setESubjectId(''); setEDate(''); setEStartTime(''); setEEndTime('');
+    setEClassId(''); setESubjectId(''); setECustomSubjectName(''); setECustomClassName(''); setEDate(''); setEStartTime(''); setEEndTime('');
     toast({ title: 'Jadwal ujian ditambahkan' });
     onRefresh();
   };
@@ -2131,12 +2137,15 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
           <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-xs">
             <option value="">Pilih Kelas</option>
             {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="custom_class">+ Kelas Lainnya</option>
           </select>
           <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-xs">
             <option value="">Pilih Mapel</option>
             {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
+        {eClassId === 'custom_class' && <input value={eCustomClassName} onChange={e => setECustomClassName(e.target.value)} placeholder="Nama Kelas" className="form-input-style text-xs w-full" />}
+        {eSubjectId === 'custom_subject' && <input value={eCustomSubjectName} onChange={e => setECustomSubjectName(e.target.value)} placeholder="Nama Mapel" className="form-input-style text-xs w-full" />}
         <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-xs w-full" />
         <div className="grid grid-cols-2 gap-2">
           <input type="time" value={eStartTime} onChange={e => setEStartTime(e.target.value)} className="form-input-style text-xs" />
@@ -2154,7 +2163,7 @@ function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
           return (
             <div key={e.id} className="border border-border2 rounded-xl p-3 bg-surface1">
               <div className="flex justify-between items-start mb-1">
-                <div className="font-bold text-sm">{cls?.name || '?'}</div>
+                <div className="font-bold text-sm">{e.customClassName || cls?.name || '?'}</div>
                 <button onClick={() => { deleteExamSchedule(e.id); onRefresh(); }} className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 -mt-2 text-text3 hover:text-red hover:bg-red/10 rounded-xl transition-colors"><Trash2 className="h-4 w-4" /></button>
               </div>
               <div className="text-text2 text-[13px]">{e.subjectName || data.subjects.find(s => s.id === e.subjectId)?.name || e.subjectId}</div>
