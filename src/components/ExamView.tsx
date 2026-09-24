@@ -5,10 +5,10 @@ import {
   upsertCorrection, getExamDayMode, setExamDayMode,
   getExamSchedules, addExamSchedule, deleteExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
-  getProctorSessions, addProctorSession, deleteProctorSession,
+  
   getCorrectionQueue, getCorrectionStats,
   fmtDate, fmtDayLabel, dayLabelColor,
-  ExamSubjectItem, CorrectionQueueItem, ProctorSession, ExamReminderSettingKey,
+  ExamSubjectItem, CorrectionQueueItem, ExamReminderSettingKey, getExamStatus,
   fmt, resetAllExamData,
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
@@ -64,7 +64,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const examSchedules = getExamSchedules();
   const past = allSubjects.filter(s => s.daysLeft < 0);
   const correctionStats = getCorrectionStats();
-  const allProctor = getProctorSessions().sort((a, b) => b.date.localeCompare(a.date));
+  const allProctor = examSchedules.filter(s => s.subjectId === 'proctor_only' || (s.supervisorId && s.supervisorId !== data.teacherName)).sort((a, b) => b.date.localeCompare(a.date));
   const pastProctor = allProctor.filter(s => s.date !== dateKey());
 
   const todayStr = dateKey();
@@ -126,11 +126,15 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     if (timeToMin(nEnd) <= timeToMin(nStart)) {
       toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
     }
-    addProctorSession({
+    addExamSchedule({
       date: nDate, startTime: nStart, endTime: nEnd,
+      classId: data.classes[0]?.id || 'unknown_class',
+      subjectId: 'proctor_only',
       subjectName: nSubject.trim(),
       location: nLocation.trim() || undefined,
       note: nNote.trim() || undefined,
+      examType: 'Umum',
+      supervisorId: data.teacherName || 'Pengawas'
     });
     setNStart(''); setNEnd(''); setNSubject(''); setNLocation(''); setNNote('');
     onRefresh();
@@ -138,7 +142,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
   const handleDeleteProctor = (id: string) => {
-    deleteProctorSession(id);
+    deleteExamSchedule(id);
     onRefresh();
     toast({ title: 'Sesi ngawas dihapus' });
   };
@@ -153,7 +157,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
   // ─── Card components ─────────────────────────────────────────────────────
-  const ProctorCard = ({ s, showDelete = true }: { s: ProctorSession; showDelete?: boolean }) => {
+  const ProctorCard = ({ s, showDelete = true }: { s: any; showDelete?: boolean }) => {
     const today = dateKey();
     const curMin = currentMin();
     const startMin = timeToMin(s.startTime);
@@ -195,18 +199,16 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const ExamScheduleCard = ({ s }: { s: ReturnType<typeof getExamSchedules>[number] }) => {
     const cls = data.classes.find(c => c.id === s.classId);
     const sub = data.subjects.find(x => x.id === s.subjectId);
-    const isToday = s.date === dateKey();
-    const curMin = currentMin();
-    const startMin = timeToMin(s.startTime);
-    const endMin = timeToMin(s.endTime);
-    const isActive = isToday && curMin >= startMin && curMin < endMin;
-    const isDone = isToday && curMin >= endMin;
+    
+    const status = getExamStatus(s.date, s.startTime, s.endTime);
+    const isActive = status === 'BERLANGSUNG';
+    const isDone = status === 'SELESAI' || status === 'TERLEWAT';
 
     const examTypeBadge = s.examType
       ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
           s.examType === 'UTS' ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
           : s.examType === 'UAS' ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
-          : 'bg-surface3 border-border3 text-text2'
+          : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
         }`}>{s.examType}</span>
       : null;
 
@@ -216,23 +218,31 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       }`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
             {examTypeBadge}
             {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
             {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
           </div>
-          <div className="text-sm font-bold">{cls?.name || '?'} · {sub?.name || '?'}</div>
-          <div className="text-xs text-text2">
-            {fmtDate(s.date)} · {fmt(s.startTime)} – {fmt(s.endTime)}
-            {s.location && ` · ${s.location}`}
+          <div className="text-[15px] font-bold text-foreground leading-snug">{s.subjectName || sub?.name || '?'}</div>
+          <div className="text-[13px] font-medium text-text2 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5 text-text3" /> {fmtDate(s.date)}</span>
+            <span className="flex items-center gap-1 text-primary/90">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+              {s.startTime} - {s.endTime}
+            </span>
           </div>
-          {s.note && <div className="text-xs text-text3 mt-0.5 italic">{s.note}</div>}
+          {(s.location || s.note) && (
+            <div className="text-xs text-text3 mt-1.5 flex gap-3">
+              {s.location && <span>📍 {s.location}</span>}
+              {s.note && <span>📝 {s.note}</span>}
+            </div>
+          )}
         </div>
         <button
-          onClick={() => handleDeleteExam(s.id)}
+          onClick={() => { deleteExamSchedule(s.id); onRefresh(); }}
           className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
-          aria-label="Hapus jadwal ujian"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     );

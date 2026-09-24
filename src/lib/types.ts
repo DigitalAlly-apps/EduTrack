@@ -74,6 +74,7 @@ export interface ExamSchedule {
   id: string;
   classId: string;
   subjectId: string;
+  subjectName?: string; // fallback if it's a proctored subject outside the teacher's subject list
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime: string; // HH:mm
@@ -81,6 +82,8 @@ export interface ExamSchedule {
   note?: string;
   createdAt: string;
   examType?: 'UTS' | 'UAS' | 'Umum'; // jenis ujian
+  level?: 'SD' | 'SMP' | 'SMA' | string; // jenjang sekolah
+  supervisorId?: string; // id or name of the supervisor
 }
 export interface AppData {
   teacherName: string;

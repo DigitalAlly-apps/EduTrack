@@ -77,73 +77,23 @@ export interface ProctorSession {
   createdAt: string;
 }
 
-const PROCTOR_KEY = 'edutrack_proctor_sessions';
+// Proctoring is now unified into ExamSchedule
 
-export function getProctorSessions(): ProctorSession[] {
-  try { return JSON.parse(localStorage.getItem(PROCTOR_KEY) || '[]'); } catch { return []; }
-}
+export type ExamStatus = 'MENDATANG' | 'HARI INI' | 'BERLANGSUNG' | 'SELESAI' | 'TERLEWAT';
 
-export function getTodayProctorSessions(): ProctorSession[] {
-  return getProctorSessions().filter(s => s.date === dateKey())
-    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
-}
-
-export function getTomorrowProctorSessions(): ProctorSession[] {
-  const tomorrow = new Date(now());
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = dateKey(tomorrow);
-  return getProctorSessions().filter(s => s.date === tomorrowStr)
-    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
-}
-
-export function getTomorrowExamItems(): ExamWatchItem[] {
-  const data = getData();
-  const corrections = getCorrections();
-  const tomorrow = new Date(now());
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = dateKey(tomorrow);
-
-  const items = (data.examSchedules || [])
-    .filter(s => s.date === tomorrowStr)
-    .map(s => {
-      const cls = data.classes.find(c => c.id === s.classId);
-      const sub = data.subjects.find(x => x.id === s.subjectId);
-      const startMin = timeToMin(s.startTime);
-      const endMin = timeToMin(s.endTime);
-      const correction = corrections.find(c => c.subjectId === s.subjectId && c.classId === s.classId && c.examDate === s.date) || null;
-      return {
-        scheduleId: s.id,
-        subjectId: s.subjectId,
-        subjectName: sub?.name || '?',
-        classId: s.classId,
-        className: cls?.name || '?',
-        examDate: s.date,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        duration: Math.max(0, endMin - startMin),
-        location: s.location,
-        note: s.note,
-        isActive: false,
-        isDone: false,
-        daysLeft: 1,
-        correction,
-        examType: s.examType,
-      };
-    })
-    .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
-
-  return items;
-}
-
-export function addProctorSession(session: Omit<ProctorSession, 'id' | 'createdAt'>): void {
-  const all = getProctorSessions();
-  all.push({ ...session, id: genId(), createdAt: now().toISOString() });
-  localStorage.setItem(PROCTOR_KEY, JSON.stringify(all));
-}
-
-export function deleteProctorSession(id: string): void {
-  const all = getProctorSessions().filter(s => s.id !== id);
-  localStorage.setItem(PROCTOR_KEY, JSON.stringify(all));
+export function getExamStatus(date: string, startTime: string, endTime: string): ExamStatus {
+  const tToday = dateKey();
+  if (date > tToday) return 'MENDATANG';
+  if (date < tToday) return 'TERLEWAT';
+  
+  // Hari ini
+  const curMin = currentMin();
+  const startMin = timeToMin(startTime);
+  const endMin = timeToMin(endTime);
+  
+  if (curMin < startMin) return 'HARI INI';
+  if (curMin >= endMin) return 'SELESAI';
+  return 'BERLANGSUNG';
 }
 
 // ── Jadwal Ujian Detail (mapel sendiri) ───────────────────────────────────────
@@ -209,8 +159,7 @@ export interface ExamWatchItem {
   duration: number;
   location?: string;
   note?: string;
-  isActive: boolean;     // sedang dalam rentang waktu ujian sekarang
-  isDone: boolean;       // sudah selesai hari ini (past endTime)
+  status: ExamStatus;    // MENDATANG, HARI INI, BERLANGSUNG, SELESAI, TERLEWAT
   daysLeft: number;      // 0 = hari ini, positif = akan datang, negatif = sudah lewat
   correction: ExamCorrection | null;
   examType?: 'UTS' | 'UAS' | 'Umum'; // jenis ujian
@@ -236,10 +185,9 @@ export function getTodayExamItems(): ExamWatchItem[] {
   const data = getData();
   const corrections = getCorrections();
   const todayStr = dateKey();
-  const curMin = currentMin();
 
   const detailedItems = (data.examSchedules || [])
-    .filter(s => s.date === todayStr)
+    .filter(s => s.date === todayStr && s.supervisorId === (data.teacherName || 'Pengawas'))
     .map(s => {
       const cls = data.classes.find(c => c.id === s.classId);
       const sub = data.subjects.find(x => x.id === s.subjectId);
@@ -249,7 +197,7 @@ export function getTodayExamItems(): ExamWatchItem[] {
       return {
         scheduleId: s.id,
         subjectId: s.subjectId,
-        subjectName: sub?.name || '?',
+        subjectName: s.subjectName || sub?.name || '?',
         classId: s.classId,
         className: cls?.name || '?',
         examDate: s.date,
@@ -258,8 +206,7 @@ export function getTodayExamItems(): ExamWatchItem[] {
         duration: Math.max(0, endMin - startMin),
         location: s.location,
         note: s.note,
-        isActive: curMin >= startMin && curMin < endMin,
-        isDone: curMin >= endMin,
+        status: getExamStatus(s.date, s.startTime, s.endTime),
         daysLeft: 0,
         correction,
         examType: s.examType,
@@ -267,54 +214,7 @@ export function getTodayExamItems(): ExamWatchItem[] {
     })
     .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 
-  if (detailedItems.length > 0) return detailedItems;
-
-  const items: ExamWatchItem[] = [];
-
-  data.subjects
-    .filter(s => s.examDate === todayStr)
-    .forEach(sub => {
-      // Semua kelas yang punya jadwal untuk mapel ini
-      const relevantSchedules = data.schedules.filter(sc => sc.subjectId === sub.id);
-      
-      if (relevantSchedules.length === 0) {
-        // Mapel ini diujikan hari ini tapi tidak ada jadwal ngajarnya — tetap tampilkan
-        data.classes.forEach(cls => {
-          const correction = corrections.find(c => c.subjectId === sub.id && c.classId === cls.id && c.examDate === todayStr) || null;
-          items.push({
-            subjectId: sub.id, subjectName: sub.name,
-            classId: cls.id, className: cls.name,
-            examDate: todayStr,
-            startTime: '07:00', endTime: '09:00', duration: 120,
-            isActive: false, isDone: false, daysLeft: 0,
-            correction,
-          });
-        });
-        return;
-      }
-
-      relevantSchedules.forEach(sc => {
-        const cls = data.classes.find(c => c.id === sc.classId);
-        if (!cls) return;
-        const startMin = timeToMin(sc.startTime);
-        const endMin = startMin + (sc.duration || 90);
-        const endTime = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
-        const isActive = curMin >= startMin && curMin < endMin;
-        const isDone = curMin >= endMin;
-        const correction = corrections.find(c => c.subjectId === sub.id && c.classId === cls.id && c.examDate === todayStr) || null;
-        items.push({
-          subjectId: sub.id, subjectName: sub.name,
-          classId: cls.id, className: cls.name,
-          examDate: todayStr,
-          startTime: sc.startTime, endTime,
-          duration: sc.duration || 90,
-          isActive, isDone, daysLeft: 0,
-          correction,
-        });
-      });
-    });
-
-  return items.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+  return detailedItems;
 }
 
 // ── Semua ujian (untuk tab "Semua Ujian") ────────────────────────────────────
@@ -340,60 +240,39 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
   const corrections = getCorrections();
   const today = dateFromKey(dateKey());
 
-  if ((data.examSchedules || []).length > 0) {
-    const grouped = new Map<string, ExamSubjectItem>();
+  const grouped = new Map<string, ExamSubjectItem>();
 
-    getExamSchedules().forEach(schedule => {
-      const sub = data.subjects.find(s => s.id === schedule.subjectId);
-      const cls = data.classes.find(c => c.id === schedule.classId);
-      const examDt = dateFromKey(schedule.date);
-      const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
-      const key = `${schedule.subjectId}:${schedule.date}:${schedule.examType ?? 'Umum'}`;
-      const item = grouped.get(key) || {
-        subjectId: schedule.subjectId,
-        subjectName: sub?.name || '?',
-        examDate: schedule.date,
-        daysLeft,
-        examType: schedule.examType ?? 'Umum',
-        classes: [],
-      };
+  getExamSchedules().forEach(schedule => {
+    const sub = data.subjects.find(s => s.id === schedule.subjectId);
+    const cls = data.classes.find(c => c.id === schedule.classId);
+    const examDt = dateFromKey(schedule.date);
+    const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
+    const key = `${schedule.subjectId}:${schedule.date}:${schedule.examType ?? 'Umum'}`;
+    
+    const item = grouped.get(key) || {
+      subjectId: schedule.subjectId,
+      subjectName: schedule.subjectName || sub?.name || '?',
+      examDate: schedule.date,
+      daysLeft,
+      examType: schedule.examType ?? 'Umum',
+      classes: [],
+    };
 
-      if (!item.classes.some(c => c.classId === schedule.classId)) {
-        item.classes.push({
-          classId: schedule.classId,
-          className: cls?.name || '?',
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          location: schedule.location,
-          note: schedule.note,
-          correction: corrections.find(c => c.subjectId === schedule.subjectId && c.classId === schedule.classId && c.examDate === schedule.date) || null,
-        });
-      }
-      grouped.set(key, item);
-    });
+    if (!item.classes.some((c: any) => c.classId === schedule.classId)) {
+      item.classes.push({
+        classId: schedule.classId,
+        className: cls?.name || '?',
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        location: schedule.location,
+        note: schedule.note,
+        correction: corrections.find(c => c.subjectId === schedule.subjectId && c.classId === schedule.classId && c.examDate === schedule.date) || null,
+      });
+    }
+    grouped.set(key, item);
+  });
 
-    return [...grouped.values()].sort((a, b) => a.daysLeft - b.daysLeft || a.subjectName.localeCompare(b.subjectName));
-  }
-
-  return data.subjects
-    .filter(s => s.examDate)
-    .map(s => {
-      const examDt = dateFromKey(s.examDate!);
-      const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
-
-      // Kelas yang relevan = yang punya schedule mapel ini
-      const relCls = data.classes.filter(cls =>
-        data.schedules.some(sc => sc.subjectId === s.id && sc.classId === cls.id)
-      );
-      const classList = (relCls.length > 0 ? relCls : data.classes).map(cls => ({
-        classId: cls.id,
-        className: cls.name,
-        correction: corrections.find(c => c.subjectId === s.id && c.classId === cls.id && c.examDate === s.examDate!) || null,
-      }));
-
-      return { subjectId: s.id, subjectName: s.name, examDate: s.examDate!, daysLeft, classes: classList };
-    })
-    .sort((a, b) => a.daysLeft - b.daysLeft);
+  return [...grouped.values()].sort((a, b) => a.daysLeft - b.daysLeft || a.subjectName.localeCompare(b.subjectName));
 }
 
 // ── Koreksi queue (independen dari jadwal agenda) ─────────────────────────────

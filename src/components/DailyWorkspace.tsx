@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowRight, BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, Timer, Clock, Zap, Pin } from 'lucide-react';
 import { addTask, toggleTask, applyEarlyDismissal, applySubjectDismissal, skipSessionForDate, composeSessionNote, splitSessionNote, dateFromKey, dateKey, getData, getLastPageReached, getNextStartPage, getMaterials, getNextMeetingNote, getTeachingPosition, getTodaySchedules, recordTeachingSession, getTaskDisplayTitle, formatTaskDeadline, isAutoPaceTask, shouldShowTaskInInbox, timeToMin, currentMin } from '@/lib/data';
 import { getMissingTeachingSessions } from '@/lib/dataPublic';
-import { getExamDayMode, getExamSchedules, getProctorSessions } from '@/lib/examData';
+import { getExamDayMode, getExamSchedules } from '@/lib/examData';
 import { navigateTo } from '@/lib/navigation';
 import { useToast } from '@/hooks/use-toast';
 import type { TodayScheduleItem } from '@/lib/types';
@@ -36,7 +36,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
   const missing = date === clock ? getMissingTeachingSessions().slice(0, 3) : [];
   const pendingTasks = data.tasks.filter(shouldShowTaskInInbox);
   const exams = getExamSchedules().filter(exam => exam.date === date);
-  const proctors = getProctorSessions().filter(exam => exam.date === date);
+  const proctors = getExamSchedules().filter(exam => exam.date === date && (exam.subjectId === 'proctor_only' || (exam.supervisorId && exam.supervisorId !== data.teacherName)));
   const changeDate = (value: string) => setParams(previous => {
     const next = new URLSearchParams(previous); next.set('date', value); return next;
   });

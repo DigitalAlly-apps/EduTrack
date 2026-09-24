@@ -17,6 +17,7 @@ import {
   type DistributionSuggestion,
   type SyllabusOverview,
 } from '@/lib/syllabusEngine';
+import { addExamSchedule, deleteExamSchedule, fmtDate } from '@/lib/examData';
 import { SetupTab } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { requestNotifPermission } from '@/lib/notifications';
@@ -747,7 +748,7 @@ function ClassesTab({ onRefresh }: { onRefresh: () => void }) {
 
 function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   const [name, setName] = useState('');
-  const [examDate, setExamDate] = useState('');
+  
   const [level, setLevel] = useState('');
   const [semesterId, setSemesterId] = useState('');
   const { toast } = useToast();
@@ -759,7 +760,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
 
   const add = () => {
     if (!name.trim()) return toast({ title: 'Masukkan nama mapel' });
-    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: examDate || null, semesterId: semesterId || null }));
+    updateData(d => d.subjects.push({ id: genId(), name: name.trim(), level, examDate: null, semesterId: semesterId || null }));
     setName(''); setLevel(''); setExamDate(''); setSemesterId(''); toast({ title: 'Mapel ditambahkan' }); onRefresh();
   };
   const saveItem = (id: string, newName: string, extras: any) => {
@@ -844,7 +845,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
             {showAdvancedAdd && (
               <div className="mt-2 p-3 bg-surface2 border border-border2 rounded-xl">
                 <label className="block text-xs text-text2 mb-1">Tanggal Ujian Fallback <span className="text-text3">(jika tidak pakai semester)</span></label>
-                <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-input-style text-xs min-h-[44px]" />
+                
               </div>
             )}
           </div>
@@ -861,7 +862,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
         const semLabel = sem
           ? `📅 ${sem.name}${phase ? ` · ${phase} aktif` : ''}`
           : (s.examDate ? `📌 Ujian: ${s.examDate}` : '⚠️ Belum ada semester');
-        const semColor = sem ? '' : s.examDate ? '' : 'text-amber';
+        const semColor = sem ? '' : 'text-amber';
         return (
           <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', examDate: s.examDate || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del} extraEditField={(v:any, setV:any) => (
             <div className="space-y-2 mb-2">
@@ -880,7 +881,7 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
               {!v.semesterId && (
                 <div>
                   <label className="block text-xs text-text3 mb-1">Tanggal ujian manual (fallback)</label>
-                  <input type="date" value={v.examDate||''} onChange={e=>setV({...v, examDate: e.target.value})} className="form-input-style w-full text-xs min-h-[44px]" />
+                  
                 </div>
               )}
             </div>
@@ -2059,227 +2060,110 @@ function StorageInfo() {
 }
 
 function SemestersTab({ onRefresh }: { onRefresh: () => void }) {
-  const [name, setName] = useState('');
-  const [utsDate, setUtsDate] = useState('');
-  const [uasDate, setUasDate] = useState('');
-  const [linkingId, setLinkingId] = useState<string | null>(null);
-  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+  const [examType, setExamType] = useState<'UTS' | 'UAS'>('UTS');
+  const [level, setLevel] = useState<'SD/MI' | 'SMP/MTs' | 'SMA/MA' | string>('SMP/MTs');
+  
+  const [eClassId, setEClassId] = useState('');
+  const [eSubjectId, setESubjectId] = useState('');
+  const [eDate, setEDate] = useState('');
+  const [eStartTime, setEStartTime] = useState('');
+  const [eEndTime, setEEndTime] = useState('');
+  const [eSupervisor, setESupervisor] = useState('');
+  
   const { toast } = useToast();
-  const semesters = getSemesters();
   const data = getData();
+  const semesters = getSemesters();
 
-  const add = () => {
-    if (!name.trim()) return toast({ title: 'Masukkan nama semester' });
-    if (!utsDate && !uasDate) return toast({ title: 'Masukkan minimal satu tanggal ujian (UTS atau UAS)' });
-    const created = addSemester(name, utsDate || null, uasDate || null);
-    selectedSubjectIds.forEach(subjectId => linkSubjectToSemester(subjectId, created.id));
-    setName(''); setUtsDate(''); setUasDate(''); setSelectedSubjectIds([]);
-    toast({ title: 'Semester ditambahkan ✓' });
+  const handleAddExam = () => {
+    if (!eClassId || !eSubjectId || !eDate || !eStartTime || !eEndTime) {
+      return toast({ title: 'Lengkapi semua form ujian' });
+    }
+    const subject = data.subjects.find(s => s.id === eSubjectId);
+    
+    // Check duplication (same class, subject, examType, date)
+    const duplicate = (data.examSchedules || []).find(e => 
+      e.classId === eClassId && 
+      e.subjectId === eSubjectId && 
+      e.examType === examType && 
+      e.date === eDate
+    );
+    if (duplicate) {
+      return toast({ title: 'Ujian ini sudah ada di jadwal!' });
+    }
+
+    addExamSchedule({
+      classId: eClassId,
+      subjectId: eSubjectId,
+      subjectName: subject?.name,
+      date: eDate,
+      startTime: eStartTime,
+      endTime: eEndTime,
+      examType: examType,
+      level: level,
+      supervisorId: eSupervisor || data.teacherName || 'Pengawas'
+    });
+    
+    setEClassId(''); setESubjectId(''); setEDate(''); setEStartTime(''); setEEndTime('');
+    toast({ title: 'Jadwal ujian ditambahkan' });
     onRefresh();
   };
 
-  const saveItem = (id: string, newName: string, extras?: any) => {
-    if (!newName.trim()) return;
-    updateSemester(id, newName, extras?.utsDate || null, extras?.uasDate || null);
-    toast({ title: 'Semester diperbarui ✓' });
-    onRefresh();
-  };
-
-  const del = (id: string) => {
-    deleteSemester(id);
-    toast({ title: 'Semester dihapus' });
-    onRefresh();
-  };
-
-  const toggleLink = (subjectId: string, semesterId: string) => {
-    const sub = data.subjects.find(s => s.id === subjectId);
-    if (!sub) return;
-    const isLinked = sub.semesterId === semesterId;
-    linkSubjectToSemester(subjectId, isLinked ? null : semesterId);
-    toast({ title: isLinked ? 'Mapel dilepas dari semester' : 'Mapel dihubungkan ke semester ✓' });
-    onRefresh();
-  };
+  const exams = (data.examSchedules || []).filter(e => e.examType === examType && (e.level === level || (!e.level && level === 'SMP/MTs')));
 
   return (
-    <div>
-      {/* Visual Academic Journey Timeline */}
-      <div className="bg-surface2/80 border border-border rounded-2xl p-3 mb-4 space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-text3 flex items-center gap-1.5">
-          <GraduationCap className="h-3.5 w-3.5 text-primary" />
-          <span>Alur Perjalanan Akademik per Semester</span>
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-          <div className="badge-smt1-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
-            <span>Smt 1 (Ganjil)</span>
-          </div>
-          <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
-            UTS
-          </div>
-          <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-violet-500/15 border border-violet-500/30 text-violet-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
-            UAS
-          </div>
-          <span className="text-text3 text-xs font-mono">→</span>
-          <div className="badge-smt2-uts border px-2.5 py-1 rounded-xl font-bold whitespace-nowrap flex items-center gap-1">
-            <span>Smt 2 (Genap)</span>
-          </div>
-          <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
-            UTS
-          </div>
-          <span className="text-text3 text-xs font-mono">→</span>
-          <div className="bg-fuchsia-500/15 border border-fuchsia-500/30 text-fuchsia-400 px-2.5 py-1 rounded-xl font-bold whitespace-nowrap">
-            UAS / Kenaikan
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <button onClick={() => setExamType('UTS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm ${examType === 'UTS' ? 'bg-primary text-primary-foreground' : 'bg-surface2 text-text2'}`}>UTS</button>
+        <button onClick={() => setExamType('UAS')} className={`flex-1 py-2.5 min-h-[44px] rounded-xl font-bold text-sm ${examType === 'UAS' ? 'bg-primary text-primary-foreground' : 'bg-surface2 text-text2'}`}>UAS</button>
       </div>
-
-      {/* Penjelasan konsep */}
-      <div className="app-card-soft p-3 mb-4 bg-primary/5 border border-primary/20">
-        <p className="text-xs text-text2 leading-relaxed">
-          <Info className="h-4 w-4 text-primary inline mr-1" />
-          <span className="font-bold text-foreground">Semester & Ujian:</span><br />
-          Buat semester (mis. <em>Smt 1 Ganjil 2025/2026</em>), tentukan kapan UTS dan UAS berlangsung, lalu <strong>hubungkan mapel</strong> ke semester ini. Sistem akan otomatis tahu batas materi UTS dan UAS untuk setiap mapel.
-        </p>
-      </div>
-
-      {/* Form tambah semester */}
-      <div className="app-card-soft p-4 mb-5 space-y-3">
-        <FormField label="Tambah Semester Baru" className="mb-0">
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="form-input-style mb-3"
-            placeholder="cth: Semester 1 (Ganjil) 2025/2026..."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-            <div>
-              <label className="block text-xs text-text2 mb-1 pl-1">Tanggal UTS</label>
-              <input
-                type="date"
-                value={utsDate}
-                onChange={e => setUtsDate(e.target.value)}
-                className="form-input-style text-xs min-h-[44px]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-text2 mb-1 pl-1">Tanggal UAS</label>
-              <input
-                type="date"
-                value={uasDate}
-                onChange={e => setUasDate(e.target.value)}
-                className="form-input-style text-xs min-h-[44px]"
-              />
-            </div>
-          </div>
-          {data.subjects.length > 0 && <div className="mb-3"><label className="block text-xs text-text2 mb-1 pl-1">Hubungkan mapel sekarang <span className="text-text3">(opsional)</span></label><div className="max-h-36 overflow-y-auto rounded-xl border border-border2 bg-surface p-2 space-y-1">{data.subjects.map(subject => <label key={subject.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-surface2"><input type="checkbox" checked={selectedSubjectIds.includes(subject.id)} onChange={() => setSelectedSubjectIds(ids => ids.includes(subject.id) ? ids.filter(id => id !== subject.id) : [...ids, subject.id])} />{subject.name}<span className="ml-auto text-xs text-text3">{subject.level || 'Umum'}</span></label>)}</div></div>}
-          <button onClick={add} className="btn-primary-style font-medium text-[13px] bg-primary text-primary-foreground min-h-[44px]">
-            ＋ Tambah Semester
+      
+      <div className="flex gap-2">
+        {['SD/MI', 'SMP/MTs', 'SMA/MA'].map(l => (
+          <button key={l} onClick={() => setLevel(l)} className={`px-4 py-2 min-h-[44px] rounded-lg text-sm font-bold flex-1 ${level === l ? 'bg-primary text-primary-foreground' : 'bg-surface3 text-text3'}`}>
+            {l.split('/')[0]}
           </button>
-        </FormField>
+        ))}
       </div>
 
-      <div className="app-section-title mt-2 mb-2">Daftar Semester</div>
-      {semesters.map(s => {
-        const linkedSubjects = data.subjects.filter(sub => sub.semesterId === s.id);
-        const unlinkedSubjects = data.subjects.filter(sub => sub.semesterId !== s.id);
-        const phase = getCurrentExamPhase(s);
-        const isLinking = linkingId === s.id;
-
-        return (
-          <div key={s.id} className="mb-4">
-            <EditableItem
-              item={{
-                id: s.id,
-                name: s.name,
-                meta: [
-                  s.utsDate ? `UTS: ${s.utsDate}` : 'UTS: belum diset',
-                  s.uasDate ? `UAS: ${s.uasDate}` : 'UAS: belum diset',
-                  phase ? `• ${phase} aktif` : '',
-                ].filter(Boolean).join(' · '),
-                extraVal: { utsDate: s.utsDate || '', uasDate: s.uasDate || '' },
-                deleteWarning: 'Menghapus semester akan melepaskan keterkaitan semester pada mapel terkait.',
-              }}
-              onSave={(id, newName, extras) => saveItem(id, newName, extras)}
-              onDelete={del}
-              extraEditField={(v: any, setV: any) => (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                  <div>
-                    <label className="block text-xs text-text2 mb-1">Tanggal UTS</label>
-                    <input type="date" value={v.utsDate || ''} onChange={e => setV({ ...v, utsDate: e.target.value })} className="form-input-style text-xs min-h-[44px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-text2 mb-1">Tanggal UAS</label>
-                    <input type="date" value={v.uasDate || ''} onChange={e => setV({ ...v, uasDate: e.target.value })} className="form-input-style text-xs min-h-[44px]" />
-                  </div>
-                </div>
-              )}
-            />
-
-            {/* Panel mapel terhubung */}
-            <div className="ml-2 border-l-2 border-primary/20 pl-3 mb-2">
-              {/* Mapel yang sudah terhubung */}
-              {linkedSubjects.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {linkedSubjects.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => toggleLink(sub.id, s.id)}
-                      className="flex items-center gap-1 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-2 py-1 rounded-lg hover:bg-red/10 hover:border-red/25 hover:text-red transition-colors group"
-                      title="Klik untuk lepas dari semester ini"
-                    >
-                      <span>{sub.name}</span>
-                      <X className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-text3 mb-2">Belum ada mapel yang terhubung ke semester ini.</p>
-              )}
-
-              {/* Tombol hubungkan mapel */}
-              {data.subjects.length > 0 && (
-                <button
-                  onClick={() => setLinkingId(isLinking ? null : s.id)}
-                  className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
-                    isLinking
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-surface2 text-text2 border-border2 hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  <Link2 className="h-3 w-3" />
-                  {isLinking ? 'Selesai Menghubungkan' : '+ Hubungkan Mapel'}
-                </button>
-              )}
-
-              {/* Picker mapel yang belum terhubung */}
-              {isLinking && unlinkedSubjects.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5 animate-in fade-in">
-                  {unlinkedSubjects.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => toggleLink(sub.id, s.id)}
-                      className="flex items-center gap-1 bg-surface2 border border-border2 text-text2 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
-                    >
-                      + {sub.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {isLinking && unlinkedSubjects.length === 0 && (
-                <p className="text-xs text-text3 mt-1">Semua mapel sudah terhubung ke semester ini.</p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {!semesters.length && (
-        <div className="text-text3 text-[13px] text-center py-6 border border-dashed border-border2 rounded-2xl mt-2">
-          Belum ada semester ditambahkan. Buat semester pertama di atas.
+      <div className="app-card-soft p-3 space-y-3">
+        <div className="text-xs font-bold uppercase text-text3">Tambah Jadwal {examType} {level.split('/')[0]}</div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <select value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style text-xs">
+            <option value="">Pilih Kelas</option>
+            {data.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style text-xs">
+            <option value="">Pilih Mapel</option>
+            {data.subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
         </div>
-      )}
+        <input type="date" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style text-xs w-full" />
+        <div className="grid grid-cols-2 gap-2">
+          <input type="time" value={eStartTime} onChange={e => setEStartTime(e.target.value)} className="form-input-style text-xs" />
+          <input type="time" value={eEndTime} onChange={e => setEEndTime(e.target.value)} className="form-input-style text-xs" />
+        </div>
+        <input value={eSupervisor} onChange={e => setESupervisor(e.target.value)} placeholder="Pengawas (kosong = Saya)" className="form-input-style text-xs w-full" />
+        <button onClick={handleAddExam} className="btn-primary-style w-full min-h-[40px] text-xs font-bold">Tambah Ujian</button>
+      </div>
+
+      <div className="space-y-2 mt-4">
+        <div className="text-sm font-bold text-text3 border-b border-border2 pb-2 mb-3">Jadwal {level.split('/')[0]}</div>
+        {exams.length === 0 ? <p className="text-xs text-text3 text-center">Belum ada ujian {examType} untuk {level.split('/')[0]}</p> : null}
+        {exams.map(e => {
+          const cls = data.classes.find(c => c.id === e.classId);
+          return (
+            <div key={e.id} className="border border-border2 rounded-xl p-3 bg-surface1">
+              <div className="flex justify-between items-start mb-1">
+                <div className="font-bold text-sm">{cls?.name || '?'}</div>
+                <button onClick={() => { deleteExamSchedule(e.id); onRefresh(); }} className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 -mt-2 text-text3 hover:text-red hover:bg-red/10 rounded-xl transition-colors"><Trash2 className="h-4 w-4" /></button>
+              </div>
+              <div className="text-text2 text-[13px]">{e.subjectName || data.subjects.find(s => s.id === e.subjectId)?.name || e.subjectId}</div>
+              <div className="text-text3 text-xs mt-1">{fmtDate(e.date)} · {e.startTime} - {e.endTime}</div>
+              <div className="text-primary/80 text-xs mt-1 font-medium">Pengawas: {e.supervisorId}</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

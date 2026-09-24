@@ -1,5 +1,5 @@
 import { getData, getTodaySchedules, getTomorrowKbmSchedules, todayNum, currentMin, timeToMin, dateKey } from './data';
-import { getAllExamSubjects, getCorrections, getExamSchedules, getProctorSessions, getExamReminderSettings } from './examData';
+import { getAllExamSubjects, getCorrections, getExamSchedules, getExamReminderSettings } from './examData';
 
 let checkInt: ReturnType<typeof setInterval>;
 const notifiedIds: Set<string> = new Set();
@@ -119,7 +119,8 @@ async function checkAndNotify() {
       }
     });
 
-    getProctorSessions().forEach(session => {
+    getExamSchedules().forEach(session => {
+      if (session.supervisorId && session.supervisorId !== getData().teacherName && session.subjectId !== 'proctor_only') return;
       if (session.date !== todayStr) return;
       const diff = timeToMin(session.startTime) - curMin;
       if (examReminder.proctorThirtyMinutes && isWithinReminderWindow(diff, 30)) {

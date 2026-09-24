@@ -150,6 +150,52 @@ export function getData(): AppData {
     for (const f of arrayFields) {
       if (!Array.isArray(merged[f])) merged[f] = [] as any;
     }
+
+    // Migration Phase: Convert old ProctorSessions & Dates to new ExamSchedules
+    try {
+      const PROCTOR_KEY = 'edutrack_proctor_sessions';
+      const proctorRaw = localStorage.getItem(PROCTOR_KEY);
+      if (proctorRaw) {
+        const proctors = JSON.parse(proctorRaw);
+        if (Array.isArray(proctors)) {
+          proctors.forEach(p => {
+            if (!merged.examSchedules.some(e => e.id === p.id)) {
+              merged.examSchedules.push({
+                id: p.id,
+                classId: merged.classes[0]?.id || 'unknown_class', // old proctors didn't have class
+                subjectId: 'proctor_only',
+                subjectName: p.subjectName,
+                date: p.date,
+                startTime: p.startTime,
+                endTime: p.endTime,
+                location: p.location,
+                note: p.note,
+                createdAt: p.createdAt,
+                examType: 'Umum',
+                supervisorId: merged.teacherName || 'Pengawas',
+              });
+            }
+          });
+          localStorage.removeItem(PROCTOR_KEY);
+        }
+      }
+
+      // Infer levels and supervisor for existing examSchedules
+      merged.examSchedules.forEach(exam => {
+        if (!exam.level) {
+          const cls = merged.classes.find(c => c.id === exam.classId);
+          if (cls && cls.level) {
+            exam.level = cls.level;
+          } else {
+            const sub = merged.subjects.find(s => s.id === exam.subjectId);
+            if (sub && sub.level) exam.level = sub.level;
+          }
+        }
+        if (!exam.supervisorId && exam.subjectId && merged.subjects.some(s => s.id === exam.subjectId)) {
+          exam.supervisorId = merged.teacherName || 'Pengawas';
+        }
+      });
+    } catch {}
     return merged;
   } catch { return structuredClone(DEFAULT_DATA); }
 }
@@ -660,7 +706,7 @@ export function getInsights(): Insight[] {
       if (sched.length === 0) return;
 
       const status = getSubjectStatus(sub, cls, data);
-      const target = getSubjectTarget(sub, mats, data);
+      const target = getSubjectTarget(sub, cls, mats, data);
       const remainingSess = status.remaining;
       if (remainingSess <= 0) return;
       
@@ -713,19 +759,37 @@ export function getNextScheduleForClass(classId: string, subjectId: string) {
   return null;
 }
 
-export function getSubjectTarget(sub: Subject, allMaterials: Material[], data: AppData): { deadline: string | null; label: 'UTS' | 'UAS' | ''; materials: Material[] } {
+export function getSubjectTarget(sub: Subject, cls: ClassItem, allMaterials: Material[], data: AppData): { deadline: string | null; label: 'UTS' | 'UAS' | ''; materials: Material[] } {
+  const classExams = (data.examSchedules || []).filter(e => e.classId === cls.id && (e.subjectId === sub.id || e.subjectName === sub.name));
+  const today = dateKey();
+  
+  // Find upcoming exam for this subject & class
+  const upcomingExams = classExams.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  const targetExam = upcomingExams[0];
+
+  if (targetExam) {
+    let mats = allMaterials;
+    if (targetExam.examType === 'UTS') mats = allMaterials.filter(m => m.examPeriod === 'UTS');
+    if (targetExam.examType === 'UAS') mats = allMaterials.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
+    
+    return { deadline: targetExam.date, label: (targetExam.examType as any) || '', materials: mats };
+  }
+
+  // Fallback: search across all exams to determine active phase if no specific exam is set
   const semester = getSubjectSemester(sub, data);
-  if (!semester) return { deadline: sub.examDate ?? null, label: '', materials: allMaterials };
-  const phase = getCurrentExamPhase(semester);
-  if (phase === 'UTS') {
-    const materials = allMaterials.filter(material => material.examPeriod === 'UTS');
-    return { deadline: semester.utsDate, label: 'UTS', materials: materials.length ? materials : allMaterials };
+  if (semester) {
+    const phase = getCurrentExamPhase(semester);
+    if (phase === 'UTS') {
+      const mats = allMaterials.filter(m => m.examPeriod === 'UTS');
+      return { deadline: semester.utsDate, label: 'UTS', materials: mats.length ? mats : allMaterials };
+    }
+    if (phase === 'UAS') {
+      const mats = allMaterials.filter(m => m.examPeriod === 'UAS' || !m.examPeriod);
+      return { deadline: semester.uasDate, label: 'UAS', materials: mats.length ? mats : allMaterials };
+    }
   }
-  if (phase === 'UAS') {
-    const materials = allMaterials.filter(material => material.examPeriod === 'UAS' || !material.examPeriod);
-    return { deadline: semester.uasDate, label: 'UAS', materials: materials.length ? materials : allMaterials };
-  }
-  return { deadline: semester.uasDate ?? sub.examDate ?? null, label: 'UAS', materials: allMaterials };
+
+  return { deadline: sub.examDate ?? null, label: '', materials: allMaterials };
 }
 
 export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): SubjectStatus {
@@ -733,7 +797,7 @@ export function getSubjectStatus(sub: Subject, cls: ClassItem, data: AppData): S
   if (!allMats.length) return { status: 'on-track', label: 'Tidak ada materi', pct: 0, done: 0, total: 0, remaining: 0, rec: 'Tambahkan materi.', nextSched: null };
   const prog = data.progress.find(p => p.classId === cls.id && p.subjectId === sub.id) || { materialsDone: 0 };
 
-  const target = getSubjectTarget(sub, allMats, data);
+  const target = getSubjectTarget(sub, cls, allMats, data);
   const effectiveDeadline = target.deadline;
   const phaseLabel = target.label ? ` [${target.label}]` : '';
   const mats = target.materials;
@@ -1996,7 +2060,7 @@ export function getPredictiveFinishes(): PredictiveFinish[] {
 
       const allMaterials = getMaterials(sub.id, cls.id);
       if (!allMaterials.length) return;
-      const target = getSubjectTarget(sub, allMaterials, data);
+      const target = getSubjectTarget(sub, cls, allMaterials, data);
       const mats = target.materials;
       const effectiveDeadline = target.deadline;
 
@@ -2157,7 +2221,7 @@ export function calculatePaceForCombination(classId: string, subjectId: string) 
   const mats = getMaterials(subjectId, classId);
   if (!mats.length) return null;
 
-  const target = getSubjectTarget(sub, mats, data);
+  const target = getSubjectTarget(sub, cls, mats, data);
   const targetMaterials = target.materials;
   const status = getSubjectStatus(sub, cls, data);
   const doneSess = status.done;
