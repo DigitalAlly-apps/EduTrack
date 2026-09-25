@@ -598,23 +598,23 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 bg-surface2/60 border border-border2 rounded-xl p-1">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2 bg-surface2/60 border border-border2 rounded-xl p-1.5">
           {tabItems.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`relative min-h-[44px] rounded-lg px-1 text-[11px] sm:text-xs font-black transition-all duration-200 active:scale-[0.98] ${
+              className={`relative min-h-[56px] flex flex-col justify-center items-center rounded-lg px-1 py-1.5 text-xs sm:text-sm font-bold transition-all duration-200 active:scale-[0.98] ${
                 tab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text3 hover:text-foreground hover:bg-surface2'
               }`}
               aria-current={tab === t.id ? 'page' : undefined}
             >
               {t.badge !== undefined && (
-                <span className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red text-white text-xs font-black grid place-items-center leading-none">
+                <span className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red text-white text-[10px] font-black flex items-center justify-center leading-none shadow-sm z-10">
                   {t.badge}
                 </span>
               )}
-              <t.icon aria-hidden="true" className="h-4 w-4 mx-auto mb-1" />
-              <span className="block leading-none truncate">{t.label}</span>
+              <t.icon aria-hidden="true" className="h-5 w-5 mb-1.5" />
+              <span className="block leading-none truncate w-full text-center tracking-wide">{t.label}</span>
             </button>
           ))}
         </div>
