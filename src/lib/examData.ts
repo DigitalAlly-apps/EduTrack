@@ -347,29 +347,7 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
     }
   }
 
-  // Add unscheduled for any class/subject combination that doesn't have ANY schedule
-  for (const subject of data.subjects) {
-    for (const cls of data.classes) {
-      const hasAnySchedule = items.some(i => i.subjectId === subject.id && i.classId === cls.id);
-      if (!hasAnySchedule) {
-        const corr = corrections.find(c => c.subjectId === subject.id && c.classId === cls.id);
-        addItem({
-          subjectId: subject.id,
-          subjectName: subject.name,
-          classId: cls.id,
-          className: cls.name,
-          examDate: null,
-          startTime: null,
-          endTime: null,
-          daysLeft: null,
-          status: corr?.status ?? null,
-          isOverdue: false,
-          isScheduled: false,
-          isExamFinished: false
-        });
-      }
-    }
-  }
+
 
   // Include any stray corrections that might not match current subjects/classes
   const todayStr = dateKey();

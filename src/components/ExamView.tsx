@@ -193,105 +193,131 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
   const CorrectionRow = ({ item }: { item: CorrectionQueueItem }) => {
-    const [qDate, setQDate] = useState(dateKey());
-    const [qStart, setQStart] = useState('');
-    const [qEnd, setQEnd] = useState('');
-    
-    const handleQuickAdd = () => {
-      if (!qDate || !qStart || !qEnd) {
-         toast({ title: 'Mohon isi tanggal dan waktu' }); return;
-      }
-      if (timeToMin(qEnd) <= timeToMin(qStart)) {
-         toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
-      }
-      addExamSchedule({
-        classId: item.classId,
-        subjectId: item.subjectId,
-        date: qDate,
-        startTime: qStart,
-        endTime: qEnd,
-        examType: 'Umum'
-      });
-      onRefresh();
-      toast({ title: '✓ Jadwal ujian ditambahkan' });
-    };
-
     const corrSt = item.status;
-    const isUnscheduled = !item.isScheduled;
     const isFuture = item.isScheduled && !item.isExamFinished;
 
     return (
-      <div className={`rounded-2xl border px-4 py-3 transition-all ${
+      <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
         corrSt === 'selesai' ? 'bg-green-dim/15 border-green/30' :
         corrSt ? 'bg-amber/8 border-amber/25' :
         item.isOverdue ? 'bg-red/5 border-red/25' :
-        isUnscheduled ? 'bg-surface2/50 border-border2 border-dashed' :
         'bg-surface border-border2'
       }`}>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              {item.isOverdue && corrSt !== 'selesai' && (
-                <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
-              )}
-              {item.daysLeft === 0 && item.isScheduled && (
-                <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
-              )}
-              {isUnscheduled && (
-                <span className="text-xs font-black bg-surface3 text-text3 border border-border2 px-2 py-0.5 rounded-full uppercase tracking-wide">Belum Dijadwalkan</span>
-              )}
-              {isFuture && item.daysLeft !== 0 && (
-                 <span className="text-xs font-black bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Menunggu Ujian</span>
-              )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            {item.isOverdue && corrSt !== 'selesai' && (
+              <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
+            )}
+            {item.daysLeft === 0 && item.isScheduled && (
+              <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+            )}
+            {isFuture && item.daysLeft !== 0 && (
+               <span className="text-xs font-black bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Menunggu Ujian</span>
+            )}
+          </div>
+          <div className="text-sm font-bold leading-snug">{item.className}</div>
+          <div className="text-xs text-text2">{item.subjectName}</div>
+          {item.isScheduled && (
+            <div className="text-xs text-text3 mt-0.5">
+              {fmtDate(item.examDate!)}
+              {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft!)}</span>}
+              {item.startTime && item.endTime && <span> · {item.startTime}-{item.endTime}</span>}
             </div>
-            <div className="text-sm font-bold leading-snug">{item.className}</div>
-            <div className="text-xs text-text2">{item.subjectName}</div>
-            {item.isScheduled && (
-              <div className="text-xs text-text3 mt-0.5">
-                {fmtDate(item.examDate!)}
-                {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft!)}</span>}
-                {item.startTime && item.endTime && <span> · {item.startTime}-{item.endTime}</span>}
-              </div>
-            )}
-          </div>
-          <div className="flex-shrink-0">
-            {isUnscheduled || isFuture ? null : corrSt === 'selesai' ? (
-              <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
-            ) : corrSt === 'sedang' ? (
-              <button
-                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
-                className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
-              >
-                Tandai selesai
-              </button>
-            ) : (
-              <button
-                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
-                className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
-              >
-                Mulai koreksi
-              </button>
-            )}
-          </div>
+          )}
         </div>
-        
-        {isUnscheduled && (
-          <div className="mt-3 pt-3 border-t border-border2/60 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
-             <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal</label>
-                <input type="date" value={qDate} onChange={e => setQDate(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full" />
-             </div>
-             <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mulai</label>
-                <input type="time" value={qStart} onChange={e => setQStart(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full sm:w-24" />
-             </div>
-             <div>
-                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Selesai</label>
-                <input type="time" value={qEnd} onChange={e => setQEnd(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full sm:w-24" />
-             </div>
-             <button onClick={handleQuickAdd} className="bg-primary text-primary-foreground font-bold text-xs px-4 py-1.5 rounded-xl h-[34px] hover:brightness-110 active:scale-95 transition-all">
-                Simpan
-             </button>
+        <div className="flex-shrink-0">
+          {isFuture ? null : corrSt === 'selesai' ? (
+            <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
+          ) : corrSt === 'sedang' ? (
+            <button
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
+              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+            >
+              Tandai selesai
+            </button>
+          ) : (
+            <button
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
+              className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
+            >
+              Mulai koreksi
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+  const renderAddExamForm = (title = 'Tambah ujian') => {
+    const noPrereq = data.classes.length === 0 || data.subjects.length === 0;
+    
+    return (
+      <div className="bg-surface border border-border2 rounded-3xl overflow-hidden">
+        <button
+          onClick={() => setExamFormOpen(open => !open)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-surface2/40 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary"><Plus className="h-4 w-4" /></span>
+            <div>
+              <div className="text-[13px] font-bold">{title}</div>
+              <div className="text-xs text-text3 mt-0.5">Atur kelas, mapel, tanggal, dan jam</div>
+            </div>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {examFormOpen && (
+          <div className="border-t border-border2/60 px-4 py-4 space-y-3">
+            {noPrereq ? (
+              <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mata pelajaran terlebih dahulu di menu Kelola.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
+                    <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style min-w-0 w-full">
+                      <option value="">Pilih kelas</option>
+                      {data.classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
+                    <select aria-label="Mata pelajaran ujian" value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style min-w-0 w-full">
+                      <option value="">Pilih mapel</option>
+                      {data.subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                      <option value="proctor_only">+ Mapel Lain (Ngawas)</option>
+                    </select>
+                    {eSubjectId === 'proctor_only' && (
+                      <input aria-label="Nama mapel lain" value={nSubject} onChange={e => setNSubject(e.target.value)} placeholder="Ketik nama mapel (cth: Biologi)" className="form-input-style min-w-0 w-full mt-2 animate-in fade-in" />
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
+                    <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tipe</label>
+                    <select aria-label="Tipe ujian" value={eType} onChange={e => setEType(e.target.value as typeof eType)} className="form-input-style min-w-0 w-full">
+                      <option value="UTS">UTS</option><option value="UAS">UAS</option><option value="Umum">Umum</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" aria-label="Jam mulai ujian" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
+                  <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" aria-label="Jam selesai ujian" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
+                </div>
+                <details className="rounded-xl border border-border2 bg-surface2/30 px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-semibold text-text2">Ruangan dan catatan (opsional)</summary>
+                  <div className="space-y-2 pt-3">
+                    <input aria-label="Ruangan ujian" value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="Ruangan" className="form-input-style min-w-0 w-full" />
+                    <input aria-label="Catatan ujian" value={eNote} onChange={e => setENote(e.target.value)} placeholder="Catatan" className="form-input-style min-w-0 w-full" />
+                  </div>
+                </details>
+                <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold active:scale-[0.98]">Simpan ujian</button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -318,76 +344,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
     return (
       <div className="space-y-3 animate-slide-up pb-20">
-        <div className="bg-surface border border-border2 rounded-3xl overflow-hidden">
-          <button
-            onClick={() => setExamFormOpen(open => !open)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-surface2/40 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-xl bg-primary/10 border border-primary-border/30 grid place-items-center text-primary"><Plus className="h-4 w-4" /></span>
-              <div>
-                <div className="text-[13px] font-bold">Tambah ujian</div>
-                <div className="text-xs text-text3 mt-0.5">Atur kelas, mapel, tanggal, dan jam</div>
-              </div>
-            </div>
-            <ChevronDown className={`h-4 w-4 text-text3 transition-transform ${examFormOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {examFormOpen && (
-            <div className="border-t border-border2/60 px-4 py-4 space-y-3">
-              {noPrereq ? (
-                <div className="rounded-xl bg-amber/10 border border-amber/25 p-3 text-xs text-amber">Tambahkan kelas dan mata pelajaran terlebih dahulu di menu Kelola.</div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Kelas <span className="text-red">*</span></label>
-                      <select aria-label="Kelas ujian" value={eClassId} onChange={e => setEClassId(e.target.value)} className="form-input-style min-w-0 w-full">
-                        <option value="">Pilih kelas</option>
-                        {data.classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mapel <span className="text-red">*</span></label>
-                      <select aria-label="Mata pelajaran ujian" value={eSubjectId} onChange={e => setESubjectId(e.target.value)} className="form-input-style min-w-0 w-full">
-                        <option value="">Pilih mapel</option>
-                        {data.subjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-                        <option value="proctor_only">+ Mapel Lain (Ngawas)</option>
-                      </select>
-                      {eSubjectId === 'proctor_only' && (
-                        <input aria-label="Nama mapel lain" value={nSubject} onChange={e => setNSubject(e.target.value)} placeholder="Ketik nama mapel (cth: Biologi)" className="form-input-style min-w-0 w-full mt-2 animate-in fade-in" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tanggal <span className="text-red">*</span></label>
-                      <input type="date" aria-label="Tanggal ujian" value={eDate} onChange={e => setEDate(e.target.value)} className="form-input-style min-w-0 w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Tipe</label>
-                      <select aria-label="Tipe ujian" value={eType} onChange={e => setEType(e.target.value as typeof eType)} className="form-input-style min-w-0 w-full">
-                        <option value="UTS">UTS</option><option value="UAS">UAS</option><option value="Umum">Umum</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Mulai <span className="text-red">*</span></label><input type="time" aria-label="Jam mulai ujian" value={eStart} onChange={e => setEStart(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
-                    <div><label className="block text-xs text-text3 font-bold uppercase tracking-wider mb-1">Selesai <span className="text-red">*</span></label><input type="time" aria-label="Jam selesai ujian" value={eEnd} onChange={e => setEEnd(e.target.value)} className="form-input-style min-w-0 w-full" /></div>
-                  </div>
-                  <details className="rounded-xl border border-border2 bg-surface2/30 px-3 py-2">
-                    <summary className="cursor-pointer text-xs font-semibold text-text2">Ruangan dan catatan (opsional)</summary>
-                    <div className="space-y-2 pt-3">
-                      <input aria-label="Ruangan ujian" value={eLocation} onChange={e => setELocation(e.target.value)} placeholder="Ruangan" className="form-input-style min-w-0 w-full" />
-                      <input aria-label="Catatan ujian" value={eNote} onChange={e => setENote(e.target.value)} placeholder="Catatan" className="form-input-style min-w-0 w-full" />
-                    </div>
-                  </details>
-                  <button onClick={handleAddExam} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-bold active:scale-[0.98]">Simpan ujian</button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+        {renderAddExamForm()}
 
         {examSchedules.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
@@ -440,6 +397,8 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             {pending > 0 ? `${pending} kelas belum selesai dikoreksi` : 'Semua koreksi sudah beres'}
           </div>
         </div>
+
+        {renderAddExamForm('Tambah antrean koreksi')}
 
         {queue.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
