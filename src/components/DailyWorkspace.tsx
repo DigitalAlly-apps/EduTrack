@@ -140,7 +140,7 @@ export default function DailyWorkspace({ refreshKey, onRefresh }: { refreshKey: 
           {!pendingTasks.length && <p className="text-sm text-text2">Tidak ada tugas yang menunggu.</p>}
         </section>
         {!!(exams.length + proctors.length) && <section className="work-panel space-y-3"><h2 className="text-lg font-semibold">Ujian & pengawasan</h2>
-          {exams.map(exam => <button key={exam.id} className="flex w-full items-center justify-between gap-3 border-t border-border py-3 text-left" onClick={() => navigateTo({ view: 'exam', section: 'agenda' })}><span><span className="block text-sm text-text2">Ujian · {exam.startTime}–{exam.endTime}</span>{exam.subjectName || data.subjects.find(s => s.id === exam.subjectId)?.name} · {exam.customClassName || data.classes.find(c => c.id === exam.classId)?.name}</span><ArrowRight size={18} /></button>)}
+          {exams.map(exam => <button key={exam.id} className="flex w-full items-center justify-between gap-3 border-t border-border py-3 text-left" onClick={() => navigateTo({ view: 'exam', section: 'today' })}><span className="min-w-0 flex-1"><span className="block text-sm text-text2">Ujian · {exam.startTime}–{exam.endTime}</span><span className="block truncate">{exam.subjectName || data.subjects.find(s => s.id === exam.subjectId)?.name} · {exam.customClassName || data.classes.find(c => c.id === exam.classId)?.name}</span></span><ArrowRight size={18} className="flex-shrink-0 text-text3" /></button>)}
           {proctors.map(exam => <p key={exam.id} className="border-t border-border pt-3"><span className="block text-sm text-text2">Pengawasan · {exam.startTime}–{exam.endTime}</span>{exam.subjectName} · {exam.customClassName || data.classes.find(c => c.id === exam.classId)?.name}</p>)}
         </section>}
         {!!completed.length && <section><button className="quiet-button w-full justify-between" aria-expanded={showCompleted} onClick={() => setShowCompleted(v => !v)}>Sesi tercatat ({completed.length}) <Check size={18} /></button>
@@ -296,6 +296,7 @@ function FocusSession({ item, date, onRecord, onRefresh }: { item: TodaySchedule
 
 function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleItem; date: string; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
+  const subject = getData().subjects.find(s => s.id === item.subjectId);
   const draftKey = `edutrack_record_v1:${date}:${item.id}`;
   const [draft, setDraft] = useState(() => {
     const plan = splitSessionNote(date === dateKey() ? getNextMeetingNote(item.classId, item.subjectId).text : '');
@@ -338,7 +339,7 @@ function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleIt
     <DialogTitle>Catat hasil</DialogTitle><DialogDescription>{item.className} · {item.subjectName} · {date}</DialogDescription>
     <form onSubmit={save} className="space-y-4">
       <label className="block">Hasil pertemuan<select className="workspace-input mt-1" value={draft.outcome} onChange={e => update('outcome', e.target.value)}><option value="taught">Sudah mengajar</option><option value="skipped">Tidak terlaksana</option></select></label>
-      {draft.outcome === 'taught' && (
+      {draft.outcome === 'taught' && !subject?.noMaterial && (
         <div className="space-y-4 rounded-xl border border-border p-4">
           <p className="font-semibold text-sm">Materi yang diajarkan</p>
           {draft.materials.map((mat: { id: string; completed: boolean }, index: number) => (
@@ -371,6 +372,12 @@ function RecordSession({ item, date, onClose, onSaved }: { item: TodayScheduleIt
           <button type="button" className="quiet-button w-full border border-dashed border-border2 text-sm" onClick={() => {
             update('materials', [...draft.materials, { id: '', completed: false }]);
           }}>+ Tambah materi lain</button>
+        </div>
+      )}
+      {draft.outcome === 'taught' && subject?.noMaterial && (
+        <div className="space-y-4 rounded-xl border border-border p-4 bg-surface2/30">
+          <p className="font-semibold text-sm">Sesi Tanpa Materi</p>
+          <p className="text-xs text-text2">Mapel ini diatur sebagai mapel lisan/praktik sehingga tidak memerlukan checklist bab materi. Silakan isi catatan tambahan di bawah jika perlu.</p>
         </div>
       )}
       <label className="block">Materi selanjutnya <span className="text-sm text-text2">(opsional)</span><textarea className="workspace-input mt-1" rows={2} value={draft.nextNote} onChange={e => update('nextNote', e.target.value)} /></label>

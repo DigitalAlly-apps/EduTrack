@@ -338,7 +338,8 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
 
   // Add all scheduled exams
   for (const exam of allExams) {
-    if (exam.subjectId === 'proctor_only') continue;
+    const sub = data.subjects.find(s => s.id === exam.subjectId);
+    if (exam.subjectId === 'proctor_only' || sub?.noCorrection) continue;
     for (const cls of exam.classes) {
       const status = cls.correction?.status ?? null;
       let isExamFinished = false;
@@ -379,7 +380,7 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
       if (!hasScheduled) {
         const sub = data.subjects.find(s => s.id === subjectId);
         const cls = data.classes.find(c => c.id === classId);
-        if (sub && cls) {
+        if (sub && !sub.noCorrection && cls) {
           addItem({
             subjectId,
             subjectName: sub.name,
@@ -450,7 +451,7 @@ export function getCorrectionStats() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export function fmtDate(d: string) {
-  return dateFromKey(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateFromKey(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 }
 export function fmtDayLabel(daysLeft: number) {
   if (daysLeft === 0) return 'HARI INI';

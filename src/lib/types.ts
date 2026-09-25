@@ -16,6 +16,8 @@ export interface Subject {
   level?: string;
   examDate: string | null; // deprecated — digantikan oleh semester.uasDate
   semesterId?: string | null; // relasi ke Semester
+  noMaterial?: boolean;
+  noCorrection?: boolean;
 }
 export interface Material {
   id: string;

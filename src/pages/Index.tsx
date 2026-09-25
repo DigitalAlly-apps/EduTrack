@@ -22,7 +22,7 @@ const Onboarding = lazy(() => import('@/components/Onboarding'));
 const QuickAddModal = lazy(() => import('@/components/QuickAddModal'));
 
 type AppView = ViewType;
-type ExamTab = 'agenda' | 'koreksi' | 'riwayat' | 'settings';
+type ExamTab = 'today' | 'jadwal' | 'ngawas' | 'koreksi' | 'settings';
 
 const isAppView = (value: string | null): value is AppView =>
   value === 'today' || value === 'progress' || value === 'exam' || value === 'setup' || value === 'info';
@@ -64,7 +64,7 @@ function AppInner() {
     contentRef.current?.focus({ preventScroll: true });
     previousView.current = view;
   }, [view]);
-  const [examTab, setExamTab] = useState<ExamTab>('agenda');
+  const [examTab, setExamTab] = useState<ExamTab>('today');
   const [refreshKey, setRefreshKey] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -177,7 +177,7 @@ function AppInner() {
       const target = parseNavigationTarget((e as CustomEvent).detail);
       if (!target) return;
       normalizeProgressConsistency();
-      setExamTab(target.section === 'koreksi' ? 'koreksi' : 'agenda');
+      setExamTab(target.section === 'koreksi' ? 'koreksi' : 'today');
       setSearchParams(previous => {
         const params = new URLSearchParams(previous);
         params.set('view', target.view);
@@ -199,7 +199,7 @@ function AppInner() {
 
   const handleViewChange = (v: ViewType) => {
     normalizeProgressConsistency();
-    setExamTab('agenda');
+    setExamTab('today');
     setView(v);
     setRefreshKey(k => k + 1);
   };

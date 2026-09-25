@@ -846,7 +846,9 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
   };
   const saveItem = (id: string, newName: string, extras: any) => {
     if (!newName.trim()) return;
-    updateSubject(id, newName, extras.level, extras.examDate, extras.semesterId); toast({ title: 'Mapel diperbarui' }); onRefresh();
+    updateSubject(id, newName, extras.level, extras.examDate, extras.semesterId, extras.noMaterial, extras.noCorrection); 
+    toast({ title: 'Mapel diperbarui' }); 
+    onRefresh();
   };
   const del = (id: string) => {
     const strId = String(id);
@@ -936,9 +938,9 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
           const semLabel = sem ? `📅 ${sem.name}${phase ? ` · ${phase}` : ''}` : '⚠️ Belum ada semester';
           const semColor = sem ? '' : 'text-amber';
           return (
-            <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', semesterId: s.semesterId || '' }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del}
+            <EditableItem key={s.id} item={{ id: s.id, name: s.name, meta: `${jenjangLabel}${semLabel}`, metaColor: semColor, extraVal: { level: s.level || '', semesterId: s.semesterId || '', noMaterial: !!s.noMaterial, noCorrection: !!s.noCorrection }, deleteWarning: 'Menghapus mapel akan menghapus materi dan jadwal terkait.' }} onSave={saveItem} onDelete={del}
               extraEditField={(v: any, setV: any) => (
-                <div className="space-y-2 mb-2">
+                <div className="space-y-3 mb-3">
                   <div className="flex gap-2">
                     {LEVELS.map(l => (
                       <button key={l} type="button" onClick={() => setV({ ...v, level: l })} className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${v.level === l ? 'bg-primary border-primary text-primary-foreground' : 'bg-surface border-border text-text2'}`}>{l.split('/')[0]}</button>
@@ -948,6 +950,16 @@ function SubjectsTab({ onRefresh }: { onRefresh: () => void }) {
                     <option value="">Tanpa Semester</option>
                     {semesters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                   </select>
+                  <div className="space-y-1 bg-surface2/50 p-2.5 rounded-xl border border-border2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={v.noMaterial} onChange={e => setV({ ...v, noMaterial: e.target.checked })} className="rounded border-border text-primary focus:ring-primary/20" />
+                      <span className="text-xs text-text font-medium">Tanpa input materi (lisan/praktik)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={v.noCorrection} onChange={e => setV({ ...v, noCorrection: e.target.checked })} className="rounded border-border text-primary focus:ring-primary/20" />
+                      <span className="text-xs text-text font-medium">Keluarkan dari antrean koreksi ujian</span>
+                    </label>
+                  </div>
                 </div>
               )} />
           );

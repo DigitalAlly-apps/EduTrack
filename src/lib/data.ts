@@ -1341,8 +1341,18 @@ export function updateClass(id: string, name: string) {
 export function setAcademicYear(year: string) {
   updateData(d => { d.academicYear = year.trim(); });
 }
-export function updateSubject(id: string, name: string, level: string, examDate: string, semesterId?: string) {
-  updateData(d => { const s = d.subjects.find(x => x.id === id); if (s) { s.name = name.trim(); s.level = level || ''; s.examDate = examDate || null; s.semesterId = semesterId || null; } });
+export function updateSubject(id: string, name: string, level: string, examDate: string, semesterId?: string, noMaterial?: boolean, noCorrection?: boolean) {
+  updateData(d => { 
+    const s = d.subjects.find(x => x.id === id); 
+    if (s) { 
+      s.name = name.trim(); 
+      s.level = level || ''; 
+      s.examDate = examDate || null; 
+      s.semesterId = semesterId || null; 
+      s.noMaterial = noMaterial;
+      s.noCorrection = noCorrection;
+    } 
+  });
 }
 export function bulkUpdateExamDateByLevel(level: string, examDate: string) {
   updateData(d => {
