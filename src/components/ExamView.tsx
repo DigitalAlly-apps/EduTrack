@@ -13,7 +13,7 @@ import {
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X } from 'lucide-react';
 
 type ExamTab = 'agenda' | 'koreksi' | 'riwayat';
 
@@ -65,7 +65,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const pastExamSchedules = examSchedules.filter(s => s.date < todayStr)
     .sort((a, b) => b.date.localeCompare(a.date) || timeToMin(a.startTime) - timeToMin(b.startTime));
 
-  const handleCorrectionStatus = (subjectId: string, classId: string, examDate: string, status: 'sedang' | 'selesai') => {
+  const handleCorrectionStatus = (subjectId: string, classId: string, examDate: string, status: 'sedang' | 'selesai' | null) => {
     upsertCorrection(subjectId, classId, examDate, status);
     onRefresh();
   };
@@ -227,14 +227,29 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         </div>
         <div className="flex-shrink-0">
           {isFuture ? null : corrSt === 'selesai' ? (
-            <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
-          ) : corrSt === 'sedang' ? (
             <button
-              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
-              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
+              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold flex items-center gap-1.5 hover:bg-green/20 transition-all active:scale-95"
+              title="Batal selesai"
             >
-              Tandai selesai
+              Selesai <RotateCcw className="w-3 h-3" />
             </button>
+          ) : corrSt === 'sedang' ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, null)}
+                className="p-1.5 rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
+                title="Batal koreksi"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
+                className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+              >
+                Tandai selesai
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}

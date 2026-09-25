@@ -170,11 +170,15 @@ const CORR_KEY = 'edutrack_corrections';
 export function getCorrections(): ExamCorrection[] {
   try { return JSON.parse(localStorage.getItem(CORR_KEY) || '[]'); } catch { return []; }
 }
-export function upsertCorrection(subjectId: string, classId: string, examDate: string, status: CorrectionStatus) {
-  const all = getCorrections();
-  const ex = all.find(c => c.subjectId === subjectId && c.classId === classId && c.examDate === examDate);
-  if (ex) { ex.status = status; ex.updatedAt = now().toISOString(); }
-  else all.push({ id: genId(), subjectId, classId, examDate, status, updatedAt: now().toISOString() });
+export function upsertCorrection(subjectId: string, classId: string, examDate: string, status: CorrectionStatus | null) {
+  let all = getCorrections();
+  if (status === null) {
+    all = all.filter(c => !(c.subjectId === subjectId && c.classId === classId && c.examDate === examDate));
+  } else {
+    const ex = all.find(c => c.subjectId === subjectId && c.classId === classId && c.examDate === examDate);
+    if (ex) { ex.status = status; ex.updatedAt = now().toISOString(); }
+    else all.push({ id: genId(), subjectId, classId, examDate, status, updatedAt: now().toISOString() });
+  }
   localStorage.setItem(CORR_KEY, JSON.stringify(all));
 }
 
