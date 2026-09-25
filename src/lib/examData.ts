@@ -137,6 +137,17 @@ export function deleteExamSchedule(id: string): void {
     }
   });
 }
+export function updateExamSchedule(id: string, updates: Partial<ExamScheduleDraft>): void {
+  updateData(d => {
+    if (!Array.isArray(d.examSchedules)) return;
+    const idx = d.examSchedules.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      d.examSchedules[idx] = { ...d.examSchedules[idx], ...updates };
+      const subject = d.subjects.find(s => s.id === d.examSchedules![idx].subjectId);
+      if (subject) subject.examDate = getSyncedSubjectExamDate(d.examSchedules, subject.id);
+    }
+  });
+}
 
 export interface ExamCorrection {
   id: string;
@@ -236,6 +247,7 @@ export interface ExamSubjectItem {
     location?: string;
     note?: string;
     correction: ExamCorrection | null;
+    scheduleId?: string;
   }[];
 }
 
@@ -271,6 +283,7 @@ export function getAllExamSubjects(): ExamSubjectItem[] {
         location: schedule.location,
         note: schedule.note,
         correction: corrections.find(c => c.subjectId === schedule.subjectId && c.classId === schedule.classId && c.examDate === schedule.date) || null,
+        scheduleId: schedule.id,
       });
     }
     grouped.set(key, item);
@@ -293,6 +306,7 @@ export interface CorrectionQueueItem {
   isOverdue: boolean;
   isScheduled: boolean;
   isExamFinished: boolean;
+  scheduleId?: string;
 }
 
 function correctionItemKey(subjectId: string, classId: string, examDate: string | null) {
@@ -347,12 +361,43 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
         status,
         isOverdue: exam.daysLeft < -5 && status !== 'selesai',
         isScheduled: true,
-        isExamFinished
+        isExamFinished,
+        scheduleId: cls.scheduleId,
       });
     }
   }
 
-
+  // Add intelligent unscheduled exams from regular teaching schedules
+  if (data.schedules) {
+    const teachingCombos = new Set<string>();
+    for (const sch of data.schedules) {
+      teachingCombos.add(`${sch.subjectId}:${sch.classId}`);
+    }
+    for (const combo of teachingCombos) {
+      const [subjectId, classId] = combo.split(':');
+      const hasScheduled = items.some(i => i.subjectId === subjectId && i.classId === classId && i.isScheduled);
+      if (!hasScheduled) {
+        const sub = data.subjects.find(s => s.id === subjectId);
+        const cls = data.classes.find(c => c.id === classId);
+        if (sub && cls) {
+          addItem({
+            subjectId,
+            subjectName: sub.name,
+            classId,
+            className: cls.name,
+            examDate: null,
+            startTime: null,
+            endTime: null,
+            daysLeft: null,
+            status: null,
+            isOverdue: false,
+            isScheduled: false,
+            isExamFinished: false,
+          });
+        }
+      }
+    }
+  }
 
   // Include any stray corrections that might not match current subjects/classes
   const todayStr = dateKey();

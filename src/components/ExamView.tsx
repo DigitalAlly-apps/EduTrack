@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   getAllExamSubjects,
   upsertCorrection, getExamDayMode, setExamDayMode,
-  getExamSchedules, addExamSchedule, deleteExamSchedule,
+  getExamSchedules, addExamSchedule, deleteExamSchedule, updateExamSchedule,
   getExamReminderSettings, updateExamReminderSetting,
   
   getCorrectionQueue, getCorrectionStats,
@@ -13,7 +13,7 @@ import {
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X, MapPin, StickyNote } from 'lucide-react';
 
 type ExamTab = 'agenda' | 'koreksi' | 'riwayat';
 
@@ -34,6 +34,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   const examMode = getExamDayMode();
 
   // Form: jadwal ujian mapel sendiri
+  const [eEditId, setEEditId] = useState<string | null>(null);
   const [eDate, setEDate] = useState(dateKey());
   const [eClassId, setEClassId] = useState('');
   const [eSubjectId, setESubjectId] = useState('');
@@ -82,7 +83,8 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     if (timeToMin(eEnd) <= timeToMin(eStart)) {
       toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
     }
-    addExamSchedule({
+    
+    const draft = {
       classId: eClassId, subjectId: eSubjectId, date: eDate,
       startTime: eStart, endTime: eEnd,
       subjectName: eSubjectId === 'proctor_only' ? nSubject.trim() : undefined,
@@ -90,12 +92,37 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       note: eNote.trim() || undefined,
       examType: eType,
       supervisorId: eSubjectId === 'proctor_only' ? (data.teacherName || 'Pengawas') : undefined
-    });
+    };
+
+    if (eEditId) {
+      updateExamSchedule(eEditId, draft);
+      toast({ title: '✓ Jadwal ujian diperbarui' });
+    } else {
+      addExamSchedule(draft);
+      toast({ title: '✓ Jadwal ujian ditambahkan' });
+    }
+
+    setEEditId(null);
     setEStart(''); setEEnd(''); setELocation(''); setENote('');
     if (eSubjectId === 'proctor_only') setNSubject('');
     setExamFormOpen(false);
     onRefresh();
-    toast({ title: '✓ Jadwal ujian ditambahkan' });
+  };
+
+  const handleEditExam = (s: ReturnType<typeof getExamSchedules>[number]) => {
+    setEEditId(s.id);
+    setEClassId(s.classId);
+    setESubjectId(s.subjectId);
+    setEDate(s.date);
+    setEStart(s.startTime);
+    setEEnd(s.endTime);
+    setEType(s.examType || 'UTS');
+    setELocation(s.location || '');
+    setENote(s.note || '');
+    if (s.subjectId === 'proctor_only' && s.subjectName) {
+      setNSubject(s.subjectName);
+    }
+    setExamFormOpen(true);
   };
 
   const handleDeleteExam = (id: string) => {
@@ -141,18 +168,28 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             </span>
           </div>
           {(s.location || s.note) && (
-            <div className="text-xs text-text3 mt-1.5 flex gap-3">
-              {s.location && <span>📍 {s.location}</span>}
-              {s.note && <span>📝 {s.note}</span>}
+            <div className="text-xs text-text3 mt-1.5 flex flex-wrap gap-3">
+              {s.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-text3" /> {s.location}</span>}
+              {s.note && <span className="flex items-center gap-1"><StickyNote className="w-3.5 h-3.5 text-text3" /> {s.note}</span>}
             </div>
           )}
         </div>
-        <button
-          onClick={() => { deleteExamSchedule(s.id); onRefresh(); }}
-          className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center flex-shrink-0 hover:bg-red/20 transition-all"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <button
+            onClick={() => handleEditExam(s)}
+            className="w-11 h-11 rounded-xl bg-surface border border-border2 text-text2 grid place-items-center hover:bg-surface2 hover:text-primary transition-all"
+            title="Edit Jadwal"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { deleteExamSchedule(s.id); onRefresh(); }}
+            className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center hover:bg-red/20 transition-all"
+            title="Hapus Jadwal"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -225,38 +262,67 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             </div>
           )}
         </div>
-        <div className="flex-shrink-0">
-          {isFuture ? null : corrSt === 'selesai' ? (
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {!item.isScheduled ? (
             <button
-              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
-              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold flex items-center gap-1.5 hover:bg-green/20 transition-all active:scale-95"
-              title="Batal selesai"
+              onClick={() => {
+                setEClassId(item.classId);
+                setESubjectId(item.subjectId);
+                setEDate(dateKey());
+                setEStart(''); setEEnd(''); setEEditId(null);
+                setExamFormOpen(true);
+              }}
+              className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary font-bold transition-all active:scale-95"
             >
-              Selesai <RotateCcw className="w-3 h-3" />
+              Set Waktu
             </button>
-          ) : corrSt === 'sedang' ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, null)}
-                className="p-1.5 rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
-                title="Batal koreksi"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
-                className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
-              >
-                Tandai selesai
-              </button>
-            </div>
           ) : (
-            <button
-              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
-              className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
-            >
-              Mulai koreksi
-            </button>
+            <>
+              {item.scheduleId && corrSt !== 'selesai' && (
+                <button
+                  onClick={() => {
+                    const s = examSchedules.find(x => x.id === item.scheduleId);
+                    if (s) handleEditExam(s);
+                  }}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
+                  title="Edit Jadwal"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              {isFuture ? null : corrSt === 'selesai' ? (
+                <button
+                  onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
+                  className="text-sm px-4 min-h-[44px] rounded-full border border-green/30 bg-green/10 text-green font-bold flex items-center justify-center gap-2 hover:bg-green/20 transition-all active:scale-95"
+                  title="Batal selesai"
+                >
+                  Selesai <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              ) : corrSt === 'sedang' ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, null)}
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
+                    title="Batal koreksi"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
+                    className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+                  >
+                    Tandai selesai
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
+                  className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
+                >
+                  Mulai koreksi
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
