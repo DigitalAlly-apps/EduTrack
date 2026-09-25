@@ -193,49 +193,107 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
   const CorrectionRow = ({ item }: { item: CorrectionQueueItem }) => {
+    const [qDate, setQDate] = useState(dateKey());
+    const [qStart, setQStart] = useState('');
+    const [qEnd, setQEnd] = useState('');
+    
+    const handleQuickAdd = () => {
+      if (!qDate || !qStart || !qEnd) {
+         toast({ title: 'Mohon isi tanggal dan waktu' }); return;
+      }
+      if (timeToMin(qEnd) <= timeToMin(qStart)) {
+         toast({ title: 'Jam selesai harus setelah jam mulai' }); return;
+      }
+      addExamSchedule({
+        classId: item.classId,
+        subjectId: item.subjectId,
+        date: qDate,
+        startTime: qStart,
+        endTime: qEnd,
+        examType: 'Umum'
+      });
+      onRefresh();
+      toast({ title: '✓ Jadwal ujian ditambahkan' });
+    };
+
     const corrSt = item.status;
+    const isUnscheduled = !item.isScheduled;
+    const isFuture = item.isScheduled && !item.isExamFinished;
+
     return (
-      <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
+      <div className={`rounded-2xl border px-4 py-3 transition-all ${
         corrSt === 'selesai' ? 'bg-green-dim/15 border-green/30' :
         corrSt ? 'bg-amber/8 border-amber/25' :
         item.isOverdue ? 'bg-red/5 border-red/25' :
+        isUnscheduled ? 'bg-surface2/50 border-border2 border-dashed' :
         'bg-surface border-border2'
       }`}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            {item.isOverdue && corrSt !== 'selesai' && (
-              <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
-            )}
-            {item.daysLeft === 0 && (
-              <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              {item.isOverdue && corrSt !== 'selesai' && (
+                <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
+              )}
+              {item.daysLeft === 0 && item.isScheduled && (
+                <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+              )}
+              {isUnscheduled && (
+                <span className="text-xs font-black bg-surface3 text-text3 border border-border2 px-2 py-0.5 rounded-full uppercase tracking-wide">Belum Dijadwalkan</span>
+              )}
+              {isFuture && item.daysLeft !== 0 && (
+                 <span className="text-xs font-black bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Menunggu Ujian</span>
+              )}
+            </div>
+            <div className="text-sm font-bold leading-snug">{item.className}</div>
+            <div className="text-xs text-text2">{item.subjectName}</div>
+            {item.isScheduled && (
+              <div className="text-xs text-text3 mt-0.5">
+                {fmtDate(item.examDate!)}
+                {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft!)}</span>}
+                {item.startTime && item.endTime && <span> · {item.startTime}-{item.endTime}</span>}
+              </div>
             )}
           </div>
-          <div className="text-sm font-bold leading-snug">{item.className}</div>
-          <div className="text-xs text-text2">{item.subjectName}</div>
-          <div className="text-xs text-text3 mt-0.5">
-            {fmtDate(item.examDate)}
-            {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft)}</span>}
+          <div className="flex-shrink-0">
+            {isUnscheduled || isFuture ? null : corrSt === 'selesai' ? (
+              <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
+            ) : corrSt === 'sedang' ? (
+              <button
+                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
+                className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
+              >
+                Tandai selesai
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
+                className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
+              >
+                Mulai koreksi
+              </button>
+            )}
           </div>
         </div>
-        <div className="flex-shrink-0">
-          {corrSt === 'selesai' ? (
-            <span className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold">Selesai</span>
-          ) : corrSt === 'sedang' ? (
-            <button
-              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate, 'selesai')}
-              className="text-xs px-3.5 py-1.5 rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
-            >
-              Tandai selesai
-            </button>
-          ) : (
-            <button
-              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate, 'sedang')}
-              className="text-xs px-3.5 py-1.5 rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
-            >
-              Mulai koreksi
-            </button>
-          )}
-        </div>
+        
+        {isUnscheduled && (
+          <div className="mt-3 pt-3 border-t border-border2/60 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+             <div>
+                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Tanggal</label>
+                <input type="date" value={qDate} onChange={e => setQDate(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full" />
+             </div>
+             <div>
+                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Mulai</label>
+                <input type="time" value={qStart} onChange={e => setQStart(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full sm:w-24" />
+             </div>
+             <div>
+                <label className="block text-[10px] text-text3 font-bold uppercase tracking-wider mb-1">Selesai</label>
+                <input type="time" value={qEnd} onChange={e => setQEnd(e.target.value)} className="form-input-style text-xs py-1.5 min-w-0 w-full sm:w-24" />
+             </div>
+             <button onClick={handleQuickAdd} className="bg-primary text-primary-foreground font-bold text-xs px-4 py-1.5 rounded-xl h-[34px] hover:brightness-110 active:scale-95 transition-all">
+                Simpan
+             </button>
+          </div>
+        )}
       </div>
     );
   };

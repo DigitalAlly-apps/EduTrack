@@ -281,27 +281,33 @@ export interface CorrectionQueueItem {
   subjectName: string;
   classId: string;
   className: string;
-  examDate: string;
-  daysLeft: number;
+  examDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  daysLeft: number | null;
   status: CorrectionStatus | null;
   isOverdue: boolean;
+  isScheduled: boolean;
+  isExamFinished: boolean;
 }
 
-function correctionItemKey(subjectId: string, classId: string, examDate: string) {
-  return `${subjectId}:${classId}:${examDate}`;
+function correctionItemKey(subjectId: string, classId: string, examDate: string | null) {
+  return `${subjectId}:${classId}:${examDate || 'unscheduled'}`;
 }
 
 function sortCorrectionQueue(a: CorrectionQueueItem, b: CorrectionQueueItem) {
   if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
-  if (a.daysLeft !== b.daysLeft) return b.daysLeft - a.daysLeft;
+  const aDays = a.daysLeft ?? Infinity;
+  const bDays = b.daysLeft ?? Infinity;
+  if (aDays !== bDays) return aDays - bDays;
   return a.subjectName.localeCompare(b.subjectName) || a.className.localeCompare(b.className);
 }
 
 function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
+  const data = getData();
   const allExams = getAllExamSubjects();
   const todayItems = getTodayExamItems();
   const corrections = getCorrections();
-  const data = getData();
   const items: CorrectionQueueItem[] = [];
   const seen = new Set<string>();
 
@@ -312,17 +318,16 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
     items.push(item);
   };
 
+  // Add all scheduled exams
   for (const exam of allExams) {
-    if (exam.daysLeft > 0) continue;
-
     for (const cls of exam.classes) {
       const status = cls.correction?.status ?? null;
-
-      if (exam.daysLeft === 0) {
-        const todayItem = todayItems.find(
-          t => t.subjectId === exam.subjectId && t.classId === cls.classId && t.examDate === exam.examDate,
-        );
-        if (!todayItem?.isDone && status === null) continue;
+      let isExamFinished = false;
+      if (exam.daysLeft < 0) {
+         isExamFinished = true;
+      } else if (exam.daysLeft === 0) {
+         const todayItem = todayItems.find(t => t.subjectId === exam.subjectId && t.classId === cls.classId && t.examDate === exam.examDate);
+         isExamFinished = todayItem ? todayItem.isDone : false;
       }
 
       addItem({
@@ -331,13 +336,42 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
         classId: cls.classId,
         className: cls.className,
         examDate: exam.examDate,
+        startTime: cls.startTime || null,
+        endTime: cls.endTime || null,
         daysLeft: exam.daysLeft,
         status,
         isOverdue: exam.daysLeft < -5 && status !== 'selesai',
+        isScheduled: true,
+        isExamFinished
       });
     }
   }
 
+  // Add unscheduled for any class/subject combination that doesn't have ANY schedule
+  for (const subject of data.subjects) {
+    for (const cls of data.classes) {
+      const hasAnySchedule = items.some(i => i.subjectId === subject.id && i.classId === cls.id);
+      if (!hasAnySchedule) {
+        const corr = corrections.find(c => c.subjectId === subject.id && c.classId === cls.id);
+        addItem({
+          subjectId: subject.id,
+          subjectName: subject.name,
+          classId: cls.id,
+          className: cls.name,
+          examDate: null,
+          startTime: null,
+          endTime: null,
+          daysLeft: null,
+          status: corr?.status ?? null,
+          isOverdue: false,
+          isScheduled: false,
+          isExamFinished: false
+        });
+      }
+    }
+  }
+
+  // Include any stray corrections that might not match current subjects/classes
   const todayStr = dateKey();
   for (const corr of corrections) {
     const k = correctionItemKey(corr.subjectId, corr.classId, corr.examDate);
@@ -349,24 +383,19 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
     const examDt = dateFromKey(corr.examDate);
     const daysLeft = Math.round((examDt.getTime() - today.getTime()) / 864e5);
 
-    if (daysLeft > 0) continue;
-
-    if (daysLeft === 0) {
-      const todayItem = todayItems.find(
-        t => t.subjectId === corr.subjectId && t.classId === corr.classId && t.examDate === corr.examDate,
-      );
-      if (!todayItem?.isDone && corr.status !== 'selesai') continue;
-    }
-
     addItem({
       subjectId: corr.subjectId,
       subjectName: sub?.name || '?',
       classId: corr.classId,
       className: cls?.name || '?',
       examDate: corr.examDate,
+      startTime: null,
+      endTime: null,
       daysLeft,
       status: corr.status,
       isOverdue: daysLeft < -5 && corr.status !== 'selesai',
+      isScheduled: false, // Old/stray data
+      isExamFinished: daysLeft < 0,
     });
   }
 
