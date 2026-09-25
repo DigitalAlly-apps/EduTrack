@@ -324,6 +324,7 @@ function buildCorrectionEligibleItems(): CorrectionQueueItem[] {
 
   // Add all scheduled exams
   for (const exam of allExams) {
+    if (exam.subjectId === 'proctor_only') continue;
     for (const cls of exam.classes) {
       const status = cls.correction?.status ?? null;
       let isExamFinished = false;
