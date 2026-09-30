@@ -137,9 +137,8 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
 
-  const ExamScheduleCard = ({ s, isClosest }: { s: ReturnType<typeof getExamSchedules>[number], isClosest?: boolean }) => {
+  const ScheduleRow = ({ s, isClosest }: { s: ReturnType<typeof getExamSchedules>[number], isClosest?: boolean }) => {
     const cls = data.classes.find(c => c.id === s.classId);
-    const sub = data.subjects.find(x => x.id === s.subjectId);
     
     const status = getExamStatus(s.date, s.startTime, s.endTime);
     const isActive = status === 'BERLANGSUNG';
@@ -148,96 +147,91 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const corr = data.corrections?.find(c => c.subjectId === s.subjectId && c.classId === s.classId && c.examDate === s.date);
     const isCorrected = corr?.status === 'selesai' && s.subjectId !== 'proctor_only';
 
-    const examTypeBadge = s.examType
-      ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
-          s.examType === 'UTS' ? 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-          : s.examType === 'UAS' ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
-          : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-        }`}>{s.examType}</span>
-      : null;
-
     return (
-      <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isClosest ? 'bg-blue-500/5 border-blue-500/30' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
-      }`}>
+      <div className={`px-4 py-3 flex items-center justify-between gap-3 transition-colors hover:bg-surface2/30 ${isActive ? 'bg-amber/5' : isDone ? 'bg-green/5 opacity-80' : ''}`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
-            {examTypeBadge}
-            {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isClosest && !isActive && <span className="text-xs font-black bg-blue-500/10 text-blue-500 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase tracking-wide">Paling Dekat</span>}
+            <span className="font-bold text-[13px] uppercase">{cls?.name || '?'}</span>
+            {s.examType && (
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                s.examType === 'UTS' ? 'bg-blue-500/15 text-blue-500'
+                : s.examType === 'UAS' ? 'bg-purple-500/15 text-purple-500'
+                : 'bg-emerald-500/15 text-emerald-500'
+              }`}>{s.examType}</span>
+            )}
+            {isActive && <span className="text-[10px] font-black bg-amber/20 text-amber px-2 py-0.5 rounded-full uppercase tracking-wide">Live</span>}
+            {isClosest && !isActive && <span className="text-[10px] font-black bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full uppercase tracking-wide">Berikutnya</span>}
             {isDone && (
-              <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
-                Selesai {isCorrected && <CheckCircle2 className="w-3.5 h-3.5 text-green" />}
+              <span className="text-[10px] font-black bg-green/10 text-green px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-0.5">
+                Selesai {isCorrected && <CheckCircle2 className="w-3 h-3 text-green" />}
               </span>
             )}
           </div>
-          <div className="text-[15px] font-bold text-foreground leading-snug">{s.subjectName || sub?.name || '?'}</div>
-          <div className="text-[13px] font-medium text-text2 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5 text-text3" /> {fmtDate(s.date)}</span>
-            <span className="flex items-center gap-1 text-primary/90">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />
+          <div className="text-xs font-medium flex items-center gap-2 text-text2">
+            <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-text3/70" /> {fmtDate(s.date)}</span>
+            <span className="flex items-center gap-1 text-primary/80">
+              {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/70 animate-pulse" />}
               {s.startTime} - {s.endTime}
             </span>
           </div>
           {(s.location || s.note) && (
-            <div className="text-xs text-text3 mt-1.5 flex flex-wrap gap-3">
-              {s.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-text3" /> {s.location}</span>}
-              {s.note && <span className="flex items-center gap-1"><StickyNote className="w-3.5 h-3.5 text-text3" /> {s.note}</span>}
+            <div className="text-[11px] text-text3 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {s.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.location}</span>}
+              {s.note && <span className="flex items-center gap-1"><StickyNote className="w-3 h-3" /> {s.note}</span>}
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 flex items-center gap-2">
+        <div className="flex-shrink-0 flex items-center gap-1.5">
           <button
             onClick={() => handleEditExam(s)}
-            className="w-11 h-11 rounded-xl bg-surface border border-border2 text-text2 grid place-items-center hover:bg-surface2 hover:text-primary transition-all"
+            className="w-8 h-8 rounded-full border border-transparent bg-transparent hover:bg-surface2 text-text3 hover:text-primary grid place-items-center transition-all"
             title="Edit Jadwal"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => { deleteExamSchedule(s.id); onRefresh(); }}
-            className="w-11 h-11 rounded-xl bg-red/10 border border-red/20 text-red grid place-items-center hover:bg-red/20 transition-all"
+            className="w-8 h-8 rounded-full border border-transparent bg-transparent hover:bg-red/10 text-text3 hover:text-red grid place-items-center transition-all"
             title="Hapus Jadwal"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
     );
   };
 
-  const SubjectCard = ({ item }: { item: ExamSubjectItem }) => {
-    const expandKey = `${item.subjectId}-${item.examDate}`;
-    const isExp = expanded === expandKey;
+  const groupSchedulesBySubject = (items: ReturnType<typeof getExamSchedules>) => {
+    const map = new Map<string, { subjectName: string, items: typeof items }>();
+    items.forEach(s => {
+      const name = s.subjectId === 'proctor_only' ? 'Tugas Ngawas' : (s.subjectName || data.subjects.find(x => x.id === s.subjectId)?.name || 'Mapel tidak diketahui');
+      if (!map.has(s.subjectId)) {
+        map.set(s.subjectId, { subjectName: name, items: [] });
+      }
+      map.get(s.subjectId)!.items.push(s);
+    });
+    return Array.from(map.values());
+  };
+
+  const groupSchedulesByDate = (items: ReturnType<typeof getExamSchedules>) => {
+    const map = new Map<string, typeof items>();
+    items.forEach(s => {
+      if (!map.has(s.date)) map.set(s.date, []);
+      map.get(s.date)!.push(s);
+    });
+    return Array.from(map.entries()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, items]) => ({ date, items }));
+  };
+
+  const renderScheduleGroup = (title: string, subtitle: React.ReactNode, schedules: ReturnType<typeof getExamSchedules>, closestId?: string | null) => {
     return (
-      <div className="bg-surface border border-border2 rounded-2xl overflow-hidden">
-        <button className="w-full flex items-center justify-between px-4 py-3 text-left" onClick={() => setExpanded(isExp ? null : expandKey)}>
-          <div>
-            <div className="text-sm font-semibold">{item.subjectName}</div>
-            <div className={`text-xs mt-0.5 ${dayLabelColor(item.daysLeft)}`}>
-              {fmtDate(item.examDate)} · {fmtDayLabel(item.daysLeft)}
-            </div>
-          </div>
-          <span className="text-text3 text-xs">{isExp ? '▲' : '▼'}</span>
-        </button>
-        {isExp && (
-          <div className="border-t border-border px-4 pb-3 pt-2 space-y-2">
-            <div className="text-xs text-text3 font-bold uppercase tracking-wide mb-1">Jadwal per Kelas</div>
-            {item.classes.map(cls => (
-              <div key={`${cls.classId}-${cls.startTime || ''}`} className="py-1.5">
-                <div className="text-sm font-semibold">{cls.className}</div>
-                {(cls.startTime || cls.location || cls.note) && (
-                  <div className="text-xs text-text3 leading-snug mt-0.5">
-                    {cls.startTime && cls.endTime && <span>{fmt(cls.startTime)}–{fmt(cls.endTime)}</span>}
-                    {cls.location && <span>{cls.startTime && cls.endTime ? ' · ' : ''}{cls.location}</span>}
-                    {cls.note && <span>{(cls.startTime && cls.endTime) || cls.location ? ' · ' : ''}{cls.note}</span>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="bg-surface border border-border2 rounded-2xl overflow-hidden mb-3">
+        <div className="px-4 py-2.5 bg-surface2/40 border-b border-border2/60 flex items-center justify-between">
+          <div className="text-sm font-bold text-foreground">{title}</div>
+          {subtitle && <div className="text-[11px] text-text3 font-medium">{subtitle}</div>}
+        </div>
+        <div className="divide-y divide-border2/60">
+          {schedules.map(s => <ScheduleRow key={s.id} s={s} isClosest={s.id === closestId} />)}
+        </div>
       </div>
     );
   };
@@ -409,7 +403,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const procTomorrow = tomorrowSchedules.filter(s => s.subjectId === 'proctor_only');
 
     return (
-      <div className="space-y-3 animate-slide-up pb-20">
+      <div className="space-y-4 animate-slide-up pb-20">
         {todayExamSchedules.length === 0 && tomorrowSchedules.length === 0 ? (
           <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
             <Sun aria-hidden="true" className="h-10 w-10 mx-auto mb-4 text-primary" />
@@ -417,40 +411,20 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             <div className="text-xs text-text3 mt-1">Anda bisa bersantai sejenak.</div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div>
             {todayExamSchedules.length > 0 && (
-              <section className="space-y-4">
-                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 border-b border-border2 pb-2">Hari Ini · {todayExamSchedules.length} Ujian</div>
-                {myToday.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Ujian Mapel Anda</div>
-                    {myToday.map(s => <ExamScheduleCard key={s.id} s={s} isClosest={s.id === closestScheduleId} />)}
-                  </div>
-                )}
-                {procToday.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Tugas Ngawas</div>
-                    {procToday.map(s => <ExamScheduleCard key={s.id} s={s} isClosest={s.id === closestScheduleId} />)}
-                  </div>
-                )}
-              </section>
+              <div className="mb-6">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Hari Ini · {todayExamSchedules.length} Ujian</div>
+                {groupSchedulesBySubject(myToday).map(g => renderScheduleGroup(g.subjectName, '', g.items, closestScheduleId))}
+                {procToday.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procToday, closestScheduleId)}
+              </div>
             )}
             {tomorrowSchedules.length > 0 && (
-              <section className="space-y-4">
-                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 border-b border-border2 pb-2">Besok · {tomorrowSchedules.length} Ujian</div>
-                {myTomorrow.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Ujian Mapel Anda</div>
-                    {myTomorrow.map(s => <ExamScheduleCard key={s.id} s={s} />)}
-                  </div>
-                )}
-                {procTomorrow.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Tugas Ngawas</div>
-                    {procTomorrow.map(s => <ExamScheduleCard key={s.id} s={s} />)}
-                  </div>
-                )}
-              </section>
+              <div className="mb-6">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Besok · {tomorrowSchedules.length} Ujian</div>
+                {groupSchedulesBySubject(myTomorrow).map(g => renderScheduleGroup(g.subjectName, '', g.items, null))}
+                {procTomorrow.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procTomorrow, null)}
+              </div>
             )}
           </div>
         )}
@@ -465,31 +439,41 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const legacyPast = allSubjects.filter(s => s.daysLeft < 0 && s.subjectId !== 'proctor_only');
     
     return (
-      <div className="space-y-3 animate-slide-up pb-20">
+      <div className="space-y-4 animate-slide-up pb-20">
         {renderAddExamForm('jadwal', 'Tambah Jadwal Ujian')}
         
         {myFuture.length === 0 ? (
-          <div className="bg-surface border border-border2 rounded-3xl px-6 py-8 text-center">
+          <div className="bg-surface border border-border2 rounded-3xl px-6 py-8 text-center mt-2">
             <CalendarDays aria-hidden="true" className="h-10 w-10 mx-auto mb-3 text-text3" />
             <div className="text-sm font-bold">Belum ada jadwal mapelmu</div>
             <div className="text-xs text-text3 mt-1">Jadwal ujian mapel yang Anda ampu akan muncul di sini.</div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {myFuture.map(s => <ExamScheduleCard key={s.id} s={s} />)}
+          <div className="mt-4">
+            <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Akan Datang</div>
+            {groupSchedulesBySubject(myFuture).map(g => renderScheduleGroup(g.subjectName, `${g.items.length} ujian`, g.items, null))}
           </div>
         )}
 
         {(myPast.length > 0 || legacyPast.length > 0) && (
-          <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-4">
-            <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
-              <div><div className="text-[13px] font-bold">Riwayat Jadwal Ujian</div><div className="text-xs text-text3 mt-0.5">{myPast.length || legacyPast.length} ujian terdahulu</div></div>
+          <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-6">
+            <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface2/30 transition-colors">
+              <div>
+                <div className="text-[13px] font-bold">Riwayat Jadwal Ujian</div>
+                <div className="text-xs text-text3 mt-0.5">{myPast.length || legacyPast.length} ujian terdahulu</div>
+              </div>
               <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
             </summary>
-            <div className="border-t border-border2/60 p-3 space-y-2">
+            <div className="border-t border-border2/60 bg-surface3/30 p-3">
               {myPast.length > 0
-                ? myPast.map(s => <ExamScheduleCard key={s.id} s={s} />)
-                : legacyPast.map(item => <SubjectCard key={`${item.subjectId}-${item.examDate}`} item={item} />)}
+                ? groupSchedulesBySubject(myPast).map(g => renderScheduleGroup(g.subjectName, '', g.items, null))
+                : legacyPast.map(item => (
+                    <div key={`${item.subjectId}-${item.examDate}`} className="bg-surface border border-border2 rounded-2xl overflow-hidden mb-3 p-3 text-sm">
+                      <div className="font-bold">{item.subjectName}</div>
+                      <div className="text-xs text-text3">{fmtDate(item.examDate)} (Data lama)</div>
+                    </div>
+                  ))
+              }
             </div>
           </details>
         )}
@@ -503,29 +487,33 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const procPast = procSchedules.filter(s => s.date < todayStr);
     
     return (
-      <div className="space-y-3 animate-slide-up pb-20">
+      <div className="space-y-4 animate-slide-up pb-20">
         {renderAddExamForm('ngawas', 'Tambah Tugas Ngawas')}
         
         {procFuture.length === 0 ? (
-          <div className="bg-surface border border-border2 rounded-3xl px-6 py-8 text-center">
+          <div className="bg-surface border border-border2 rounded-3xl px-6 py-8 text-center mt-2">
             <UserCheck aria-hidden="true" className="h-10 w-10 mx-auto mb-3 text-text3" />
             <div className="text-sm font-bold">Belum ada tugas ngawas</div>
             <div className="text-xs text-text3 mt-1">Jadwal pengawasan ujian kelas lain akan muncul di sini.</div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {procFuture.map(s => <ExamScheduleCard key={s.id} s={s} />)}
+          <div className="mt-4">
+            <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Akan Datang</div>
+            {renderScheduleGroup('Tugas Ngawas', '', procFuture, null)}
           </div>
         )}
 
         {procPast.length > 0 && (
-          <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-4">
-            <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
-              <div><div className="text-[13px] font-bold">Riwayat Tugas Ngawas</div><div className="text-xs text-text3 mt-0.5">{procPast.length} ujian terdahulu</div></div>
+          <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-6">
+            <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface2/30 transition-colors">
+              <div>
+                <div className="text-[13px] font-bold">Riwayat Tugas Ngawas</div>
+                <div className="text-xs text-text3 mt-0.5">{procPast.length} ujian terdahulu</div>
+              </div>
               <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
             </summary>
-            <div className="border-t border-border2/60 p-3 space-y-2">
-              {procPast.map(s => <ExamScheduleCard key={s.id} s={s} />)}
+            <div className="border-t border-border2/60 bg-surface3/30 p-3">
+              {groupSchedulesByDate(procPast).map(g => renderScheduleGroup(fmtDate(g.date), '', g.items, null))}
             </div>
           </details>
         )}
