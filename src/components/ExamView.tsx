@@ -165,7 +165,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
             {examTypeBadge}
             {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isClosest && !isActive && <span className="text-xs font-black bg-blue-500/10 text-blue-500 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Paling Dekat</span>}
+            {isClosest && !isActive && <span className="text-xs font-black bg-blue-500/10 text-blue-500 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase tracking-wide">Paling Dekat</span>}
             {isDone && (
               <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
                 Selesai {isCorrected && <CheckCircle2 className="w-3.5 h-3.5 text-green" />}
