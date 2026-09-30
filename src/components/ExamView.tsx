@@ -13,7 +13,7 @@ import {
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X, MapPin, StickyNote, Sun, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X, MapPin, StickyNote, Sun, UserCheck, CheckCircle2, Check } from 'lucide-react';
 
 type ExamTab = 'today' | 'jadwal' | 'ngawas' | 'koreksi';
 
@@ -243,38 +243,33 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
   const CorrectionRow = ({ item }: { item: CorrectionQueueItem }) => {
-    const corrSt = item.status;
+    const isDone = item.status === 'selesai';
     const isFuture = item.isScheduled && !item.isExamFinished;
 
     return (
-      <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all ${
-        corrSt === 'selesai' ? 'bg-green-dim/15 border-green/30' :
-        corrSt ? 'bg-amber/8 border-amber/25' :
-        item.isOverdue ? 'bg-red/5 border-red/25' :
-        'bg-surface border-border2'
-      }`}>
+      <div className={`px-4 py-3 flex items-center justify-between gap-3 transition-colors ${isDone ? 'bg-green/5' : 'hover:bg-surface2/30'}`}>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            {item.isOverdue && corrSt !== 'selesai' && (
-              <span className="text-xs font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-bold text-[13px] uppercase">{item.className}</span>
+            {item.isOverdue && !isDone && (
+              <span className="text-[10px] font-black bg-red/15 text-red border border-red/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Terlambat</span>
             )}
             {item.daysLeft === 0 && item.isScheduled && (
-              <span className="text-xs font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
+              <span className="text-[10px] font-black bg-amber/15 text-amber border border-amber/25 px-2 py-0.5 rounded-full uppercase tracking-wide">Hari Ini</span>
             )}
             {isFuture && item.daysLeft !== 0 && (
-               <span className="text-xs font-black bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Menunggu Ujian</span>
+              <span className="text-[10px] font-black bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Menunggu</span>
             )}
           </div>
-          <div className="text-sm font-bold leading-snug">{item.className}</div>
-          <div className="text-xs text-text2">{item.subjectName}</div>
           {item.isScheduled && (
-            <div className="text-xs text-text3 mt-0.5">
+            <div className="text-xs text-text3 flex items-center gap-1.5 mt-0.5">
+              <CalendarDays className="w-3.5 h-3.5 text-text3/70" />
               {fmtDate(item.examDate!)}
-              {item.daysLeft !== 0 && <span> · {fmtDayLabel(item.daysLeft!)}</span>}
-              {item.startTime && item.endTime && <span> · {item.startTime}-{item.endTime}</span>}
+              {item.daysLeft !== 0 && <span>· {fmtDayLabel(item.daysLeft!)}</span>}
             </div>
           )}
         </div>
+        
         <div className="flex-shrink-0 flex items-center gap-2">
           {!item.isScheduled ? (
             <button
@@ -285,57 +280,23 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                 setEStart(''); setEEnd(''); setEEditId(null);
                 setExamFormOpen(true);
               }}
-              className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary font-bold transition-all active:scale-95"
+              className="text-xs px-3 min-h-[36px] flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary font-bold active:scale-95 transition-all"
             >
-              Set Waktu
+              Set Jadwal
             </button>
           ) : (
-            <>
-              {item.scheduleId && corrSt !== 'selesai' && (
-                <button
-                  onClick={() => {
-                    const s = examSchedules.find(x => x.id === item.scheduleId);
-                    if (s) handleEditExam(s);
-                  }}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
-                  title="Edit Jadwal"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-              )}
-              {isFuture ? null : corrSt === 'selesai' ? (
-                <button
-                  onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
-                  className="text-sm px-4 min-h-[44px] rounded-full border border-green/30 bg-green/10 text-green font-bold flex items-center justify-center gap-2 hover:bg-green/20 transition-all active:scale-95"
-                  title="Batal selesai"
-                >
-                  Selesai <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              ) : corrSt === 'sedang' ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, null)}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border border-border2 bg-surface hover:bg-surface2 text-text3 transition-all active:scale-95"
-                    title="Batal koreksi"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'selesai')}
-                    className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-green/30 bg-green/10 text-green font-bold transition-all active:scale-95"
-                  >
-                    Tandai selesai
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, 'sedang')}
-                  className="text-sm px-4 min-h-[44px] flex items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber font-bold transition-all active:scale-95"
-                >
-                  Mulai koreksi
-                </button>
-              )}
-            </>
+            <button
+              onClick={() => handleCorrectionStatus(item.subjectId, item.classId, item.examDate!, isDone ? null : 'selesai')}
+              disabled={isFuture}
+              className={`w-10 h-10 rounded-full border-2 grid place-items-center transition-all ${
+                isFuture ? 'border-border2 bg-surface2/30 text-border2 cursor-not-allowed opacity-50'
+                : isDone ? 'bg-green border-green text-white shadow-sm scale-[0.98]'
+                : 'border-border2 bg-surface hover:border-primary/40 text-primary/0 hover:text-primary/30 active:scale-95'
+              }`}
+              title={isDone ? "Batal selesai" : "Tandai selesai"}
+            >
+              <Check className={`w-5 h-5 transition-opacity ${isDone ? 'opacity-100' : isFuture ? 'opacity-0' : 'opacity-100'}`} />
+            </button>
           )}
         </div>
       </div>
@@ -572,14 +533,46 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     );
   };
 
+  const groupBySubject = (items: CorrectionQueueItem[]) => {
+    const map = new Map<string, { subjectId: string, subjectName: string, items: CorrectionQueueItem[] }>();
+    items.forEach(item => {
+      if (!map.has(item.subjectId)) {
+        map.set(item.subjectId, { subjectId: item.subjectId, subjectName: item.subjectName, items: [] });
+      }
+      map.get(item.subjectId)!.items.push(item);
+    });
+    return Array.from(map.values());
+  };
+
+  const renderCorrectionGroups = (groups: ReturnType<typeof groupBySubject>) => {
+    return groups.map(g => (
+      <div key={g.subjectId} className="bg-surface border border-border2 rounded-2xl overflow-hidden mb-3">
+        <div className="px-4 py-2.5 bg-surface2/40 border-b border-border2/60">
+          <div className="text-sm font-bold text-foreground">{g.subjectName}</div>
+        </div>
+        <div className="divide-y divide-border2/60">
+          {g.items.map(item => (
+            <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />
+          ))}
+        </div>
+      </div>
+    ));
+  };
+
   const renderKoreksi = () => {
     const queue = getCorrectionQueue();
     const { done, total, pending, overdue } = correctionStats;
     const progressPct = total > 0 ? Math.max(4, (done / total) * 100) : 0;
     const completed = getCorrectionQueue({ includeCompleted: true }).filter(item => item.status === 'selesai');
 
+    const scheduledQueue = queue.filter(q => q.isScheduled);
+    const unscheduledQueue = queue.filter(q => !q.isScheduled);
+
+    const scheduledGroups = groupBySubject(scheduledQueue);
+    const completedGroups = groupBySubject(completed);
+
     return (
-      <div className="space-y-3 animate-slide-up pb-20">
+      <div className="space-y-4 animate-slide-up pb-20">
         <div className={`rounded-2xl border p-4 ${pending > 0 ? 'bg-red/5 border-red/25' : 'bg-green-dim/15 border-green/30'}`}>
           <div className="flex items-center justify-between gap-3 mb-2">
             <div>
@@ -595,26 +588,47 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         </div>
 
         {queue.length === 0 ? (
-          <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center">
+          <div className="bg-surface border border-border2 rounded-3xl px-6 py-10 text-center mt-2">
             <CheckCircle2 className="h-12 w-12 text-green mx-auto mb-4" />
             <div className="text-sm font-bold mb-1">Semua koreksi beres</div>
             <div className="text-xs text-text3">Tidak ada ujian yang perlu dikoreksi saat ini.</div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {queue.map(item => <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />)}
+          <div className="mt-2">
+            {scheduledGroups.length > 0 && (
+              <div className="mb-6">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Perlu Dikoreksi</div>
+                {renderCorrectionGroups(scheduledGroups)}
+              </div>
+            )}
+            
+            {unscheduledQueue.length > 0 && (
+              <div className="mb-6">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Perlu Dijadwalkan</div>
+                <div className="bg-surface border border-border2 rounded-2xl overflow-hidden divide-y divide-border2/60">
+                  {unscheduledQueue.map(item => (
+                    <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-4">
-          <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5">
-            <div><div className="text-[13px] font-bold">Koreksi Selesai</div><div className="text-xs text-text3 mt-0.5">{completed.length} kelas sudah dikoreksi</div></div>
-            <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="border-t border-border2/60 p-3 space-y-2">
-            {completed.length ? completed.map(item => <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />) : <p className="text-xs text-text3 text-center py-3">Belum ada koreksi yang selesai.</p>}
-          </div>
-        </details>
+        {completed.length > 0 && (
+          <details className="group bg-surface border border-border2 rounded-2xl overflow-hidden mt-6">
+            <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-surface2/30 transition-colors">
+              <div>
+                <div className="text-[13px] font-bold">Koreksi Selesai</div>
+                <div className="text-xs text-text3 mt-0.5">{completed.length} kelas sudah dikoreksi</div>
+              </div>
+              <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-border2/60 bg-surface3/30 p-3">
+              {renderCorrectionGroups(completedGroups)}
+            </div>
+          </details>
+        )}
       </div>
     );
   };
