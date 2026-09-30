@@ -137,13 +137,16 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
 
-  const ExamScheduleCard = ({ s }: { s: ReturnType<typeof getExamSchedules>[number] }) => {
+  const ExamScheduleCard = ({ s, isClosest }: { s: ReturnType<typeof getExamSchedules>[number], isClosest?: boolean }) => {
     const cls = data.classes.find(c => c.id === s.classId);
     const sub = data.subjects.find(x => x.id === s.subjectId);
     
     const status = getExamStatus(s.date, s.startTime, s.endTime);
     const isActive = status === 'BERLANGSUNG';
     const isDone = status === 'SELESAI' || status === 'TERLEWAT';
+
+    const corr = data.corrections?.find(c => c.subjectId === s.subjectId && c.classId === s.classId && c.examDate === s.date);
+    const isCorrected = corr?.status === 'selesai' && s.subjectId !== 'proctor_only';
 
     const examTypeBadge = s.examType
       ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
@@ -155,14 +158,19 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
 
     return (
       <div className={`border rounded-2xl p-3.5 flex items-center gap-3 transition-all ${
-        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
+        isActive ? 'bg-amber/10 border-amber/30 shadow-[inset_0_0_20px_rgba(251,191,36,0.05)]' : isClosest ? 'bg-blue-500/5 border-blue-500/30' : isDone ? 'bg-green/10 border-green/30' : 'bg-surface2/40 border-border2/60 hover:bg-surface2/80'
       }`}>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-bold text-sm bg-surface3 px-2 py-0.5 rounded-md border border-border2 text-text2 uppercase">{cls?.name || '?'}</span>
             {examTypeBadge}
             {isActive && <span className="text-xs font-black bg-amber/20 text-amber border border-amber/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Sedang Berlangsung</span>}
-            {isDone && <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>}
+            {isClosest && !isActive && <span className="text-xs font-black bg-blue-500/10 text-blue-500 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">Paling Dekat</span>}
+            {isDone && (
+              <span className="text-xs font-black bg-green/10 text-green border border-green/20 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
+                Selesai {isCorrected && <CheckCircle2 className="w-3.5 h-3.5 text-green" />}
+              </span>
+            )}
           </div>
           <div className="text-[15px] font-bold text-foreground leading-snug">{s.subjectName || sub?.name || '?'}</div>
           <div className="text-[13px] font-medium text-text2 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -426,6 +434,19 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const tomorrowStr = dateKey(tomorrow);
     const tomorrowSchedules = futureExamSchedules.filter(s => s.date === tomorrowStr);
     
+    const activeOrUpcoming = todayExamSchedules
+      .filter(s => {
+        const st = getExamStatus(s.date, s.startTime, s.endTime);
+        return st !== 'SELESAI' && st !== 'TERLEWAT';
+      })
+      .sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+    const closestScheduleId = activeOrUpcoming.length > 0 ? activeOrUpcoming[0].id : null;
+
+    const myToday = todayExamSchedules.filter(s => s.subjectId !== 'proctor_only').sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+    const procToday = todayExamSchedules.filter(s => s.subjectId === 'proctor_only').sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+    const myTomorrow = tomorrowSchedules.filter(s => s.subjectId !== 'proctor_only');
+    const procTomorrow = tomorrowSchedules.filter(s => s.subjectId === 'proctor_only');
+
     return (
       <div className="space-y-3 animate-slide-up pb-20">
         {todayExamSchedules.length === 0 && tomorrowSchedules.length === 0 ? (
@@ -435,17 +456,39 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
             <div className="text-xs text-text3 mt-1">Anda bisa bersantai sejenak.</div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {todayExamSchedules.length > 0 && (
-              <section className="space-y-2">
-                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1">Hari Ini · {todayExamSchedules.length} ujian</div>
-                <div className="space-y-2">{todayExamSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+              <section className="space-y-4">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 border-b border-border2 pb-2">Hari Ini · {todayExamSchedules.length} Ujian</div>
+                {myToday.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Ujian Mapel Anda</div>
+                    {myToday.map(s => <ExamScheduleCard key={s.id} s={s} isClosest={s.id === closestScheduleId} />)}
+                  </div>
+                )}
+                {procToday.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Tugas Ngawas</div>
+                    {procToday.map(s => <ExamScheduleCard key={s.id} s={s} isClosest={s.id === closestScheduleId} />)}
+                  </div>
+                )}
               </section>
             )}
             {tomorrowSchedules.length > 0 && (
-              <section className="space-y-2">
-                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1">Besok · {tomorrowSchedules.length} ujian</div>
-                <div className="space-y-2">{tomorrowSchedules.map(s => <ExamScheduleCard key={s.id} s={s} />)}</div>
+              <section className="space-y-4">
+                <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 border-b border-border2 pb-2">Besok · {tomorrowSchedules.length} Ujian</div>
+                {myTomorrow.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Ujian Mapel Anda</div>
+                    {myTomorrow.map(s => <ExamScheduleCard key={s.id} s={s} />)}
+                  </div>
+                )}
+                {procTomorrow.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-text3 px-1 uppercase tracking-wider">Tugas Ngawas</div>
+                    {procTomorrow.map(s => <ExamScheduleCard key={s.id} s={s} />)}
+                  </div>
+                )}
               </section>
             )}
           </div>
