@@ -137,8 +137,9 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
   };
 
 
-  const ScheduleRow = ({ s, isClosest }: { s: ReturnType<typeof getExamSchedules>[number], isClosest?: boolean }) => {
+  const ScheduleRow = ({ s, isClosest, showSubject }: { s: ReturnType<typeof getExamSchedules>[number], isClosest?: boolean, showSubject?: boolean }) => {
     const cls = data.classes.find(c => c.id === s.classId);
+    const sub = data.subjects.find(x => x.id === s.subjectId);
     
     const status = getExamStatus(s.date, s.startTime, s.endTime);
     const isActive = status === 'BERLANGSUNG';
@@ -152,6 +153,11 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-bold text-[13px] uppercase">{cls?.name || '?'}</span>
+            {showSubject && (
+              <span className="text-[11px] font-semibold text-text2 bg-surface2 px-1.5 py-0.5 rounded">
+                {s.subjectId === 'proctor_only' ? (s.subjectName || 'Tugas Ngawas') : (s.subjectName || sub?.name || 'Mapel tidak diketahui')}
+              </span>
+            )}
             {s.examType && (
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
                 s.examType === 'UTS' ? 'bg-blue-500/15 text-blue-500'
@@ -222,7 +228,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     return Array.from(map.entries()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, items]) => ({ date, items }));
   };
 
-  const renderScheduleGroup = (title: string, subtitle: React.ReactNode, schedules: ReturnType<typeof getExamSchedules>, closestId?: string | null) => {
+  const renderScheduleGroup = (title: string, subtitle: React.ReactNode, schedules: ReturnType<typeof getExamSchedules>, closestId?: string | null, showSubject?: boolean) => {
     return (
       <div className="bg-surface border border-border2 rounded-2xl overflow-hidden mb-3">
         <div className="px-4 py-2.5 bg-surface2/40 border-b border-border2/60 flex items-center justify-between">
@@ -230,7 +236,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
           {subtitle && <div className="text-[11px] text-text3 font-medium">{subtitle}</div>}
         </div>
         <div className="divide-y divide-border2/60">
-          {schedules.map(s => <ScheduleRow key={s.id} s={s} isClosest={s.id === closestId} />)}
+          {schedules.map(s => <ScheduleRow key={s.id} s={s} isClosest={s.id === closestId} showSubject={showSubject} />)}
         </div>
       </div>
     );
@@ -513,7 +519,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               <ChevronDown className="h-4 w-4 text-text3 transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-border2/60 bg-surface3/30 p-3">
-              {groupSchedulesByDate(procPast).map(g => renderScheduleGroup(fmtDate(g.date), '', g.items, null))}
+              {groupSchedulesByDate(procPast).map(g => renderScheduleGroup(fmtDate(g.date), '', g.items, null, true))}
             </div>
           </details>
         )}
@@ -557,6 +563,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     const unscheduledQueue = queue.filter(q => !q.isScheduled);
 
     const scheduledGroups = groupBySubject(scheduledQueue);
+    const unscheduledGroups = groupBySubject(unscheduledQueue);
     const completedGroups = groupBySubject(completed);
 
     return (
@@ -590,14 +597,10 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               </div>
             )}
             
-            {unscheduledQueue.length > 0 && (
+            {unscheduledGroups.length > 0 && (
               <div className="mb-6">
                 <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Perlu Dijadwalkan</div>
-                <div className="bg-surface border border-border2 rounded-2xl overflow-hidden divide-y divide-border2/60">
-                  {unscheduledQueue.map(item => (
-                    <CorrectionRow key={`${item.subjectId}-${item.classId}-${item.examDate}`} item={item} />
-                  ))}
-                </div>
+                {renderCorrectionGroups(unscheduledGroups)}
               </div>
             )}
           </div>
