@@ -13,7 +13,7 @@ import {
 } from '@/lib/examData';
 import { currentMin, timeToMin, dateKey, getData } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X, MapPin, StickyNote, Sun, UserCheck, CheckCircle2, Check } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, AlertTriangle, CalendarDays, Pencil, History, RotateCcw, X, MapPin, StickyNote, Sun, UserCheck, CheckCircle2, Check, Eye } from 'lucide-react';
 
 type ExamTab = 'today' | 'jadwal' | 'ngawas' | 'koreksi';
 
@@ -226,14 +226,17 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
     return Array.from(map.entries()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, items]) => ({ date, items }));
   };
 
-  const renderScheduleGroup = (title: string, subtitle: React.ReactNode, schedules: ReturnType<typeof getExamSchedules>, closestId?: string | null) => {
+  const renderScheduleGroup = (title: string, subtitle: React.ReactNode, schedules: ReturnType<typeof getExamSchedules>, closestId?: string | null, isNgawas?: boolean) => {
     return (
-      <div className="bg-surface border border-border2 rounded-2xl overflow-hidden mb-3">
-        <div className="px-4 py-2.5 bg-surface2/40 border-b border-border2/60 flex items-center justify-between">
-          <div className="text-sm font-bold text-foreground">{title}</div>
-          {subtitle && <div className="text-[11px] text-text3 font-medium">{subtitle}</div>}
+      <div className={`bg-surface border rounded-2xl overflow-hidden mb-3 ${isNgawas ? 'border-purple-500/30' : 'border-border2'}`}>
+        <div className={`px-4 py-2.5 border-b flex items-center justify-between ${isNgawas ? 'bg-purple-500/10 border-purple-500/20' : 'bg-surface2/40 border-border2/60'}`}>
+          <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+            {isNgawas && <Eye className="w-4 h-4 text-purple-500" />}
+            {title}
+          </div>
+          {subtitle && <div className={`text-[11px] font-medium ${isNgawas ? 'text-purple-500/80' : 'text-text3'}`}>{subtitle}</div>}
         </div>
-        <div className="divide-y divide-border2/60">
+        <div className={`divide-y ${isNgawas ? 'divide-purple-500/10' : 'divide-border2/60'}`}>
           {schedules.map(s => <ScheduleRow key={s.id} s={s} isClosest={s.id === closestId} />)}
         </div>
       </div>
@@ -423,14 +426,14 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
               <div className="mb-6">
                 <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Hari Ini · {todayExamSchedules.length} Ujian</div>
                 {groupSchedulesBySubject(myToday).map(g => renderScheduleGroup(g.subjectName, '', g.items, closestScheduleId))}
-                {procToday.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procToday, closestScheduleId)}
+                {procToday.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procToday, closestScheduleId, true)}
               </div>
             )}
             {tomorrowSchedules.length > 0 && (
               <div className="mb-6">
                 <div className="text-xs font-black uppercase tracking-widest text-text3 px-1 mb-2">Besok · {tomorrowSchedules.length} Ujian</div>
                 {groupSchedulesBySubject(myTomorrow).map(g => renderScheduleGroup(g.subjectName, '', g.items, null))}
-                {procTomorrow.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procTomorrow, null)}
+                {procTomorrow.length > 0 && renderScheduleGroup('Tugas Ngawas', '', procTomorrow, null, true)}
               </div>
             )}
           </div>
