@@ -128,6 +128,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
       setNSubject(s.subjectName);
     }
     setExamFormOpen(true);
+    setTab(s.subjectId === 'proctor_only' ? 'ngawas' : 'jadwal');
   };
 
   const handleDeleteExam = (id: string) => {
@@ -283,6 +284,7 @@ export default function ExamView({ onRefresh, initialTab }: ExamViewProps) {
                 setEDate(dateKey());
                 setEStart(''); setEEnd(''); setEEditId(null);
                 setExamFormOpen(true);
+                setTab('jadwal');
               }}
               className="text-xs px-3 min-h-[36px] flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary font-bold active:scale-95 transition-all"
             >
